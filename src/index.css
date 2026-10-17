@@ -1,0 +1,95 @@
+@import "tailwindcss";
+
+@layer base {
+  :root {
+    --viva-primary: #E11D48;
+    --viva-primary-light: #FB7185;
+    --viva-primary-dark: #9F1239;
+    --viva-accent: #F59E0B;
+    --viva-accent-light: #FDE68A;
+    --viva-bg-main: #0F0B10;
+    --viva-bg-surface: #1A121C;
+    --viva-bg-subtle: #291428;
+    --viva-text-main: #FFFFFF;
+    --viva-text-muted: #CBD5E1;
+    --viva-border: rgba(225, 29, 72, 0.25);
+    --viva-border-glow: rgba(225, 29, 72, 0.45);
+  }
+
+  body {
+    background-color: var(--viva-bg-main);
+    color: var(--viva-text-main);
+    font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+    overflow-x: hidden;
+    min-height: 100vh;
+    transition: background-color 0.3s ease, color 0.3s ease;
+  }
+}
+
+/* Custom Scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--viva-bg-main);
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--viva-primary);
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--viva-accent);
+}
+
+/* Glassmorphic 3D Panels & Dynamic Glows */
+.glass-panel {
+  background: var(--viva-bg-surface);
+  backdrop-filter: blur(14px);
+  border: 1px solid var(--viva-border);
+}
+
+.glass-card {
+  background: var(--viva-bg-surface);
+  backdrop-filter: blur(10px);
+  border: 1px solid var(--viva-border);
+}
+
+.glass-card-hover:hover {
+  border-color: var(--viva-accent);
+  box-shadow: 0 10px 30px -10px var(--viva-border-glow);
+  transform: translateY(-2px);
+}
+
+.dynamic-primary-bg {
+  background-color: var(--viva-primary);
+}
+
+.dynamic-accent-bg {
+  background-color: var(--viva-accent);
+}
+
+.dynamic-accent-text {
+  color: var(--viva-accent);
+}
+
+.dynamic-border {
+  border-color: var(--viva-border);
+}
+
+.gold-gradient-text {
+  background: linear-gradient(135deg, var(--viva-accent-light, #FEF08A) 0%, var(--viva-accent, #F5B82E) 50%, var(--viva-primary-dark, #D97706) 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.viva-glow-gold {
+  box-shadow: 0 0 25px var(--viva-border-glow);
+}
+
+.viva-glow-primary {
+  box-shadow: 0 0 30px var(--viva-border-glow);
+}

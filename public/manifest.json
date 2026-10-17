@@ -1,0 +1,17 @@
+{
+  "short_name": "VIVA EVENT",
+  "name": "VIVA EVENT SOLUTIONS SARLU",
+  "description": "Plateforme officielle d'ingénierie événementielle globale, communication stratégique et guichet unique multiservices en RDC.",
+  "icons": [
+    {
+      "src": "favicon.ico",
+      "sizes": "64x64 32x32 24x24 16x16",
+      "type": "image/x-icon"
+    }
+  ],
+  "start_url": "/",
+  "display": "standalone",
+  "theme_color": "#0f172a",
+  "background_color": "#0b0f19",
+  "orientation": "portrait-primary"
+}

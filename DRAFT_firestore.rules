@@ -1,0 +1,349 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // 1. GLOBAL SAFETY NET (Default Deny)
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // Diagnostic endpoint for SDK connection validation
+    match /test/{docId} {
+      allow read: if true;
+      allow write: if false;
+    }
+
+    // ==========================================
+    // GLOBAL REUSABLE HARDENED SECURITY HELPERS
+    // ==========================================
+    function isValidId(id) {
+      return id is string && id.size() > 0 && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    function incoming() {
+      return request.resource.data;
+    }
+
+    function existing() {
+      return resource.data;
+    }
+
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    function isSignedIn() {
+      return isAuthenticated();
+    }
+
+    function isBootstrappedAdmin() {
+      return isSignedIn() && (
+        request.auth.token.email in [
+          'misterk1502@gmail.com',
+          'direction.generale@viva-eventsolutions.cd',
+          'malthus.kilumba@viva-eventsolutions.cd',
+          'admin.malthus@viva-eventsolutions.cd',
+          'comptable@viva-eventsolutions.cd',
+          'chef.operations@viva-eventsolutions.cd',
+          'commercial@viva-eventsolutions.cd'
+        ]
+      );
+    }
+
+    function isAdmin() {
+      return isBootstrappedAdmin() || (
+        isSignedIn() &&
+        exists(/databases/$(database)/documents/users/$(request.auth.uid)) &&
+        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role in ['admin', 'admin_general', 'dg_gerant']
+      );
+    }
+
+    function isSuperAdmin() {
+      return isBootstrappedAdmin() || (
+        isSignedIn() &&
+        exists(/databases/$(database)/documents/users/$(request.auth.uid)) &&
+        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin_general'
+      );
+    }
+
+    function hasStaffRole() {
+      return isAdmin() || isBootstrappedAdmin() || (
+        isSignedIn() &&
+        exists(/databases/$(database)/documents/users/$(request.auth.uid)) &&
+        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role in [
+          'chef_equipe',
+          'commercial_secretaire',
+          'daf_comptable',
+          'admin_rh'
+        ]
+      );
+    }
+
+    function isDafOrManager() {
+      return isAdmin() || isBootstrappedAdmin() || (
+        isSignedIn() &&
+        exists(/databases/$(database)/documents/users/$(request.auth.uid)) &&
+        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role in [
+          'daf_comptable',
+          'dg_gerant',
+          'admin_rh'
+        ]
+      );
+    }
+
+    // ==========================================
+    // ENTITY VALIDATION HELPERS
+    // ==========================================
+
+    function isValidUser(data) {
+      return data.keys().hasAll(['id', 'email', 'name', 'role']) &&
+             data.keys().hasOnly(['id', 'email', 'name', 'role', 'phone', 'organization', 'permissions', 'jobTitle', 'createdAt', 'updatedAt', 'avatar', 'migratedAt', 'status']) &&
+             data.id is string && data.id.size() <= 128 &&
+             data.email is string && data.email.size() <= 150 &&
+             data.name is string && data.name.size() > 0 && data.name.size() <= 150 &&
+             data.role in ['visitor', 'client', 'dg_gerant', 'admin_rh', 'daf_comptable', 'chef_equipe', 'commercial_secretaire', 'admin', 'admin_general'] &&
+             (!('phone' in data) || (data.phone is string && data.phone.size() <= 50)) &&
+             (!('organization' in data) || (data.organization is string && data.organization.size() <= 150));
+    }
+
+    function isValidQuote(data) {
+      return data.keys().hasAll(['id', 'referenceNumber', 'clientName', 'clientEmail', 'eventName', 'status']) &&
+             data.keys().hasOnly(['id', 'referenceNumber', 'clientName', 'clientEmail', 'clientPhone', 'clientOrganization', 'eventType', 'eventName', 'eventDate', 'location', 'estimatedAttendees', 'estimatedBudgetUSD', 'status', 'priority', 'customNotes', 'createdAt', 'updatedAt', 'userId', 'migratedAt']) &&
+             data.id is string && data.id.size() <= 128 &&
+             data.referenceNumber is string && data.referenceNumber.size() <= 64 &&
+             data.clientName is string && data.clientName.size() > 0 && data.clientName.size() <= 150 &&
+             data.clientEmail is string && data.clientEmail.size() <= 150 &&
+             data.eventName is string && data.eventName.size() > 0 && data.eventName.size() <= 200 &&
+             data.status in ['submitted', 'under_review', 'quote_issued', 'approved', 'rejected', 'en_attente_acompte'] &&
+             (!('clientPhone' in data) || (data.clientPhone is string && data.clientPhone.size() <= 50)) &&
+             (!('estimatedAttendees' in data) || (data.estimatedAttendees is number && data.estimatedAttendees >= 0)) &&
+             (!('estimatedBudgetUSD' in data) || (data.estimatedBudgetUSD is number && data.estimatedBudgetUSD >= 0)) &&
+             (!('customNotes' in data) || (data.customNotes is string && data.customNotes.size() <= 5000));
+    }
+
+    function isValidProject(data) {
+      return data.keys().hasAll(['id', 'code', 'title', 'status']) &&
+             data.keys().hasOnly(['id', 'code', 'title', 'client', 'type', 'startDate', 'endDate', 'location', 'budgetUSD', 'progressPercent', 'status', 'leadManager', 'createdAt', 'updatedAt', 'version', 'createdBy', 'updatedBy', 'migratedAt']) &&
+             data.id is string && data.id.size() <= 128 &&
+             data.code is string && data.code.size() <= 64 &&
+             data.title is string && data.title.size() <= 200 &&
+             data.status in ['conception', 'retroplanning', 'en_cours', 'cloture', 'archive'] &&
+             (!('budgetUSD' in data) || (data.budgetUSD is number && data.budgetUSD >= 0)) &&
+             (!('progressPercent' in data) || (data.progressPercent is number && data.progressPercent >= 0 && data.progressPercent <= 100));
+    }
+
+    function isValidTask(data) {
+      return data.keys().hasAll(['id', 'projectCode', 'title', 'priority', 'status']) &&
+             data.keys().hasOnly(['id', 'projectCode', 'projectTitle', 'serviceDirection', 'title', 'description', 'assignedTo', 'priority', 'status', 'deadline', 'createdAt', 'completedAt']) &&
+             data.id is string && data.id.size() <= 128 &&
+             data.projectCode is string && data.projectCode.size() <= 64 &&
+             data.title is string && data.title.size() <= 200 &&
+             data.priority in ['basse', 'normale', 'haute', 'urgente'] &&
+             data.status in ['a_faire', 'en_cours', 'revue', 'termine'] &&
+             (!('description' in data) || (data.description is string && data.description.size() <= 2000));
+    }
+
+    function isValidTransaction(data) {
+      return data.keys().hasAll(['id', 'pieceReference', 'date', 'type', 'category', 'amountUSD', 'validationStatus']) &&
+             data.id is string && data.id.size() <= 128 &&
+             data.type in ['recette', 'depense'] &&
+             data.amountUSD is number && data.amountUSD >= 0 &&
+             data.validationStatus in ['valide', 'en_attente_manager', 'en_attente_otp_daf', 'rejete'];
+    }
+
+    function isValidAuditLog(data) {
+      return data.keys().hasAll(['id', 'timestamp', 'userEmail', 'action']) &&
+             data.id is string && data.id.size() <= 128 &&
+             data.timestamp is string && data.timestamp.size() <= 50 &&
+             data.userEmail is string && data.userEmail.size() <= 150 &&
+             data.action is string && data.action.size() <= 150;
+    }
+
+    // ==========================================
+    // COLLECTION ACCESS RULES (Zero-Trust)
+    // ==========================================
+
+    // Users Collection (PII isolation & anti-privilege escalation)
+    match /users/{userId} {
+      allow get: if isValidId(userId) && (
+        isAdmin() || (isSignedIn() && request.auth.uid == userId)
+      );
+      allow list: if isAdmin();
+      
+      allow create: if isValidId(userId) && (
+        isAdmin() || (
+          isSignedIn() &&
+          isValidUser(incoming()) &&
+          request.auth.uid == userId &&
+          incoming().id == userId &&
+          incoming().role in ['visitor', 'client']
+        )
+      );
+      
+      allow update: if isValidId(userId) && isValidUser(incoming()) && (
+        isAdmin() || (
+          isSignedIn() && request.auth.uid == userId &&
+          incoming().id == existing().id &&
+          incoming().role == existing().role && // Strict protection against self-elevation
+          incoming().diff(existing()).affectedKeys().hasOnly(['name', 'phone', 'organization', 'avatar', 'updatedAt'])
+        )
+      );
+      
+      allow delete: if isValidId(userId) && isAdmin();
+    }
+
+    // Quotes Collection (Secure submissions & client/staff access)
+    match /quotes/{quoteId} {
+      allow get: if isValidId(quoteId) && (
+        isAdmin() ||
+        hasStaffRole() ||
+        (isSignedIn() && (
+          (existing().userId is string && existing().userId == request.auth.uid) ||
+          (existing().clientEmail is string && existing().clientEmail == request.auth.token.email)
+        ))
+      );
+      
+      allow list: if isAdmin() || hasStaffRole() || (
+        isSignedIn() && (
+          resource.data.userId == request.auth.uid ||
+          resource.data.clientEmail == request.auth.token.email
+        )
+      );
+
+      // Public visitors can submit legitimate inquiries
+      allow create: if isValidId(quoteId) &&
+                    isValidQuote(incoming()) &&
+                    incoming().id == quoteId &&
+                    incoming().status == 'submitted';
+
+      allow update: if isValidId(quoteId) && isValidQuote(incoming()) && (
+        isAdmin() || hasStaffRole() || (
+          isSignedIn() && existing().userId == request.auth.uid &&
+          existing().status in ['submitted', 'under_review'] &&
+          incoming().id == existing().id &&
+          incoming().diff(existing()).affectedKeys().hasOnly(['eventName', 'eventDate', 'location', 'estimatedAttendees', 'estimatedBudgetUSD', 'customNotes', 'updatedAt'])
+        )
+      );
+
+      allow delete: if isValidId(quoteId) && (isAdmin() || hasStaffRole());
+    }
+
+    // Projects Collection (Public portfolio, Admin management)
+    match /projects/{projectId} {
+      allow get, list: if true;
+      allow create, update, delete: if isValidId(projectId) && isAdmin() && isValidProject(incoming());
+    }
+
+    // ERP Tasks Collection
+    match /erp_tasks/{taskId} {
+      allow get, list: if isSignedIn();
+      allow create: if isValidId(taskId) && hasStaffRole() && isValidTask(incoming());
+      allow update: if isValidId(taskId) && isValidTask(incoming()) && (
+        isAdmin() || (
+          hasStaffRole() &&
+          incoming().diff(existing()).affectedKeys().hasOnly(['status', 'description', 'completedAt'])
+        )
+      );
+      allow delete: if isValidId(taskId) && isAdmin();
+    }
+
+    // ERP Transactions (Accounting & Treasury: Double Signature & Immutability)
+    match /erp_transactions/{transactionId} {
+      allow get, list: if isDafOrManager();
+      allow create: if isValidId(transactionId) && isDafOrManager() && isValidTransaction(incoming());
+      allow update: if isValidId(transactionId) && isDafOrManager() && isValidTransaction(incoming()) && (
+        // Once validated, transaction is IMMUTABLE!
+        existing().validationStatus != 'valide'
+      );
+      allow delete: if false; // Transactions cannot be deleted (counterpass/reversal required)
+    }
+
+    // CRM Clients
+    match /crm_clients/{clientId} {
+      allow get, list: if hasStaffRole();
+      allow create, update, delete: if isValidId(clientId) && hasStaffRole();
+    }
+
+    // Equipment & Inventory (Public catalogue, Staff management)
+    match /equipment/{equipmentId} {
+      allow get, list: if true;
+      allow create, update, delete: if isValidId(equipmentId) && hasStaffRole();
+    }
+
+    // Certified Partners
+    match /partners/{partnerId} {
+      allow get, list: if true;
+      allow create, update, delete: if isValidId(partnerId) && isAdmin();
+    }
+
+    // CMS Sections (Public read, admin-only write)
+    match /cms_sections/{sectionId} {
+      allow get, list: if true;
+      allow create, update, delete: if isValidId(sectionId) && isAdmin();
+    }
+
+    // Organization Structure (9 Directions & sub-directions)
+    match /organization_directions/{directionId} {
+      allow get, list: if true;
+      allow create, update, delete: if isValidId(directionId) && isAdmin();
+    }
+
+    // Dynamic Navigation Menus
+    match /dynamic_menus/{menuId} {
+      allow get, list: if true;
+      allow create, update, delete: if isValidId(menuId) && isAdmin();
+    }
+
+    // Dynamic Functional Modules
+    match /dynamic_modules/{moduleId} {
+      allow get, list: if true;
+      allow create, update, delete: if isValidId(moduleId) && isAdmin();
+    }
+
+    // Platform Configuration
+    match /platform_config/{configId} {
+      allow get, list: if true;
+      allow create, update, delete: if isValidId(configId) && isAdmin();
+    }
+
+    // Roles and Permissions Definitions
+    match /roles_permissions/{roleId} {
+      allow get, list: if isSignedIn();
+      allow create, update, delete: if isValidId(roleId) && isSuperAdmin();
+    }
+
+    // Dynamic Hierarchical Organization Units (Directions, Departements, Services, Postes)
+    match /organization_units/{unitId} {
+      allow get, list: if true;
+      allow create, update, delete: if isValidId(unitId) && isAdmin();
+    }
+
+    // Dynamic Forms Generator
+    match /dynamic_forms/{formId} {
+      allow get, list: if true;
+      allow create, update, delete: if isValidId(formId) && isAdmin();
+    }
+
+    // Form Submissions (Public inquiries, job applications, client specs)
+    match /form_submissions/{submissionId} {
+      allow get, list: if isAdmin() || hasStaffRole();
+      allow create: if isValidId(submissionId) && incoming().id == submissionId;
+      allow update, delete: if isValidId(submissionId) && isAdmin();
+    }
+
+    // Media & Portfolio Showcase (Photos, Réalisations, Vidéos, YouTube)
+    match /media/{mediaId} {
+      allow get, list: if true;
+      allow create, update, delete: if isValidId(mediaId) && (isAdmin() || hasStaffRole());
+    }
+
+    // Audit Logs (Append-Only, Admin view)
+    match /audit_logs/{logId} {
+      allow get, list: if isAdmin();
+      allow create: if isValidId(logId) &&
+                    isValidAuditLog(incoming()) &&
+                    incoming().id == logId;
+      allow update, delete: if false; // Strict Immutability: logs cannot be altered or deleted
+    }
+  }
+}

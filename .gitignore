@@ -1,0 +1,10 @@
+node_modules/
+build/
+dist/
+coverage/
+.DS_Store
+*.log
+.env*
+!.env.example
+# Base runtime Express : hashes, sels et jetons de session en clair — jamais versionnée.
+data/

@@ -1,0 +1,670 @@
+{
+  "entities": {
+    "User": {
+      "title": "User",
+      "description": "User profile with role, permissions, and identity info",
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique user identifier",
+          "maxLength": 128
+        },
+        "email": {
+          "type": "string",
+          "format": "email",
+          "description": "User email address",
+          "maxLength": 150
+        },
+        "name": {
+          "type": "string",
+          "description": "Full name of the user",
+          "maxLength": 150
+        },
+        "role": {
+          "type": "string",
+          "description": "Assigned role",
+          "enum": [
+            "visitor",
+            "client",
+            "dg_gerant",
+            "admin_rh",
+            "daf_comptable",
+            "chef_equipe",
+            "commercial_secretaire",
+            "admin",
+            "admin_general"
+          ]
+        },
+        "phone": {
+          "type": "string",
+          "description": "Phone number",
+          "maxLength": 50
+        },
+        "organization": {
+          "type": "string",
+          "description": "Organization name",
+          "maxLength": 150
+        },
+        "createdAt": {
+          "type": "string",
+          "description": "Creation timestamp"
+        },
+        "updatedAt": {
+          "type": "string",
+          "description": "Update timestamp"
+        }
+      },
+      "required": ["id", "email", "name", "role"]
+    },
+    "QuoteRequest": {
+      "title": "QuoteRequest",
+      "description": "Devis and event service inquiries submitted by clients",
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique quote identifier",
+          "maxLength": 128
+        },
+        "referenceNumber": {
+          "type": "string",
+          "description": "Reference quote code",
+          "maxLength": 64
+        },
+        "clientName": {
+          "type": "string",
+          "description": "Name of requesting client",
+          "maxLength": 150
+        },
+        "clientEmail": {
+          "type": "string",
+          "format": "email",
+          "description": "Email of requesting client",
+          "maxLength": 150
+        },
+        "clientPhone": {
+          "type": "string",
+          "description": "Phone number",
+          "maxLength": 50
+        },
+        "clientOrganization": {
+          "type": "string",
+          "description": "Client company or organization",
+          "maxLength": 150
+        },
+        "eventType": {
+          "type": "string",
+          "description": "Category of the event",
+          "maxLength": 64
+        },
+        "eventName": {
+          "type": "string",
+          "description": "Title or name of the event",
+          "maxLength": 200
+        },
+        "eventDate": {
+          "type": "string",
+          "description": "Planned event date",
+          "maxLength": 50
+        },
+        "location": {
+          "type": "string",
+          "description": "Location venue",
+          "maxLength": 200
+        },
+        "estimatedAttendees": {
+          "type": "number",
+          "description": "Attendee count"
+        },
+        "estimatedBudgetUSD": {
+          "type": "number",
+          "description": "Estimated budget in USD"
+        },
+        "status": {
+          "type": "string",
+          "description": "Lifecycle state",
+          "enum": ["submitted", "under_review", "quote_issued", "approved", "rejected", "en_attente_acompte"]
+        },
+        "priority": {
+          "type": "string",
+          "description": "Priority level",
+          "enum": ["haute", "normale", "urgente"]
+        },
+        "customNotes": {
+          "type": "string",
+          "description": "Special specifications or notes",
+          "maxLength": 2000
+        },
+        "createdAt": {
+          "type": "string",
+          "description": "ISO timestamp of submission"
+        },
+        "userId": {
+          "type": "string",
+          "description": "User identifier who created the quote",
+          "maxLength": 128
+        }
+      },
+      "required": ["id", "referenceNumber", "clientName", "clientEmail", "eventName", "status"]
+    },
+    "Project": {
+      "title": "Project",
+      "description": "Managed event project with milestones and logistics",
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Project identifier",
+          "maxLength": 128
+        },
+        "code": {
+          "type": "string",
+          "description": "Project code",
+          "maxLength": 64
+        },
+        "title": {
+          "type": "string",
+          "description": "Event project title",
+          "maxLength": 200
+        },
+        "client": {
+          "type": "string",
+          "description": "Client name",
+          "maxLength": 150
+        },
+        "type": {
+          "type": "string",
+          "description": "Event category",
+          "maxLength": 100
+        },
+        "startDate": {
+          "type": "string",
+          "description": "Start date",
+          "maxLength": 50
+        },
+        "endDate": {
+          "type": "string",
+          "description": "End date",
+          "maxLength": 50
+        },
+        "location": {
+          "type": "string",
+          "description": "Location",
+          "maxLength": 200
+        },
+        "budgetUSD": {
+          "type": "number",
+          "description": "Total budget in USD"
+        },
+        "progressPercent": {
+          "type": "number",
+          "description": "Percentage completed"
+        },
+        "status": {
+          "type": "string",
+          "description": "Execution status",
+          "enum": ["conception", "retroplanning", "en_cours", "cloture", "archive"]
+        },
+        "leadManager": {
+          "type": "string",
+          "description": "Responsible project manager",
+          "maxLength": 150
+        }
+      },
+      "required": ["id", "code", "title", "status"]
+    },
+    "ProjectTask": {
+      "title": "ProjectTask",
+      "description": "Operational task assigned to field teams",
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Task identifier",
+          "maxLength": 128
+        },
+        "projectCode": {
+          "type": "string",
+          "description": "Parent project code",
+          "maxLength": 64
+        },
+        "projectTitle": {
+          "type": "string",
+          "description": "Parent project title",
+          "maxLength": 200
+        },
+        "serviceDirection": {
+          "type": "string",
+          "description": "Direction pole responsible",
+          "maxLength": 100
+        },
+        "title": {
+          "type": "string",
+          "description": "Task title",
+          "maxLength": 200
+        },
+        "description": {
+          "type": "string",
+          "description": "Task details",
+          "maxLength": 2000
+        },
+        "assignedTo": {
+          "type": "string",
+          "description": "Assigned team member",
+          "maxLength": 150
+        },
+        "priority": {
+          "type": "string",
+          "description": "Priority",
+          "enum": ["basse", "normale", "haute", "urgente"]
+        },
+        "status": {
+          "type": "string",
+          "description": "Task progression status",
+          "enum": ["a_faire", "en_cours", "revue", "termine"]
+        },
+        "deadline": {
+          "type": "string",
+          "description": "Due date",
+          "maxLength": 50
+        },
+        "createdAt": {
+          "type": "string",
+          "description": "Creation timestamp"
+        }
+      },
+      "required": ["id", "projectCode", "title", "priority", "status"]
+    },
+    "CmsSectionItem": {
+      "title": "CmsSectionItem",
+      "description": "CMS dynamic editable web content item",
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Section identifier",
+          "maxLength": 128
+        },
+        "page": {
+          "type": "string",
+          "description": "Target page",
+          "enum": ["accueil", "presentation", "poles", "contact", "client_portal", "admin", "footer"]
+        },
+        "section": {
+          "type": "string",
+          "description": "Section name",
+          "maxLength": 100
+        },
+        "component": {
+          "type": "string",
+          "description": "Associated UI component",
+          "maxLength": 100
+        },
+        "contentKey": {
+          "type": "string",
+          "description": "Unique key in page",
+          "maxLength": 100
+        },
+        "title": {
+          "type": "string",
+          "description": "Headline title",
+          "maxLength": 200
+        },
+        "content": {
+          "type": "string",
+          "description": "Body content text",
+          "maxLength": 10000
+        },
+        "type": {
+          "type": "string",
+          "description": "Field content type",
+          "enum": ["text", "html", "image_url", "slogan", "button_label"]
+        },
+        "status": {
+          "type": "string",
+          "description": "Publication state",
+          "enum": ["published", "draft", "archived"]
+        },
+        "language": {
+          "type": "string",
+          "description": "Locale",
+          "enum": ["fr", "en"]
+        },
+        "lastModified": {
+          "type": "string",
+          "description": "Last modified timestamp"
+        },
+        "author": {
+          "type": "string",
+          "description": "Author user email or name",
+          "maxLength": 150
+        }
+      },
+      "required": ["id", "page", "section", "contentKey", "title", "status"]
+    },
+    "AuditLog": {
+      "title": "AuditLog",
+      "description": "Append-only security and operational audit trace",
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Log entry identifier",
+          "maxLength": 128
+        },
+        "timestamp": {
+          "type": "string",
+          "description": "Timestamp ISO",
+          "maxLength": 50
+        },
+        "userEmail": {
+          "type": "string",
+          "format": "email",
+          "description": "User who performed the action",
+          "maxLength": 150
+        },
+        "action": {
+          "type": "string",
+          "description": "Event action name",
+          "maxLength": 100
+        },
+        "ipAddress": {
+          "type": "string",
+          "description": "Client IP",
+          "maxLength": 50
+        },
+        "device": {
+          "type": "string",
+          "description": "Client user-agent / device",
+          "maxLength": 250
+        }
+      },
+      "required": ["id", "timestamp", "userEmail", "action"]
+    },
+    "TestConnection": {
+      "title": "TestConnection",
+      "description": "Diagnostic document used to verify Firestore connectivity",
+      "type": "object",
+      "properties": {
+        "status": {
+          "type": "string",
+          "description": "Connection status",
+          "maxLength": 50
+        },
+        "timestamp": {
+          "type": "string",
+          "description": "Ping timestamp",
+          "maxLength": 50
+        }
+      }
+    },
+    "DirectionOrg": {
+      "title": "DirectionOrg",
+      "description": "VIVA official direction and organizational sub-direction structure",
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Direction identifier",
+          "maxLength": 128
+        },
+        "name": {
+          "type": "string",
+          "description": "Full name of the direction",
+          "maxLength": 200
+        },
+        "lead": {
+          "type": "string",
+          "description": "Responsible director name",
+          "maxLength": 150
+        }
+      },
+      "required": ["id", "name"]
+    },
+    "DynamicMenu": {
+      "title": "DynamicMenu",
+      "description": "Dynamic portal navigation item",
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique menu identifier",
+          "maxLength": 128
+        },
+        "label": {
+          "type": "string",
+          "description": "Display label",
+          "maxLength": 100
+        },
+        "route": {
+          "type": "string",
+          "description": "Application route path",
+          "maxLength": 100
+        },
+        "visible": {
+          "type": "boolean",
+          "description": "Visibility flag"
+        }
+      },
+      "required": ["id", "label", "route"]
+    },
+    "DynamicModule": {
+      "title": "DynamicModule",
+      "description": "Dynamic functional feature module",
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique module identifier",
+          "maxLength": 128
+        },
+        "name": {
+          "type": "string",
+          "description": "Display module title",
+          "maxLength": 150
+        },
+        "enabled": {
+          "type": "boolean",
+          "description": "Module active state"
+        }
+      },
+      "required": ["id", "name"]
+    },
+    "AccountingTransaction": {
+      "title": "AccountingTransaction",
+      "description": "SYSCOHADA accounting ledger movement with anti-fraud double signature",
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Transaction identifier",
+          "maxLength": 128
+        },
+        "pieceReference": {
+          "type": "string",
+          "description": "Official voucher number",
+          "maxLength": 100
+        },
+        "type": {
+          "type": "string",
+          "description": "Transaction type",
+          "enum": ["recette", "depense"]
+        },
+        "amountUSD": {
+          "type": "number",
+          "description": "Amount in USD"
+        },
+        "validationStatus": {
+          "type": "string",
+          "description": "Validation workflow state",
+          "enum": ["valide", "en_attente_manager", "en_attente_otp_daf", "rejete"]
+        }
+      },
+      "required": ["id", "pieceReference", "type", "amountUSD", "validationStatus"]
+    },
+    "CrmClient": {
+      "title": "CrmClient",
+      "description": "Institutional corporate or partner client profile",
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Client identifier",
+          "maxLength": 128
+        },
+        "name": {
+          "type": "string",
+          "description": "Company or individual client name",
+          "maxLength": 200
+        },
+        "code": {
+          "type": "string",
+          "description": "Unique reference code",
+          "maxLength": 64
+        }
+      },
+      "required": ["id", "name"]
+    },
+    "EquipmentItem": {
+      "title": "EquipmentItem",
+      "description": "Heavy technical event equipment asset",
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Equipment identifier",
+          "maxLength": 128
+        },
+        "name": {
+          "type": "string",
+          "description": "Product or gear name",
+          "maxLength": 200
+        }
+      },
+      "required": ["id", "name"]
+    },
+    "Partner": {
+      "title": "Partner",
+      "description": "Certified technical provider and institution partner",
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Partner identifier",
+          "maxLength": 128
+        },
+        "name": {
+          "type": "string",
+          "description": "Company partner name",
+          "maxLength": 200
+        }
+      },
+      "required": ["id", "name"]
+    },
+    "PlatformConfig": {
+      "title": "PlatformConfig",
+      "description": "Global VIVA branding, rates and institutional settings",
+      "type": "object",
+      "properties": {
+        "companyName": {
+          "type": "string",
+          "description": "Corporate entity name",
+          "maxLength": 150
+        }
+      }
+    }
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": {
+        "$ref": "#/entities/User"
+      },
+      "description": "User profiles and credentials"
+    },
+    "/quotes/{quoteId}": {
+      "schema": {
+        "$ref": "#/entities/QuoteRequest"
+      },
+      "description": "Client quote requests and inquiries"
+    },
+    "/projects/{projectId}": {
+      "schema": {
+        "$ref": "#/entities/Project"
+      },
+      "description": "Event projects portfolio"
+    },
+    "/erp_tasks/{taskId}": {
+      "schema": {
+        "$ref": "#/entities/ProjectTask"
+      },
+      "description": "Internal team tasks"
+    },
+    "/erp_transactions/{transactionId}": {
+      "schema": {
+        "$ref": "#/entities/AccountingTransaction"
+      },
+      "description": "SYSCOHADA accounting transactions with double signature"
+    },
+    "/crm_clients/{clientId}": {
+      "schema": {
+        "$ref": "#/entities/CrmClient"
+      },
+      "description": "CRM corporate and institution clients"
+    },
+    "/equipment/{equipmentId}": {
+      "schema": {
+        "$ref": "#/entities/EquipmentItem"
+      },
+      "description": "Heavy technical gear catalogue"
+    },
+    "/partners/{partnerId}": {
+      "schema": {
+        "$ref": "#/entities/Partner"
+      },
+      "description": "Certified network partners"
+    },
+    "/organization_directions/{directionId}": {
+      "schema": {
+        "$ref": "#/entities/DirectionOrg"
+      },
+      "description": "The 9 official operational directions"
+    },
+    "/dynamic_menus/{menuId}": {
+      "schema": {
+        "$ref": "#/entities/DynamicMenu"
+      },
+      "description": "Dynamic portal navigation menus"
+    },
+    "/dynamic_modules/{moduleId}": {
+      "schema": {
+        "$ref": "#/entities/DynamicModule"
+      },
+      "description": "Dynamic feature modules"
+    },
+    "/platform_config/{configId}": {
+      "schema": {
+        "$ref": "#/entities/PlatformConfig"
+      },
+      "description": "Institutional platform configuration"
+    },
+    "/cms_sections/{sectionId}": {
+      "schema": {
+        "$ref": "#/entities/CmsSectionItem"
+      },
+      "description": "CMS published and draft content"
+    },
+    "/audit_logs/{logId}": {
+      "schema": {
+        "$ref": "#/entities/AuditLog"
+      },
+      "description": "Append-only security audit trail"
+    },
+    "/test/{docId}": {
+      "schema": {
+        "$ref": "#/entities/TestConnection"
+      },
+      "description": "Connection readiness testing"
+    }
+  }
+}

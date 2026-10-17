@@ -1,0 +1,8 @@
+{
+  "name": "VIVA Event Solutions Portal",
+  "description": "All-in-one PWA for event engineering and strategic communication, featuring seamless role management and service coordination for VIVA EVENT SOLUTIONS.",
+  "requestFramePermissions": [],
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}

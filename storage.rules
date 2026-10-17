@@ -1,0 +1,67 @@
+rules_version = '2';
+service firebase.storage {
+  match /b/{bucket}/o {
+
+    // Helper functions
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isImageFile() {
+      return request.resource.contentType.matches('image/.*');
+    }
+
+    function isPdfOrDoc() {
+      return request.resource.contentType.matches('application/pdf') ||
+             request.resource.contentType.matches('application/msword') ||
+             request.resource.contentType.matches('application/vnd.openxmlformats-officedocument.*');
+    }
+
+    function isVideoFile() {
+      return request.resource.contentType.matches('video/.*');
+    }
+
+    function isValidSize(maxMb) {
+      return request.resource.size <= maxMb * 1024 * 1024;
+    }
+
+    // 1. Médias & Photos publiques de la galerie
+    match /media/{allPaths=**} {
+      allow read: if true;
+      allow write: if isSignedIn() && (isImageFile() || isVideoFile()) && isValidSize(50);
+    }
+
+    // 2. Photos & Visuels CMS du site
+    match /cms/{allPaths=**} {
+      allow read: if true;
+      allow write: if isSignedIn() && isImageFile() && isValidSize(15);
+    }
+
+    // 3. Justificatifs de devis & cahiers des charges clients
+    match /quotes/{allPaths=**} {
+      allow read, write: if isSignedIn() && (isPdfOrDoc() || isImageFile()) && isValidSize(25);
+    }
+
+    // 4. ERP Pièces comptables, factures et PV de clôture caisse
+    match /erp/{allPaths=**} {
+      allow read, write: if isSignedIn() && (isPdfOrDoc() || isImageFile()) && isValidSize(20);
+    }
+
+    // 5. Signatures électroniques et visas DAF
+    match /signatures/{allPaths=**} {
+      allow read: if isSignedIn();
+      allow write: if isSignedIn() && (request.resource.contentType.matches('image/svg\\+xml') || isImageFile()) && isValidSize(5);
+    }
+
+    // 6. Documents d'entreprise et accréditations
+    match /documents/{allPaths=**} {
+      allow read: if true;
+      allow write: if isSignedIn() && (isPdfOrDoc() || isImageFile()) && isValidSize(30);
+    }
+
+    // Par défaut : blocage strict
+    match /{allPaths=**} {
+      allow read, write: if false;
+    }
+  }
+}
