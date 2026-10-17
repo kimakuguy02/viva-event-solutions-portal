@@ -4,8 +4,9 @@ import { subscribeFirestoreCollection } from '../services/firebase';
 import type { AuditEventItem, AuditResult, AuditLevel } from '../types/platformBuilder';
 
 /* Hook audit multi-source RÉELLE, sans événement fabriqué.
-   Ordre : Supabase (si session + permission) → Firestore (temps réel) →
-   localStorage legacy. Chaque événement porte sa source. Vide = vide. */
+   Ordre : Supabase (si session + permission) → Firestore (temps réel).
+   Chaque événement porte sa source. Vide = vide : aucune journalisation
+   locale n'est mélangée ici, sinon un tableau rempli ne prouverait plus rien. */
 
 function toLevel(action: string, result: AuditResult): AuditLevel {
   if (result === 'denied' || result === 'failure') return 'warning';
@@ -21,7 +22,7 @@ export function useAuditEvents(limit = 100) {
   const [events, setEvents] = useState<AuditEventItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [source, setSource] = useState<'supabase' | 'firestore' | 'local' | 'none'>('none');
+  const [source, setSource] = useState<'supabase' | 'firestore' | 'none'>('none');
 
   const reload = useCallback(async () => {
     setLoading(true);
@@ -88,38 +89,7 @@ export function useAuditEvents(limit = 100) {
         setSource('firestore');
         setLoading(false);
       });
-      // Si le listener ne répond pas en 4 s, repli local.
-      const timer = setTimeout(() => {
-        try {
-          const raw = localStorage.getItem('viva_audit_logs');
-          if (raw) {
-            const arr = JSON.parse(raw) as Record<string, unknown>[];
-            setEvents(
-              arr.slice(0, limit).map((r, i) => ({
-                id: String(r.id ?? `local-${i}`),
-                timestamp: String(r.timestamp ?? ''),
-                actorEmail: String(r.userEmail ?? '—'),
-                action: String(r.action ?? ''),
-                module: 'legacy',
-                resource: 'legacy',
-                resourceId: '',
-                result: coerceResult(r.result),
-                level: 'info' as AuditLevel,
-                source: 'local' as const,
-              })),
-            );
-            setSource('local');
-          }
-          setLoading(false);
-        } catch (e) {
-          setError(e instanceof Error ? e.message : String(e));
-          setLoading(false);
-        }
-      }, 4000);
-      return () => {
-        clearTimeout(timer);
-        unsub();
-      };
+      return () => unsub();
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e));
       setLoading(false);

@@ -38,7 +38,7 @@ export const PlatformSettingsManager: React.FC = () => {
   const { activePalette, setPalette, themeMode, toggleThemeMode } = useTheme();
   // P5 Wave 1 : l'ancien `setExchangeRate` du contexte n'existait pas (appel mort,
   // désormais supprimé). Le taux ERP reste la constante du contexte jusqu'à la vague ERP.
-  const { currentUser, isAdminGeneral } = useAuth();
+  const { isAdminGeneral } = useAuth();
   const isLight = themeMode === 'light';
 
   const [activeTab, setActiveTab] = useState<'general' | 'visual' | 'finance' | 'features' | 'security'>('general');
@@ -150,16 +150,10 @@ export const PlatformSettingsManager: React.FC = () => {
       }
     });
 
-    const logs = JSON.parse(localStorage.getItem('viva_audit_logs') || '[]');
-    logs.unshift({
-      id: `log-${Date.now()}`,
-      timestamp: new Date().toISOString(),
-      userEmail: currentUser.email,
-      action: 'PLATFORM_SETTINGS_GENERAL_UPDATED',
-      ipAddress: '192.168.1.50',
-      device: navigator.userAgent
+    void logSettingsAudit('PLATFORM_SETTINGS_GENERAL_UPDATED', 'general', {
+      phone: contactDraft.phone,
+      email: contactDraft.email,
     });
-    localStorage.setItem('viva_audit_logs', JSON.stringify(logs));
 
     showToast("Paramètres généraux et coordonnées officielles enregistrés avec succès.");
   };

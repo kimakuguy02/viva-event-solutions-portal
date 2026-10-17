@@ -3,6 +3,7 @@ import { CmsSectionItem, CmsVersion } from '../../types/cmsAndErp';
 import { useAuth } from '../../context/AuthContext';
 import { useProjectData } from '../../context/ProjectDataContext';
 import { useTheme } from '../../context/ThemeContext';
+import { logAudit } from '../../services/supabase/auditService';
 import {
   Edit3,
   FileText,
@@ -70,16 +71,7 @@ export const CmsAdvancedEditor: React.FC<CmsAdvancedEditorProps> = ({ cmsSection
   };
 
   const logAuditAction = (action: string, details: string) => {
-    const logs = JSON.parse(localStorage.getItem('viva_audit_logs') || '[]');
-    logs.unshift({
-      id: 'audit-' + Date.now(),
-      timestamp: new Date().toISOString(),
-      userEmail: currentUser.email,
-      action: `${action} : ${details}`,
-      ipAddress: '192.168.1.50 (Secure RLS)',
-      device: navigator.userAgent
-    });
-    localStorage.setItem('viva_audit_logs', JSON.stringify(logs));
+    void logAudit(action, 'cms', undefined, { details });
   };
 
   const handleSaveContent = () => {

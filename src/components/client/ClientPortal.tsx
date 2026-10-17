@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import { useProjectData } from '../../context/ProjectDataContext';
+import { logAudit } from '../../services/supabase/auditService';
 import {
   User,
   FileText,
@@ -76,62 +77,12 @@ export const ClientPortal: React.FC<ClientPortalProps> = ({ onOpenQuoteModal }) 
   const { projects, quotes, mediaItems, submitQuoteRequest, addProject } = useProjectData();
   const [activeTab, setActiveTab] = useState<'overview' | 'announcements' | 'tickets' | 'voting' | 'order' | 'projects' | 'quotes' | 'profil' | 'documents' | 'notifications'>('overview');
 
-  // 1. Announcements State
-  const [announcements, setAnnouncements] = useState<Announcement[]>([
-    {
-      id: 'ann-1',
-      title: 'Mise à jour du Protocole d’Accès VIP – Sommet Économique 2026',
-      category: 'security',
-      date: '2026-09-13',
-      content: 'Tous les détenteurs de pass VIP et les délégations officielles sont priés de récupérer leurs badges sécurisés RFID au bureau central de VIVA Event Solutions (Limete Industriel) avant le 14 septembre à 17h00.',
-      urgent: true,
-      author: 'Direction de la Sécurité & du Protocole'
-    },
-    {
-      id: 'ann-2',
-      title: 'Disponibilité du Nouveau Parc d’Écrans LED 4K P2.6 Outdoor',
-      category: 'technical',
-      date: '2026-09-10',
-      content: 'VIVA Event Solutions vient de réceptionner 200 m² additionnels de Murs LED haute luminosité étanches IP65 pour vos foires et concerts en plein air.',
-      urgent: false,
-      author: 'Direction Technique & Régie'
-    },
-    {
-      id: 'ann-3',
-      title: 'Ouverture de la Billetterie Officielle & des Sessions de Vote en Ligne',
-      category: 'general',
-      date: '2026-09-08',
-      content: 'Chers clients et partenaires, les modules de billetterie pour les 3 prochains sommets internationaux ainsi que les votes pour le Grand Prix de l’Innovation sont désormais ouverts dans votre espace client.',
-      urgent: false,
-      author: 'Gérance & Secrétariat Général'
-    }
-  ]);
+  // Communications officielles : affichées seulement si la base en contient.
+  const [announcements, setAnnouncements] = useState<Announcement[]>([]);
 
-  // 2. Ticketing State
-  const [tickets, setTickets] = useState<TicketItem[]>([
-    {
-      id: 'tkt-101',
-      code: 'VES-TKT-9042',
-      eventName: 'Sommet Économique International Grands Lacs',
-      date: '15 Sept 2026',
-      location: 'Pullman Grand Hôtel Kinshasa',
-      category: 'VIP Plénière & Dîner de Gala',
-      priceUSD: 250,
-      attendeeName: currentUser.name || 'Client Partenaire',
-      status: 'active'
-    },
-    {
-      id: 'tkt-102',
-      code: 'VES-TKT-9043',
-      eventName: 'Forum Panafricain Mines, Énergies & Infrastructures',
-      date: '05 Oct 2026',
-      location: 'Hôtel Karavia Lubumbashi',
-      category: 'Pass Digital & Conférences 4K',
-      priceUSD: 120,
-      attendeeName: currentUser.name || 'Client Partenaire',
-      status: 'active'
-    }
-  ]);
+  // 2. Ticketing State — le portefeuille d'un client ne se précharge pas :
+  // un billet inventé laisse croire à une réservation payante existante.
+  const [tickets, setTickets] = useState<TicketItem[]>([]);
 
   // Buy Ticket Modal state
   const [isBuyingTicket, setIsBuyingTicket] = useState(false);
@@ -139,40 +90,19 @@ export const ClientPortal: React.FC<ClientPortalProps> = ({ onOpenQuoteModal }) 
   const [selectedTicketCategory, setSelectedTicketCategory] = useState('Pass Standard ($100)');
   const [ticketAttendeeInput, setTicketAttendeeInput] = useState(currentUser.name || '');
 
-  // 3. Online Voting State
-  const [polls, setPolls] = useState<PollItem[]>([
-    {
-      id: 'poll-1',
-      title: 'Élection de la Meilleure Solution d’Énergie Solaire pour Événements en Plein Air',
-      event: 'Forum Panafricain Mines & Énergies 2026',
-      status: 'active',
-      totalVotes: 142,
-      options: [
-        { id: 'opt-1', text: 'Groupes Électrogènes Insonorisés Synchronisés (500 kVA)', votes: 58 },
-        { id: 'opt-2', text: 'Fermes Solaires Mobiles & Batteries Lithium Hybrides', votes: 64 },
-        { id: 'opt-3', text: 'Générateurs Hybrides Hydrogène & Solaire', votes: 20 }
-      ]
-    },
-    {
-      id: 'poll-2',
-      title: 'Vote Stratégique : Quel format privilégier pour les plénières régionales ?',
-      event: 'Sommet Économique Grands Lacs',
-      status: 'active',
-      totalVotes: 89,
-      options: [
-        { id: 'opt-201', text: 'Hybride Intégral (Présentiel + Streaming Interactif 4K)', votes: 51 },
-        { id: 'opt-202', text: '100% Présentiel avec Traduction Simultanée ISO', votes: 38 }
-      ]
-    }
-  ]);
+  // 3. Online Voting State — aucun scrutin pré-ouvert, aucun vote pré-compté.
+  const [polls, setPolls] = useState<PollItem[]>([]);
 
-  // Order form state
+  // Order form state — départ vide : un formulaire prérempli avec une date, un
+  // hôtel, un budget et du matériel inventés produit un devis que le client
+  // croit avoir choisi. Les champs requis bloquent l'envoi tant que ce n'est
+  // pas sa saisie.
   const [orderTitle, setOrderTitle] = useState('');
   const [orderType, setOrderType] = useState<'institutionnel' | 'diplomatique' | 'entreprise' | 'culturel' | 'mariage_prestige' | 'foire_salon' | 'religieux' | 'sportif'>('institutionnel');
-  const [orderDate, setOrderDate] = useState('2026-10-15');
-  const [orderLocation, setOrderLocation] = useState('Kinshasa / Gombe - Fleuve Congo Hotel');
-  const [orderAttendees, setOrderAttendees] = useState(350);
-  const [orderBudget, setOrderBudget] = useState('35000');
+  const [orderDate, setOrderDate] = useState('');
+  const [orderLocation, setOrderLocation] = useState('');
+  const [orderAttendees, setOrderAttendees] = useState<number | ''>('');
+  const [orderBudget, setOrderBudget] = useState('');
   const [orderNotes, setOrderNotes] = useState('');
 
   // Selected Services / Pôles
@@ -187,12 +117,8 @@ export const ClientPortal: React.FC<ClientPortalProps> = ({ onOpenQuoteModal }) 
     catering: false
   });
 
-  // Selected Heavy Equipment
-  const [selectedGear, setSelectedGear] = useState<string[]>([
-    'Mur LED Plein Jour P2.9 (50 m²)',
-    'Système Line Array L-Acoustics K2',
-    'Groupe Électrogène Insonorisé 500 kVA'
-  ]);
+  // Matériel lourd réservé : rien de coché par défaut.
+  const [selectedGear, setSelectedGear] = useState<string[]>([]);
 
   const [orderConfirmed, setOrderConfirmed] = useState<string | null>(null);
   const [successMsg, setSuccessMsg] = useState<string | null>(null);
@@ -231,7 +157,16 @@ export const ClientPortal: React.FC<ClientPortalProps> = ({ onOpenQuoteModal }) 
     e.preventDefault();
     if (!orderTitle.trim()) return;
 
-    const budgetNum = parseFloat(orderBudget) || 25000;
+    // Aucun budget inventé : sans saisie client, la commande n'est pas envoyée.
+    const budgetNum = parseFloat(orderBudget);
+    if (!Number.isFinite(budgetNum) || budgetNum <= 0) {
+      setOrderError('Budget estimatif requis : indiquez le montant que VOUS choisissez.');
+      return;
+    }
+    if (!currentUser.phone) {
+      setOrderError('Numéro de téléphone requis sur votre profil pour envoyer une commande.');
+      return;
+    }
     setOrderError(null);
 
     // Wave 2 — succès affiché seulement après confirmation Supabase.
@@ -241,12 +176,12 @@ export const ClientPortal: React.FC<ClientPortalProps> = ({ onOpenQuoteModal }) 
       clientName: currentUser.name || 'Client Enregistré',
       clientOrganization: currentUser.organization || 'Organisation Partenaire',
       clientEmail: currentUser.email,
-      clientPhone: currentUser.phone || '+243 81 000 9988',
+      clientPhone: currentUser.phone,
       eventType: orderType,
       eventName: orderTitle,
       eventDate: orderDate,
       location: orderLocation,
-      estimatedAttendees: orderAttendees,
+      estimatedAttendees: Number(orderAttendees),
       format: 'hybride',
       offerLevel: 'VIP_EXECUTIVE',
       selectedDepartmentIds: [1, 2, 3, 4],
@@ -290,16 +225,7 @@ export const ClientPortal: React.FC<ClientPortalProps> = ({ onOpenQuoteModal }) 
       return;
     }
 
-    const auditLogs = JSON.parse(localStorage.getItem('viva_audit_logs') || '[]');
-    auditLogs.unshift({
-      id: `log-${Date.now()}`,
-      timestamp: new Date().toISOString(),
-      userEmail: currentUser.email,
-      action: `CLIENT_DIRECT_ORDER_SUBMITTED [${refCode}]`,
-      ipAddress: '192.168.1.50',
-      device: navigator.userAgent || 'Client Portal'
-    });
-    localStorage.setItem('viva_audit_logs', JSON.stringify(auditLogs));
+    void logAudit('CLIENT_DIRECT_ORDER_SUBMITTED', 'client_portal', refCode);
 
     const cmdNum = `CMD-VES-2026-${Math.floor(1000 + Math.random() * 9000)}`;
     setOrderConfirmed(cmdNum);
@@ -611,6 +537,9 @@ export const ClientPortal: React.FC<ClientPortalProps> = ({ onOpenQuoteModal }) 
           </div>
 
           <div className="grid grid-cols-1 gap-6">
+            {announcements.length === 0 && (
+              <p className="py-8 text-center text-xs text-slate-400 italic">Aucune communication officielle pour le moment.</p>
+            )}
             {announcements.map(ann => (
               <div
                 key={ann.id}
@@ -767,6 +696,9 @@ export const ClientPortal: React.FC<ClientPortalProps> = ({ onOpenQuoteModal }) 
 
           {/* Tickets Grid */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            {tickets.length === 0 && (
+              <p className="md:col-span-2 py-8 text-center text-xs text-slate-400 italic">Aucun billet à votre nom pour le moment.</p>
+            )}
             {tickets.map(tkt => (
               <div key={tkt.id} className="p-6 rounded-3xl bg-slate-900 border border-emerald-500/30 space-y-4 relative overflow-hidden shadow-xl">
                 <div className="flex items-start justify-between">
@@ -832,6 +764,9 @@ export const ClientPortal: React.FC<ClientPortalProps> = ({ onOpenQuoteModal }) 
           </div>
 
           <div className="grid grid-cols-1 gap-6">
+            {polls.length === 0 && (
+              <p className="py-8 text-center text-xs text-slate-400 italic">Aucun scrutin ouvert pour le moment.</p>
+            )}
             {polls.map(poll => {
               const hasVoted = Boolean(poll.userVotedOptionId);
               return (
@@ -1042,7 +977,7 @@ export const ClientPortal: React.FC<ClientPortalProps> = ({ onOpenQuoteModal }) 
                       required
                       min={10}
                       value={orderAttendees}
-                      onChange={e => setOrderAttendees(parseInt(e.target.value) || 50)}
+                      onChange={e => setOrderAttendees(e.target.value === '' ? '' : Number(e.target.value))}
                       className="w-full px-4 py-2.5 rounded-xl bg-slate-950 border border-slate-800 text-white text-xs focus:outline-none focus:border-amber-500"
                     />
                   </div>

@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import { useProjectData } from '../../context/ProjectDataContext';
-import { logAuditEvent } from '../../services/firebase';
+import { logAudit } from '../../services/supabase/auditService';
 import { AlertTriangle, ShieldAlert, X, Check, Database } from 'lucide-react';
 
 interface ResetDatabaseModalProps {
@@ -17,7 +17,7 @@ interface ResetDatabaseModalProps {
  * - SCOPE STRICT : réécrit les valeurs par défaut Firestore + vide le cache local.
  *   Ne touche JAMAIS à Supabase/PostgreSQL. Ne purge aucune table distante. */
 export const ResetDatabaseModal: React.FC<ResetDatabaseModalProps> = ({ isOpen, onClose }) => {
-  const { currentUser, isSuperAdmin } = useAuth();
+  const { isSuperAdmin } = useAuth();
   const { resetToDefaults } = useProjectData();
 
   const [confirmText, setConfirmText] = useState('');
@@ -59,11 +59,7 @@ export const ResetDatabaseModal: React.FC<ResetDatabaseModalProps> = ({ isOpen, 
       window.sessionStorage.setItem('viva_reset_armed', 'RESET VIVA');
       resetToDefaults();
 
-      logAuditEvent({
-        action: 'DATABASE_RESET_LOCAL_DEFAULTS',
-        resource: 'database',
-        resourceId: 'local-firestore-defaults',
-        userEmail: currentUser.email,
+      void logAudit('DATABASE_RESET_LOCAL_DEFAULTS', 'database', 'local-firestore-defaults', {
         details: 'Réinitialisation locale (Firestore + cache) vers les valeurs par défaut. Supabase non touché.',
       });
 

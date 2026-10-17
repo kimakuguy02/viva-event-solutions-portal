@@ -15,21 +15,11 @@ import {
   PaymentAccount
 } from '../types/erp';
 import {
-  INITIAL_EMPLOYEES,
-  INITIAL_CRM_CLIENTS,
-  INITIAL_CRM_INTERACTIONS,
-  INITIAL_TRANSACTIONS,
-  INITIAL_CASH_CLOSURES,
-  INITIAL_TASKS,
-  INITIAL_FIELD_REPORTS,
-  INITIAL_LOAN_RECORDS,
-  INITIAL_MAINTENANCE_LOGS,
-  INITIAL_NOTICES,
   USD_TO_CDF_RATE,
   DOUBLE_SIGNATURE_THRESHOLD_USD,
   DOUBLE_SIGNATURE_THRESHOLD_CDF
 } from '../data/enterpriseErpData';
-import { saveToOfflineStore, loadFromOfflineStore } from '../services/offlineDb';
+import { saveToOfflineStore, loadFromOfflineStore, ensureErpCacheVersion } from '../services/offlineDb';
 import { platformSession } from '../services/platformSession';
 import { isSupabaseConfigured } from '../services/supabase';
 import { logAudit } from '../services/supabase/auditService';
@@ -146,64 +136,83 @@ export const EnterpriseErpProvider: React.FC<{ children: React.ReactNode }> = ({
   // State initialization with IndexedDB / local storage
   const [employees, setEmployees] = useState<EmployeeProfile[]>(() => {
     const saved = localStorage.getItem('viva_erp_employees');
-    return saved ? JSON.parse(saved) : INITIAL_EMPLOYEES;
+    return saved ? JSON.parse(saved) : [];
   });
 
   const [crmClients, setCrmClients] = useState<CrmClient[]>(() => {
     const saved = localStorage.getItem('viva_erp_crm_clients');
-    return saved ? JSON.parse(saved) : INITIAL_CRM_CLIENTS;
+    return saved ? JSON.parse(saved) : [];
   });
 
   const [crmInteractions, setCrmInteractions] = useState<CrmInteraction[]>(() => {
     const saved = localStorage.getItem('viva_erp_crm_interactions');
-    return saved ? JSON.parse(saved) : INITIAL_CRM_INTERACTIONS;
+    return saved ? JSON.parse(saved) : [];
   });
 
   const [transactions, setTransactions] = useState<AccountingTransaction[]>(() => {
     const saved = localStorage.getItem('viva_erp_transactions');
-    return saved ? JSON.parse(saved) : INITIAL_TRANSACTIONS;
+    return saved ? JSON.parse(saved) : [];
   });
 
   const [cashClosures, setCashClosures] = useState<DailyCashClosure[]>(() => {
     const saved = localStorage.getItem('viva_erp_cash_closures');
-    return saved ? JSON.parse(saved) : INITIAL_CASH_CLOSURES;
+    return saved ? JSON.parse(saved) : [];
   });
 
   const [tasks, setTasks] = useState<ProjectTask[]>(() => {
     const saved = localStorage.getItem('viva_erp_tasks');
-    return saved ? JSON.parse(saved) : INITIAL_TASKS;
+    return saved ? JSON.parse(saved) : [];
   });
 
   const [fieldReports, setFieldReports] = useState<DailyFieldReport[]>(() => {
     const saved = localStorage.getItem('viva_erp_field_reports');
-    return saved ? JSON.parse(saved) : INITIAL_FIELD_REPORTS;
+    return saved ? JSON.parse(saved) : [];
   });
 
   const [loanRecords, setLoanRecords] = useState<EquipmentLoanRecord[]>(() => {
     const saved = localStorage.getItem('viva_erp_loan_records');
-    return saved ? JSON.parse(saved) : INITIAL_LOAN_RECORDS;
+    return saved ? JSON.parse(saved) : [];
   });
 
   const [maintenanceLogs, setMaintenanceLogs] = useState<MaintenanceLog[]>(() => {
     const saved = localStorage.getItem('viva_erp_maintenance_logs');
-    return saved ? JSON.parse(saved) : INITIAL_MAINTENANCE_LOGS;
+    return saved ? JSON.parse(saved) : [];
   });
 
   const [notices, setNotices] = useState<MultichannelNotice[]>(() => {
     const saved = localStorage.getItem('viva_erp_notices');
-    return saved ? JSON.parse(saved) : INITIAL_NOTICES;
+    return saved ? JSON.parse(saved) : [];
   });
 
   // Load from IndexedDB on startup
   useEffect(() => {
-    loadFromOfflineStore('erp_transactions', INITIAL_TRANSACTIONS).then(data => setTransactions(data));
-    loadFromOfflineStore('erp_closures', INITIAL_CASH_CLOSURES).then(data => setCashClosures(data));
-    loadFromOfflineStore('erp_tasks', INITIAL_TASKS).then(data => setTasks(data));
-    loadFromOfflineStore('erp_reports', INITIAL_FIELD_REPORTS).then(data => setFieldReports(data));
-    loadFromOfflineStore('erp_loans', INITIAL_LOAN_RECORDS).then(data => setLoanRecords(data));
-    loadFromOfflineStore('erp_clients', INITIAL_CRM_CLIENTS).then(data => setCrmClients(data));
-    loadFromOfflineStore('erp_interactions', INITIAL_CRM_INTERACTIONS).then(data => setCrmInteractions(data));
-    loadFromOfflineStore('erp_notices', INITIAL_NOTICES).then(data => setNotices(data));
+    let cancelled = false;
+    (async () => {
+      // Les sessions antérieures ont pu mettre en cache les seeds fictifs : purge
+      // une fois par version de cache avant de relire quoi que ce soit de local.
+      await ensureErpCacheVersion();
+      if (cancelled) return;
+      const [tx, closures, tsk, reports, loans, clients, interactions, notes] = await Promise.all([
+        loadFromOfflineStore<AccountingTransaction>('erp_transactions'),
+        loadFromOfflineStore<DailyCashClosure>('erp_closures'),
+        loadFromOfflineStore<ProjectTask>('erp_tasks'),
+        loadFromOfflineStore<DailyFieldReport>('erp_reports'),
+        loadFromOfflineStore<EquipmentLoanRecord>('erp_loans'),
+        loadFromOfflineStore<CrmClient>('erp_clients'),
+        loadFromOfflineStore<CrmInteraction>('erp_interactions'),
+        loadFromOfflineStore<MultichannelNotice>('erp_notices')
+      ]);
+      if (cancelled) return;
+      if (tx.length) setTransactions(tx);
+      if (closures.length) setCashClosures(closures);
+      if (tsk.length) setTasks(tsk);
+      if (reports.length) setFieldReports(reports);
+      if (loans.length) setLoanRecords(loans);
+      if (clients.length) setCrmClients(clients);
+      if (interactions.length) setCrmInteractions(interactions);
+      if (notes.length) setNotices(notes);
+    })();
+    return () => { cancelled = true; };
   }, []);
 
   // Wave 2 — overlay Supabase (SSOT) : PG gagne par clé stable

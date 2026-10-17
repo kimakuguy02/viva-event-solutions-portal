@@ -80,7 +80,7 @@ export interface AuditEventItem {
   resourceId?: string;
   result: AuditResult;
   level: AuditLevel;
-  source: 'supabase' | 'firestore' | 'local' | 'server';
+  source: 'supabase' | 'firestore' | 'server';
   details?: string;
 }
 

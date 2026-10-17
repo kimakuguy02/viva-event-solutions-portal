@@ -66,56 +66,14 @@ const INITIAL_CHANNELS: StaffChannel[] = [
   }
 ];
 
-const INITIAL_MESSAGES: StaffMessage[] = [
-  {
-    id: 'msg-1',
-    senderId: 'usr-dg-001',
-    senderName: 'MALTHUS KILUMBA WA BANZA',
-    senderRole: 'dg_gerant',
-    senderJobTitle: 'Directeur Général',
-    senderAvatarColor: '#F59E0B',
-    channelId: 'ch-general',
-    content: 'Bonjour à toute l’équipe VIVA. Le déploiement des 15 pôles d’ingénierie se poursuit avec succès. Veillez à bien synchroniser vos rapports journaliers avant 18h00.',
-    timestamp: '10 Sept 2026, 08:30',
-    priority: 'important'
-  },
-  {
-    id: 'msg-2',
-    senderId: 'usr-daf-003',
-    senderName: 'COMPTABLE',
-    senderRole: 'daf_comptable',
-    senderJobTitle: 'Comptable Agréé / DAF',
-    senderAvatarColor: '#10B981',
-    channelId: 'ch-finance',
-    content: 'Rappel : Les dossiers de décaissement supérieur à $3,000 USD nécessitent la double signature DG + Code OTP DAF.',
-    timestamp: '11 Sept 2026, 09:15',
-    priority: 'normal'
-  },
-  {
-    id: 'msg-3',
-    senderId: 'usr-ops-004',
-    senderName: 'Ing. Serge ILUNGA',
-    senderRole: 'chef_equipe',
-    senderJobTitle: 'Chef d’Équipe Régie',
-    senderAvatarColor: '#EC4899',
-    channelId: 'ch-ops',
-    content: 'Le groupe électrogène 500 kVA est en route pour le site de Gombe. Installation Starlink et Line Array opérationnelle.',
-    timestamp: 'Hier, 14:20',
-    priority: 'normal',
-    attachment: {
-      type: 'materiel',
-      label: 'Bon de Prêt #BON-PRET-2026-4891',
-      referenceId: 'loan-001'
-    }
-  }
-];
-
 export const StaffMessagingModule: React.FC<StaffMessagingModuleProps> = () => {
   const { currentUser } = useAuth();
   const [channels] = useState<StaffChannel[]>(INITIAL_CHANNELS);
   const [activeChannelId, setActiveChannelId] = useState<string>('ch-general');
   const [activeDmRecipientId, setActiveDmRecipientId] = useState<string | null>(null);
-  const [messages, setMessages] = useState<StaffMessage[]>(INITIAL_MESSAGES);
+  // Aucun message préfabriqué : un historique de conversations attribué à de
+  // vrais collaborateurs ne peut être que du décor. Vide = rien d'envoyé.
+  const [messages, setMessages] = useState<StaffMessage[]>([]);
   const [newMessageText, setNewMessageText] = useState('');
   const [messagePriority, setMessagePriority] = useState<MessagePriority>('normal');
   const [searchQuery, setSearchQuery] = useState('');

@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { DirectionOrg, SubDirection } from '../../types/cmsAndErp';
 import { useAuth } from '../../context/AuthContext';
+import { logAudit } from '../../services/supabase/auditService';
 import {
   Building2,
   Plus,
@@ -26,7 +27,7 @@ export const OrganizationalStructureManager: React.FC<OrganizationalStructureMan
   directions,
   onUpdateDirections
 }) => {
-  const { currentUser, isAdminGeneral } = useAuth();
+  const { isAdminGeneral } = useAuth();
   const [selectedDirId, setSelectedDirId] = useState<number | null>(directions[0]?.id || null);
   const [isEditingDir, setIsEditingDir] = useState<boolean>(false);
   const [editDirForm, setEditDirForm] = useState<DirectionOrg | null>(null);
@@ -49,16 +50,7 @@ export const OrganizationalStructureManager: React.FC<OrganizationalStructureMan
   const [subDirForm, setSubDirForm] = useState({ name: '', description: '', active: true });
 
   const logAuditAction = (action: string, details: string) => {
-    const logs = JSON.parse(localStorage.getItem('viva_audit_logs') || '[]');
-    logs.unshift({
-      id: 'audit-' + Date.now(),
-      timestamp: new Date().toISOString(),
-      userEmail: currentUser.email,
-      action: action,
-      ipAddress: '192.168.1.50 (Secure RLS)',
-      device: navigator.userAgent
-    });
-    localStorage.setItem('viva_audit_logs', JSON.stringify(logs));
+    void logAudit(action, 'organization', undefined, { details });
   };
 
   const handleSaveDirection = () => {

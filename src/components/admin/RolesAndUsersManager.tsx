@@ -1,6 +1,8 @@
 import React, { useState } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import { useTheme } from '../../context/ThemeContext';
+import { logAudit as writeAuditLog } from '../../services/supabase/auditService';
+import { useAuditEvents } from '../../hooks/useAuditEvents';
 import { UserRole } from '../../types';
 import {
   Shield,
@@ -72,89 +74,33 @@ export const SYSTEM_PERMISSIONS = [
   { id: 'settings.update', label: 'Configurer la plateforme & devises', category: 'Plateforme' }
 ];
 
-const INITIAL_MANAGED_USERS: ManagedUser[] = [
-  {
-    id: "usr-admin-gen-001",
-    name: "Direction Générale (Super Administrateur)",
-    email: "direction.generale@viva-eventsolutions.cd",
-    phone: "+243 00 000 0000",
-    role: "admin_general",
-    directionName: "01. DIRECTION GÉNÉRALE",
-    status: "active",
-    createdAt: "2026-01-10",
-    lastLogin: "2026-09-26 10:14",
-    permissions: SYSTEM_PERMISSIONS.map(p => p.id)
-  },
-  {
-    id: "usr-dg-002",
-    name: "MALTHUS KILUMBA WA BANZA",
-    email: "malthus.kilumba@viva-eventsolutions.cd",
-    phone: "+243 00 000 0001",
-    role: "dg_gerant",
-    directionName: "01. DIRECTION GÉNÉRALE",
-    status: "active",
-    createdAt: "2026-01-15",
-    lastLogin: "2026-09-25 18:30",
-    permissions: ["organization.view", "organization.update", "content.view", "modules.view", "quotes.manage", "finance.approve", "audit.view"]
-  },
-  {
-    id: "usr-adm-003",
-    name: "MALTHUS KILUMBA WA BANZA (Admin RH)",
-    email: "admin.malthus@viva-eventsolutions.cd",
-    phone: "+243 00 000 0002",
-    role: "admin_rh",
-    directionName: "02. DIRECTION DES RESSOURCES HUMAINES",
-    status: "active",
-    createdAt: "2026-02-01",
-    lastLogin: "2026-09-24 16:45",
-    permissions: ["users.view", "users.create", "users.update", "organization.view", "content.view", "modules.view"]
-  },
-  {
-    id: "usr-daf-004",
-    name: "COMPTABLE AGRÉÉ SYSCOHADA",
-    email: "comptable@viva-eventsolutions.cd",
-    phone: "+243 00 000 0003",
-    role: "daf_comptable",
-    directionName: "03. DIRECTION ADMINISTRATIVE & FINANCIÈRE",
-    status: "active",
-    createdAt: "2026-02-15",
-    lastLogin: "2026-09-26 08:30",
-    permissions: ["finance.approve", "quotes.manage", "modules.view", "audit.view"]
-  },
-  {
-    id: "usr-ops-005",
-    name: "Ing. Serge ILUNGA (Régisseur & Opérations)",
-    email: "chef.operations@viva-eventsolutions.cd",
-    phone: "+243 00 000 0004",
-    role: "chef_equipe",
-    directionName: "06. DIRECTION TECHNIQUE, SCÉNOGRAPHIE & INFRASTRUCTURES",
-    status: "active",
-    createdAt: "2026-03-01",
-    lastLogin: "2026-09-25 09:12",
-    permissions: ["equipment.manage", "quotes.manage", "modules.view"]
-  },
-  {
-    id: "usr-com-006",
-    name: "Mme Sarah KALONJI (Relations Clients & CRM)",
-    email: "commercial@viva-eventsolutions.cd",
-    phone: "+243 00 000 0005",
-    role: "commercial_secretaire",
-    directionName: "08. DIRECTION COMMUNICATION, MARKETING & DÉVELOPPEMENT DIGITAL",
-    status: "active",
-    createdAt: "2026-03-10",
-    lastLogin: "2026-09-26 09:00",
-    permissions: ["content.view", "content.update", "quotes.manage", "modules.view"]
-  }
-];
+/* Annuaire : aucune ligne inventée. Un profil n'existe que s'il vient de
+   Supabase (`profiles` + rôles) ou de la session. Les anciens seeds présentaient
+   des noms de collaborateurs avec des téléphone/privilèges fabriqués. */
+function toManagedUser(pg: { id: string; email: string; full_name: string; status: string; roles?: { code: string }[] }): ManagedUser {
+  const code = pg.roles?.[0]?.code ?? '';
+  return {
+    id: pg.id,
+    name: pg.full_name || pg.email,
+    email: pg.email,
+    phone: '',
+    role: (code.toLowerCase() === 'super_admin' ? 'admin_general' : code.toLowerCase()) as UserRole,
+    directionName: '',
+    status: pg.status === 'active' ? 'active' : 'suspended',
+    createdAt: '',
+    permissions: [],
+  };
+}
 
 export const RolesAndUsersManager: React.FC = () => {
   const { currentUser, isAdminGeneral } = useAuth();
   const { activePalette, themeMode } = useTheme();
   const isLight = themeMode === 'light';
+  const { events: auditEvents, source: auditSource } = useAuditEvents(15);
 
   const [users, setUsers] = useState<ManagedUser[]>(() => {
     const saved = localStorage.getItem('viva_managed_users');
-    return saved ? JSON.parse(saved) : INITIAL_MANAGED_USERS;
+    return saved ? JSON.parse(saved) : [];
   });
   // Source serveur (lecture seule) : profils/roles DB fusionnés par e-mail
   // (DB gagne sur rôle/statut). Échec = annuaire local conservé + mention.
@@ -173,22 +119,27 @@ export const RolesAndUsersManager: React.FC = () => {
           .select('id,email,full_name,status,roles!inner(code)');
         if (error || !profiles) return;
         if (cancelled) return;
+        const byEmail = new Map(profiles.map(p => [p.email.toLowerCase(), p]));
         setUsers(prev => {
-          const byEmail = new Map(
-            (profiles as { email: string; full_name: string; status: string; roles: { code: string }[] }[])
-              .map(p => [p.email.toLowerCase(), p]),
-          );
-          let merged = false;
-          const next = prev.map(u => {
+          const enriched = prev.map(u => {
             const pg = byEmail.get(u.email.toLowerCase());
             const code = pg?.roles?.[0]?.code;
             if (!pg || !code) return u;
-            merged = true;
-            return { ...u, role: (code.toLowerCase() === 'super_admin' ? 'admin_general' : code.toLowerCase()) as UserRole, status: (pg.status === 'active' ? 'active' : 'suspended') as ManagedUser['status'] };
+            return {
+              ...u,
+              role: (code.toLowerCase() === 'super_admin' ? 'admin_general' : code.toLowerCase()) as UserRole,
+              status: (pg.status === 'active' ? 'active' : 'suspended') as ManagedUser['status'],
+            };
           });
-          if (merged) setDirectorySource('supabase');
-          return merged;
+          const known = new Set(enriched.map(u => u.email.toLowerCase()));
+          for (const pg of profiles) {
+            if (known.has(pg.email.toLowerCase())) continue;
+            known.add(pg.email.toLowerCase());
+            enriched.push(toManagedUser(pg));
+          }
+          return enriched;
         });
+        if (profiles.length > 0) setDirectorySource('supabase');
       } catch {
         /* repli local explicite */
       }
@@ -235,16 +186,7 @@ export const RolesAndUsersManager: React.FC = () => {
   };
 
   const logAudit = (action: string, details: string) => {
-    const logs = JSON.parse(localStorage.getItem('viva_audit_logs') || '[]');
-    logs.unshift({
-      id: `log-${Date.now()}`,
-      timestamp: new Date().toISOString(),
-      userEmail: currentUser.email,
-      action: `${action} : ${details}`,
-      ipAddress: '192.168.1.50 (RLS)',
-      device: navigator.userAgent || 'Console Admin VIVA'
-    });
-    localStorage.setItem('viva_audit_logs', JSON.stringify(logs));
+    void writeAuditLog(action, 'users', undefined, { details });
   };
 
   const handleCreateOrUpdateUser = (e: React.FormEvent) => {
@@ -824,15 +766,20 @@ export const RolesAndUsersManager: React.FC = () => {
         >
           <div className="flex items-center justify-between border-b pb-4" style={{ borderColor: activePalette.colors.border }}>
             <h3 className="text-lg font-bold text-white">Journal d'Audit Sécurisé (RLS & Événements)</h3>
-            <span className="text-xs text-slate-400">Traçabilité légale OHADA & Audit Trail</span>
+            <span className="text-xs text-slate-400">Source : {auditSource === 'none' ? 'aucune' : auditSource}</span>
           </div>
 
           <div className="space-y-2 max-h-96 overflow-y-auto font-mono text-xs">
-            {JSON.parse(localStorage.getItem('viva_audit_logs') || '[]').slice(0, 15).map((log: any) => (
+            {auditEvents.length === 0 && (
+              <div className="p-3 rounded-xl bg-slate-900 border border-slate-800 text-slate-400">
+                Aucun événement journalisé côté serveur pour cette session.
+              </div>
+            )}
+            {auditEvents.map((log) => (
               <div key={log.id} className="p-3 rounded-xl bg-slate-900 border border-slate-800 flex items-start justify-between gap-4">
                 <div>
                   <div className="font-bold text-amber-400">{log.action}</div>
-                  <div className="text-[11px] text-slate-400">{log.userEmail} • {log.ipAddress}</div>
+                  <div className="text-[11px] text-slate-400">{log.actorEmail} • {log.resource}</div>
                 </div>
                 <div className="text-right text-[10px] text-slate-500 whitespace-nowrap">
                   {new Date(log.timestamp).toLocaleString('fr-FR')}

@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { DynamicMenu } from '../../types/cmsAndErp';
 import { useAuth } from '../../context/AuthContext';
+import { logAudit } from '../../services/supabase/auditService';
 import {
   Menu,
   Plus,
@@ -26,7 +27,7 @@ interface MenuManagerProps {
 }
 
 export const MenuManager: React.FC<MenuManagerProps> = ({ menus, onUpdateMenus }) => {
-  const { currentUser, isAdminGeneral } = useAuth();
+  const { isAdminGeneral } = useAuth();
   const [isEditing, setIsEditing] = useState<DynamicMenu | null>(null);
   const [isAdding, setIsAdding] = useState(false);
   const [newMenu, setNewMenu] = useState<Omit<DynamicMenu, 'id'>>({
@@ -42,16 +43,7 @@ export const MenuManager: React.FC<MenuManagerProps> = ({ menus, onUpdateMenus }
   });
 
   const logAuditAction = (action: string, details: string) => {
-    const logs = JSON.parse(localStorage.getItem('viva_audit_logs') || '[]');
-    logs.unshift({
-      id: 'audit-' + Date.now(),
-      timestamp: new Date().toISOString(),
-      userEmail: currentUser.email,
-      action: action,
-      ipAddress: '192.168.1.50 (Secure RLS)',
-      device: navigator.userAgent
-    });
-    localStorage.setItem('viva_audit_logs', JSON.stringify(logs));
+    void logAudit(action, 'menu', undefined, { details });
   };
 
   const handleSaveEdit = () => {

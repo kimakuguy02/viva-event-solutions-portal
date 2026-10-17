@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { DynamicModule } from '../../types/cmsAndErp';
 import { useAuth } from '../../context/AuthContext';
+import { logAudit } from '../../services/supabase/auditService';
 import {
   Boxes,
   Plus,
@@ -21,7 +22,7 @@ interface ModuleManagerProps {
 }
 
 export const ModuleManager: React.FC<ModuleManagerProps> = ({ modules, onUpdateModules }) => {
-  const { currentUser, isAdminGeneral } = useAuth();
+  const { isAdminGeneral } = useAuth();
   const [isEditing, setIsEditing] = useState<DynamicModule | null>(null);
   const [isAdding, setIsAdding] = useState(false);
   const [newModule, setNewModule] = useState<Omit<DynamicModule, 'id'>>({
@@ -36,16 +37,7 @@ export const ModuleManager: React.FC<ModuleManagerProps> = ({ modules, onUpdateM
   });
 
   const logAuditAction = (action: string, details: string) => {
-    const logs = JSON.parse(localStorage.getItem('viva_audit_logs') || '[]');
-    logs.unshift({
-      id: 'audit-' + Date.now(),
-      timestamp: new Date().toISOString(),
-      userEmail: currentUser.email,
-      action: action,
-      ipAddress: '192.168.1.50 (Secure RLS)',
-      device: navigator.userAgent
-    });
-    localStorage.setItem('viva_audit_logs', JSON.stringify(logs));
+    void logAudit(action, 'module', undefined, { details });
   };
 
   const handleSaveEdit = () => {

@@ -66,7 +66,11 @@ export async function saveToOfflineStore<T extends { id: string }>(storeName: st
   }
 }
 
-export async function loadFromOfflineStore<T>(storeName: string, defaultItems: T[]): Promise<T[]> {
+/* Le cache local n'est qu'un cache : Supabase est la source de vérité.
+   Une absence d'entrée doit donc rendre un tableau vide, jamais un jeu de
+   démonstration — les seeds ERP (factures, clients, salaires) sont fictifs et
+   rendaient un grand livre inventé indistinguable du réel. */
+export async function loadFromOfflineStore<T>(storeName: string): Promise<T[]> {
   try {
     const db = await getIndexedDB();
     const tx = db.transaction(storeName, 'readonly');
@@ -78,35 +82,57 @@ export async function loadFromOfflineStore<T>(storeName: string, defaultItems: T
         if (request.result && request.result.length > 0) {
           resolve(request.result as T[]);
         } else {
-          // Check localStorage fallback
-          const local = localStorage.getItem(`viva_erp_${storeName}`);
-          if (local) {
-            try {
-              resolve(JSON.parse(local));
-              return;
-            } catch (e) {}
-          }
-          resolve(defaultItems);
+          resolve(readLocalStorageStore<T>(storeName));
         }
       };
-      request.onerror = () => {
-        const local = localStorage.getItem(`viva_erp_${storeName}`);
-        if (local) {
-          try {
-            resolve(JSON.parse(local));
-            return;
-          } catch (e) {}
-        }
-        resolve(defaultItems);
-      };
+      request.onerror = () => resolve(readLocalStorageStore<T>(storeName));
     });
   } catch (err) {
-    const local = localStorage.getItem(`viva_erp_${storeName}`);
-    if (local) {
-      try {
-        return JSON.parse(local);
-      } catch (e) {}
-    }
-    return defaultItems;
+    return readLocalStorageStore<T>(storeName);
   }
+}
+
+function readLocalStorageStore<T>(storeName: string): T[] {
+  const local = localStorage.getItem(`viva_erp_${storeName}`);
+  if (!local) return [];
+  try {
+    const parsed = JSON.parse(local);
+    return Array.isArray(parsed) ? parsed as T[] : [];
+  } catch {
+    return [];
+  }
+}
+
+/* Les caches IndexedDB et localStorage ont pu être remplis avec les seeds
+   fictifs avant ce correctif. Ils sont jetables : chaque écriture ERP part
+   d'abord vers Supabase, donc purger le cache ne perd aucune donnée réelle.
+   Le purge ne se fait qu'une fois par version de cache, sinon le mode hors
+   ligne perdrait son utilité. */
+const CACHE_VERSION_KEY = 'viva_erp_cache_version';
+const CACHE_VERSION = '3';
+
+export async function ensureErpCacheVersion(): Promise<void> {
+  if (typeof window === 'undefined') return;
+  if (localStorage.getItem(CACHE_VERSION_KEY) === CACHE_VERSION) return;
+
+  STORES.forEach(storeName => localStorage.removeItem(`viva_erp_${storeName}`));
+  // Faux journal d'audit : adresses IP inventées, écrivait sans jamais toucher
+  // la base. Retiré pour qu'un journal affiche « rien » plutôt que du décor.
+  localStorage.removeItem('viva_audit_logs');
+  // Faux annuaire staff et faux visiteurs : comptes inventés avec privilèges
+  // (god_mode) et trafic de démonstration présenté comme de l'audience réelle.
+  localStorage.removeItem('viva_managed_users');
+  localStorage.removeItem('viva_visitor_sessions');
+  try {
+    const db = await getIndexedDB();
+    await Promise.all(STORES.map(storeName => new Promise<void>((resolve) => {
+      const tx = db.transaction(storeName, 'readwrite');
+      tx.objectStore(storeName).clear();
+      tx.oncomplete = () => resolve();
+      tx.onerror = () => resolve();
+    })));
+  } catch {
+    /* IndexedDB indisponible : le purge localStorage suffit. */
+  }
+  localStorage.setItem(CACHE_VERSION_KEY, CACHE_VERSION);
 }

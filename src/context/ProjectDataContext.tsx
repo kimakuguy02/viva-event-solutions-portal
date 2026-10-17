@@ -11,7 +11,7 @@ import {
   MediaItem,
   YouTubeChannelConfig
 } from '../types/cmsAndErp';
-import { INITIAL_PROJECTS, INITIAL_QUOTES, INITIAL_EQUIPMENT, INITIAL_PARTNERS, INITIAL_TICKETS } from '../data/vivaData';
+import { INITIAL_EQUIPMENT, INITIAL_PARTNERS } from '../data/vivaData';
 import { DEFAULT_PLATFORM_CONFIG, POLES_15_OFFICIAL_DATA } from '../data/platformConfig';
 import {
   INITIAL_DIRECTIONS_ORG,
@@ -179,49 +179,18 @@ interface ProjectDataContextType {
 
 const ProjectDataContext = createContext<ProjectDataContextType | undefined>(undefined);
 
-const INITIAL_QUESTIONS: LiveQuestion[] = [
-  {
-    id: "q-1",
-    author: "M. Dieudonné Kalala",
-    affiliation: "Directeur Événements - BCDC",
-    content: "Quel est le délai moyen de déploiement pour un système Line Array et un mur LED de 100 m² à Kinshasa ?",
-    votes: 24,
-    isApproved: true,
-    isAnswered: true,
-    timestamp: "10:14"
-  },
-  {
-    id: "q-2",
-    author: "Honorable Sophie Kabangu",
-    affiliation: "Commission Affaires Étrangères",
-    content: "Comment vos équipes coordonnent-elles le protocole d'État et les cabines de traduction simultanée lors des sommets multilatéraux ?",
-    votes: 18,
-    isApproved: true,
-    isAnswered: false,
-    timestamp: "10:28"
-  },
-  {
-    id: "q-3",
-    author: "David Mbuyi",
-    affiliation: "Agence Stratégique Vision RDC",
-    content: "Proposez-vous une assistance d'urgence 24/7 avec générateurs de secours synchronisés sans micro-coupure ?",
-    votes: 15,
-    isApproved: true,
-    isAnswered: false,
-    timestamp: "10:45"
-  }
-];
+const INITIAL_QUESTIONS: LiveQuestion[] = [];
 
 const INITIAL_POLL: LivePoll = {
   id: "poll-2026-01",
   question: "Quel pôle d'ingénierie événementielle considérez-vous comme le plus stratégique pour vos prochains sommets en RDC ?",
   options: [
-    { id: "opt-1", text: "Pôle 07 : Location & Exploitation Matériel Lourd (Line Array & Énergie)", votes: 45 },
-    { id: "opt-2", text: "Pôle 03 : Événements Hybrides, Streaming 4K & Digital", votes: 38 },
-    { id: "opt-3", text: "Pôle 08 & 12 : Protocole d'État, Diplomatie & Haute Sûreté", votes: 29 },
-    { id: "opt-4", text: "Pôle 11 : Traduction Simultanée Bosch & Interprétariat AIIC", votes: 19 }
+    { id: "opt-1", text: "Pôle 07 : Location & Exploitation Matériel Lourd (Line Array & Énergie)", votes: 0 },
+    { id: "opt-2", text: "Pôle 03 : Événements Hybrides, Streaming 4K & Digital", votes: 0 },
+    { id: "opt-3", text: "Pôle 08 & 12 : Protocole d'État, Diplomatie & Haute Sûreté", votes: 0 },
+    { id: "opt-4", text: "Pôle 11 : Traduction Simultanée Bosch & Interprétariat AIIC", votes: 0 }
   ],
-  totalVotes: 131,
+  totalVotes: 0,
   isActive: true
 };
 
@@ -250,12 +219,12 @@ export const ProjectDataProvider: React.FC<{ children: React.ReactNode }> = ({ c
 
   const [projects, setProjects] = useState<Project[]>(() => {
     const saved = localStorage.getItem('viva_projects');
-    return saved ? JSON.parse(saved) : INITIAL_PROJECTS;
+    return saved ? JSON.parse(saved) : [];
   });
 
   const [quotes, setQuotes] = useState<QuoteRequest[]>(() => {
     const saved = localStorage.getItem('viva_quotes');
-    return saved ? JSON.parse(saved) : INITIAL_QUOTES;
+    return saved ? JSON.parse(saved) : [];
   });
 
   const [equipment, setEquipment] = useState<EquipmentItem[]>(() => {
@@ -268,7 +237,7 @@ export const ProjectDataProvider: React.FC<{ children: React.ReactNode }> = ({ c
     return saved ? JSON.parse(saved) : INITIAL_PARTNERS;
   });
 
-  const [tickets] = useState<TicketSession[]>(INITIAL_TICKETS);
+  const [tickets] = useState<TicketSession[]>([]);
   const [liveQuestions, setLiveQuestions] = useState<LiveQuestion[]>(INITIAL_QUESTIONS);
   const [currentPoll, setCurrentPoll] = useState<LivePoll>(INITIAL_POLL);
 
@@ -1642,8 +1611,8 @@ export const ProjectDataProvider: React.FC<{ children: React.ReactNode }> = ({ c
     if (typeof window !== 'undefined') window.sessionStorage.removeItem('viva_reset_armed');
     setPlatformConfig(DEFAULT_PLATFORM_CONFIG);
     setDepartments(POLES_15_OFFICIAL_DATA);
-    setProjects(INITIAL_PROJECTS);
-    setQuotes(INITIAL_QUOTES);
+    setProjects([]);
+    setQuotes([]);
     setEquipment(INITIAL_EQUIPMENT);
     setPartners(INITIAL_PARTNERS);
     setDirectionsOrg(INITIAL_DIRECTIONS_ORG);
@@ -1659,8 +1628,6 @@ export const ProjectDataProvider: React.FC<{ children: React.ReactNode }> = ({ c
     setFirestoreDocument('platform_config', 'main', DEFAULT_PLATFORM_CONFIG).catch(() => {});
     setFirestoreDocument('platform_config', 'youtube', INITIAL_YOUTUBE_CONFIG).catch(() => {});
     POLES_15_OFFICIAL_DATA.forEach(d => setFirestoreDocument('departments', String(d.id), d).catch(() => {}));
-    INITIAL_PROJECTS.forEach(p => setFirestoreDocument('projects', p.id, p).catch(() => {}));
-    INITIAL_QUOTES.forEach(q => setFirestoreDocument('quotes', q.id, q).catch(() => {}));
     INITIAL_EQUIPMENT.forEach(e => setFirestoreDocument('equipment', e.id, e).catch(() => {}));
     INITIAL_PARTNERS.forEach(p => setFirestoreDocument('partners', p.id, p).catch(() => {}));
     INITIAL_DIRECTIONS_ORG.forEach(d => setFirestoreDocument('organization_directions', String(d.id), d).catch(() => {}));

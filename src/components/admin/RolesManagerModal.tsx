@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import { useTheme } from '../../context/ThemeContext';
+import { logAudit } from '../../services/supabase/auditService';
 import { UserRole } from '../../types';
 import {
   Shield,
@@ -47,69 +48,6 @@ export const OFFICIAL_DIRECTIONS_9 = [
   "09. DIRECTION SÉCURITÉ, SÛRETÉ & GESTION DES RISQUES (Sécurité, Sûreté VIP, Prévention des risques, Conformités)"
 ];
 
-const INITIAL_MANAGED_USERS: ManagedUser[] = [
-  {
-    id: "usr-admin-gen-001",
-    name: "Guy Kimaku (Administrateur Général - God Mode)",
-    email: "direction.generale@viva-eventsolutions.cd",
-    phone: "+243 00 000 0000",
-    role: "admin_general",
-    directionName: "01. DIRECTION GÉNÉRALE",
-    status: "active",
-    createdAt: "2026-01-10",
-    lastLogin: "2026-09-02 10:14",
-    permissions: ["all_access", "god_mode", "reset_database", "manage_roles", "manage_cms", "manage_finance", "audit_logs"]
-  },
-  {
-    id: "usr-it-002",
-    name: "Ingénieur Landry Mwamba (Technicien Informaticien)",
-    email: "tech.it@viva-eventsolutions.cd",
-    phone: "+243 00 000 0011",
-    role: "it_technician",
-    directionName: "08. DIRECTION COMMUNICATION, MARKETING & DÉVELOPPEMENT DIGITAL",
-    status: "active",
-    createdAt: "2026-02-15",
-    lastLogin: "2026-09-01 18:30",
-    permissions: ["manage_digital_hub", "network_starlink", "ticketing_access", "broadcast_systems"]
-  },
-  {
-    id: "usr-dept-003",
-    name: "Mme Clarisse Banza (Responsable Département Scénographie)",
-    email: "scenographie@viva-eventsolutions.cd",
-    phone: "+243 00 000 0022",
-    role: "department_head",
-    directionName: "06. DIRECTION TECHNIQUE, SCÉNOGRAPHIE & INFRASTRUCTURES",
-    status: "active",
-    createdAt: "2026-03-01",
-    lastLogin: "2026-08-30 09:12",
-    permissions: ["manage_department_projects", "inventory_request", "quote_validation"]
-  },
-  {
-    id: "usr-perm-004",
-    name: "Alain Kabasele (Régisseur Général Permanent)",
-    email: "regie.permanente@viva-eventsolutions.cd",
-    phone: "+243 00 000 0033",
-    role: "permanent_user",
-    directionName: "05. DIRECTION INGÉNIERIE & PRODUCTION ÉVÉNEMENTIELLE",
-    status: "active",
-    createdAt: "2026-04-12",
-    lastLogin: "2026-09-02 07:45",
-    permissions: ["logistics_view", "equipment_checklist", "project_operations"]
-  },
-  {
-    id: "usr-temp-005",
-    name: "Équipe Renfort Sommet (Opérateur Temporaire)",
-    email: "renfort.event@viva-eventsolutions.cd",
-    phone: "+243 00 000 0044",
-    role: "temporary_user",
-    directionName: "07. DIRECTION LOGISTIQUE, HOSPITALITÉ & EXPÉRIENCE PARTICIPANT",
-    status: "active",
-    createdAt: "2026-08-20",
-    lastLogin: "2026-08-28 14:00",
-    permissions: ["badge_scanning", "guest_checkin"]
-  }
-];
-
 interface RolesManagerModalProps {
   isOpen: boolean;
   onClose: () => void;
@@ -122,7 +60,7 @@ export const RolesManagerModal: React.FC<RolesManagerModalProps> = ({ isOpen, on
 
   const [users, setUsers] = useState<ManagedUser[]>(() => {
     const saved = localStorage.getItem('viva_managed_users');
-    return saved ? JSON.parse(saved) : INITIAL_MANAGED_USERS;
+    return saved ? JSON.parse(saved) : [];
   });
 
   const [activeTab, setActiveTab] = useState<'users' | 'create' | 'permissions'>('users');
@@ -159,16 +97,7 @@ export const RolesManagerModal: React.FC<RolesManagerModalProps> = ({ isOpen, on
   }
 
   const logAuditAction = (action: string, details: string) => {
-    const auditLogs = JSON.parse(localStorage.getItem('viva_audit_logs') || '[]');
-    auditLogs.unshift({
-      id: `log-${Date.now()}`,
-      timestamp: new Date().toISOString(),
-      userEmail: currentUser.email,
-      action: `${action} : ${details}`,
-      ipAddress: '192.168.1.45',
-      device: navigator.userAgent || 'Chrome / Windows RDC'
-    });
-    localStorage.setItem('viva_audit_logs', JSON.stringify(auditLogs));
+    void logAudit(action, 'roles', undefined, { details });
   };
 
   const handleSaveUsers = (updated: ManagedUser[]) => {

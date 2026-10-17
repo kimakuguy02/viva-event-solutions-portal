@@ -7,4 +7,5 @@ coverage/
 .env*
 !.env.example
 # Base runtime Express : hashes, sels et jetons de session en clair — jamais versionnée.
-data/
+# Ancre racine obligatoire : « data/ » seul ignorait aussi src/data/, le code source des données.
+/data/

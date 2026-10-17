@@ -22,61 +22,6 @@ import {
 import { AccountNotification, WorkerAvailability } from '../../types/erp';
 import { OFFICIAL_VIVA_WORKERS } from '../../context/AuthContext';
 
-const INITIAL_NOTIFICATIONS: AccountNotification[] = [
-  {
-    id: 'notif-1',
-    recipientId: 'usr-dg-001',
-    recipientRole: 'dg_gerant',
-    title: 'Validation de Décaissement requise (Double Signature)',
-    message: 'Le DAF a validé la transaction TX-2026-089 ($3,200 USD). Votre signature exécutive est attendue.',
-    type: 'validation_requise',
-    priority: 'urgente',
-    timestamp: 'Il y a 10 minutes',
-    isRead: false,
-    actionTab: 'accounting',
-    actionLabel: 'Aller à la Comptabilité'
-  },
-  {
-    id: 'notif-2',
-    recipientId: 'usr-daf-003',
-    recipientRole: 'daf_comptable',
-    title: 'Clôture de Caisse Journalière',
-    message: 'Le rapport de caisse de l’agence Limete est prêt pour contrôle SYSCOHADA.',
-    type: 'alerte_metier',
-    priority: 'haute',
-    timestamp: 'Il y a 1 heure',
-    isRead: false,
-    actionTab: 'accounting',
-    actionLabel: 'Vérifier la Caisse'
-  },
-  {
-    id: 'notif-3',
-    recipientId: 'usr-ops-004',
-    recipientRole: 'chef_equipe',
-    title: 'Affectation Nouvelle Tâche Terrain',
-    message: 'Installation régie LED 4K pour le sommet présidentiel assignée à votre équipe.',
-    type: 'directive',
-    priority: 'haute',
-    timestamp: 'Il y a 3 heures',
-    isRead: true,
-    actionTab: 'projects-tasks',
-    actionLabel: 'Voir la Tâche'
-  },
-  {
-    id: 'notif-4',
-    recipientId: 'usr-com-005',
-    recipientRole: 'commercial_secretaire',
-    title: 'Nouveau Devis Validé par Prospect VIP',
-    message: 'Le devis #VIVA-2026-902 ($14,500) a été signé électroniquement.',
-    type: 'succes',
-    priority: 'normale',
-    timestamp: 'Hier, 16:45',
-    isRead: true,
-    actionTab: 'crm',
-    actionLabel: 'Consulter le CRM'
-  }
-];
-
 export const AccountCenterModule: React.FC<{ onNavigateTab?: (tabId: string) => void }> = ({ onNavigateTab }) => {
   const { currentUser, isDg, isDaf, isAdminRh, isChefEquipe, isCommercial } = useAuth();
   
@@ -86,17 +31,15 @@ export const AccountCenterModule: React.FC<{ onNavigateTab?: (tabId: string) => 
   const [profileForm, setProfileForm] = useState({
     name: currentUser.name,
     phone: currentUser.phone || workerMeta.phone,
-    whatsapp: '+243 81 500 0001',
+    whatsapp: '',
     bio: workerMeta.description,
     availability: 'disponible' as WorkerAvailability,
-    statusNote: 'En mission sur le terrain à Gombe',
+    statusNote: '',
     notifySound: true,
     notifyInApp: true
   });
 
-  const [notifications, setNotifications] = useState<AccountNotification[]>(
-    INITIAL_NOTIFICATIONS.filter(n => n.recipientRole === currentUser.role || n.recipientId === currentUser.id)
-  );
+  const [notifications, setNotifications] = useState<AccountNotification[]>([]);
 
   const [savedSuccess, setSavedSuccess] = useState(false);
 

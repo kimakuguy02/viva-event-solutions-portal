@@ -4,7 +4,7 @@ import { useProjectData } from '../../context/ProjectDataContext';
 import { VIVA_COMPANY_INFO, DEPARTMENTS_DATA } from '../../data/vivaData';
 import { ResetDatabaseModal } from './ResetDatabaseModal';
 import { RolesManagerModal } from './RolesManagerModal';
-import { subscribeFirestoreCollection, auth } from '../../services/firebase';
+import { useAuditEvents } from '../../hooks/useAuditEvents';
 import {
   LayoutDashboard,
   Compass,
@@ -44,27 +44,8 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ setCurrentTab, o
   const [isResetModalOpen, setIsResetModalOpen] = useState(false);
   const [isRolesModalOpen, setIsRolesModalOpen] = useState(false);
 
-  // Real-time Firestore Audit Logs
-  const [auditLogs, setAuditLogs] = useState<any[]>(() => {
-    return JSON.parse(localStorage.getItem('viva_audit_logs') || '[]');
-  });
-
-  React.useEffect(() => {
-    let unsub: (() => void) | undefined;
-    if (auth.currentUser) {
-      try {
-        unsub = subscribeFirestoreCollection<any>('audit_logs', (items) => {
-          if (items && items.length > 0) {
-            items.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
-            setAuditLogs(items);
-          }
-        });
-      } catch (e) {
-        console.warn('[AdminDashboard] Firestore audit subscription notice:', e);
-      }
-    }
-    return () => { if (unsub) unsub(); };
-  }, []);
+  // Journal d'audit serveur (Supabase `audit_logs`, RLS) — jamais un cache local.
+  const { events: auditLogs, source: auditSource } = useAuditEvents(100);
 
   // Calculated Stats
   const totalBudgetUSD = projects.reduce((acc, p) => acc + p.budgetUSD, 0);
@@ -359,7 +340,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ setCurrentTab, o
               </h3>
             </div>
             <span className="px-2.5 py-1 rounded-full bg-amber-500/20 text-amber-300 font-mono text-xs">
-              {auditLogs.length} événements enregistrés
+              {auditLogs.length} événements • source : {auditSource}
             </span>
           </div>
 
@@ -367,14 +348,14 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ setCurrentTab, o
             {auditLogs.length === 0 ? (
               <p className="text-xs text-slate-400 py-4 text-center">Aucun journal d'audit enregistré pour le moment.</p>
             ) : (
-              auditLogs.map((log: any) => (
+              auditLogs.map((log) => (
                 <div key={log.id} className="p-3 rounded-xl bg-slate-950 border border-slate-800/80 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 text-xs font-mono">
                   <div className="flex items-center gap-3">
                     <span className="px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-300 font-bold">{log.action}</span>
-                    <span className="text-slate-300">{log.userEmail}</span>
+                    <span className="text-slate-300">{log.actorEmail}</span>
                   </div>
                   <div className="flex items-center gap-4 text-slate-400">
-                    <span>IP : {log.ipAddress}</span>
+                    <span>{log.resource}</span>
                     <span>{new Date(log.timestamp).toLocaleString()}</span>
                   </div>
                 </div>
@@ -489,7 +470,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ setCurrentTab, o
             </h3>
           </div>
           <span className="text-xs font-mono text-slate-400">
-            Horodatage UTC+1 (Kinshasa) • IP & Appareil
+            Horodatage UTC+1 (Kinshasa) • source : {auditSource}
           </span>
         </div>
 
@@ -505,18 +486,18 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ setCurrentTab, o
                   <th className="p-3">Horodatage</th>
                   <th className="p-3">Utilisateur</th>
                   <th className="p-3">Action Exécutée</th>
-                  <th className="p-3">Adresse IP</th>
-                  <th className="p-3">Appareil / Navigateur</th>
+                  <th className="p-3">Ressource</th>
+                  <th className="p-3">Résultat</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-800 font-mono text-[11px] bg-slate-950/20">
-                {auditLogs.slice(0, 8).map((log: any, idx: number) => (
-                  <tr key={idx} className="hover:bg-slate-800/30 transition-colors">
+                {auditLogs.slice(0, 8).map((log) => (
+                  <tr key={log.id} className="hover:bg-slate-800/30 transition-colors">
                     <td className="p-3 text-slate-400">{log.timestamp ? new Date(log.timestamp).toLocaleString('fr-FR') : 'N/A'}</td>
-                    <td className="p-3 text-amber-300 font-bold">{log.userEmail}</td>
+                    <td className="p-3 text-amber-300 font-bold">{log.actorEmail}</td>
                     <td className="p-3 text-white font-sans font-bold">{log.action}</td>
-                    <td className="p-3 text-emerald-400">{log.ipAddress || '192.168.1.45'}</td>
-                    <td className="p-3 text-slate-400 truncate max-w-xs">{log.device || 'Chrome / Kinshasa'}</td>
+                    <td className="p-3 text-emerald-400">{log.resource}</td>
+                    <td className="p-3 text-slate-400">{log.result}</td>
                   </tr>
                 ))}
               </tbody>

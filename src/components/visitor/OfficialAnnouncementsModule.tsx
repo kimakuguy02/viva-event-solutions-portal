@@ -77,54 +77,10 @@ export const OfficialAnnouncementsModule: React.FC = () => {
   const [showApplicationModal, setShowApplicationModal] = useState<boolean>(false);
   const [selectedOffer, setSelectedOffer] = useState<JobOffer | null>(null);
 
-  // Annonces Produit ou Service avec l'exemple fourni
-  const [productAnnouncements, setProductAnnouncements] = useState<ProductServiceAnnouncement[]>([
-    {
-      id: 'prod-01',
-      type: 'Produit',
-      title: 'Vente d’ordinateurs portables',
-      category: 'Informatique & Technologie',
-      description: 'Ordinateurs portables professionnels disponibles à Kinshasa. Modèles Dell Latitude et HP EliteBook reconditionnés grade A+, Core i7, 16GB RAM, SSD 512GB.',
-      price: '500 USD',
-      mediaName: 'photo_laptops_kinshasa.jpg',
-      attachmentName: 'Catalogue_Ordinateurs_2026.pdf',
-      location: 'Kinshasa – Gombe',
-      availabilityDate: 'Disponible à partir du 20 septembre 2026',
-      contact: '+243 00 000 0000 / WhatsApp (exemple)',
-      durationDays: '15 jours',
-      publishedAt: '15 Septembre 2026'
-    },
-    {
-      id: 'prod-02',
-      type: 'Service',
-      title: 'Prestation Régie Retransmission Satellite 4K & Starlink',
-      category: 'Audiovisuel & Diffusion',
-      description: 'Mise à disposition de régie mobile fly-case complète avec 6 caméras tourelles 4K et liaison Starlink Business haut débit garantie.',
-      price: '1 200 USD / jour',
-      mediaName: 'regie_mobile_viva.jpg',
-      attachmentName: 'Fiche_Technique_Regie.pdf',
-      location: 'Kinshasa – Limete Industriel',
-      availabilityDate: 'Disponible immédiatement',
-      contact: '+243 96 321 6780 / WhatsApp',
-      durationDays: '30 jours',
-      publishedAt: '12 Septembre 2026'
-    },
-    {
-      id: 'prod-03',
-      type: 'Événement',
-      title: 'Location de Chapiteaux Modulaires Bioclimatiques 1000 places',
-      category: 'Architecture Éphémère',
-      description: 'Structures en aluminium certifiées TUV avec climatisation industrielle et plancher technique pour sommets d’État et galas d’entreprise.',
-      price: 'Sur devis officiel',
-      mediaName: 'chapiteau_prestige.jpg',
-      attachmentName: 'Catalogue_Structures_VIVA.pdf',
-      location: 'Kinshasa / Lubumbashi',
-      availabilityDate: 'Disponible dès le 01 Octobre 2026',
-      contact: '+243 85 592 9308 / WhatsApp',
-      durationDays: '15 jours',
-      publishedAt: '10 Septembre 2026'
-    }
-  ]);
+  // Annonces publiées : aucune ligne d'exemple. Une offre datée, chiffrée et
+  // « disponible à partir du… » lue par un client ou un candidat engage
+  // l'entreprise pour de faux.
+  const [productAnnouncements, setProductAnnouncements] = useState<ProductServiceAnnouncement[]>([]);
 
   // Formulaire d'annonce Produit / Service
   const [productForm, setProductForm] = useState({
@@ -143,57 +99,10 @@ export const OfficialAnnouncementsModule: React.FC = () => {
   });
   const [productSubmitSuccess, setProductSubmitSuccess] = useState(false);
 
-  // Offres de Recrutement avec l'exemple exact fourni
-  const [jobOffers, setJobOffers] = useState<JobOffer[]>([
-    {
-      id: 'job-01',
-      title: 'Responsable Commercial',
-      reference: 'REC-2026-008',
-      department: 'Service Commercial',
-      sector: 'Événementiel',
-      recruitmentType: 'Recrutement externe',
-      contractType: 'CDI',
-      workLocation: 'Kinshasa – Gombe',
-      
-      vacanciesCount: '2 postes',
-      studyLevel: 'Bac+3',
-      educationField: 'Marketing, Commerce ou Gestion',
-      requiredExperience: '2 à 3 ans',
-      skills: ['Prospection commerciale', 'Négociation', 'Communication', 'Gestion de portefeuille grands comptes'],
-      languages: ['Français', 'Lingala', 'Anglais'],
-      personalQualities: ['Dynamisme', 'Ponctualité', 'Esprit d’équipe', 'Rigueur'],
-
-      salaryRange: '500 à 800 USD/mois',
-      workingHours: 'Lundi à vendredi, 8h00–17h00',
-      applicationStartDate: '30 septembre 2026',
-      applicationEndDate: '10 octobre 2026',
-      submissionsCount: 24
-    },
-    {
-      id: 'job-02',
-      title: 'Ingénieur Son & Régisseur Audiovisuel',
-      reference: 'REC-2026-012',
-      department: 'Direction Technique & Scénographie',
-      sector: 'Ingénierie Événementielle',
-      recruitmentType: 'Recrutement externe',
-      contractType: 'CDI',
-      workLocation: 'Kinshasa – Limete',
-      
-      vacanciesCount: '1 poste',
-      studyLevel: 'Bac+3 / Diplôme d’Ingénieur',
-      educationField: 'Électronique, Audiovisuel ou Acoustique',
-      requiredExperience: '3 à 5 ans',
-      skills: ['Calibrage Line-Array', 'Consoles Yamaha CL5/Dante', 'Gestion des fréquences HF'],
-      languages: ['Français', 'Lingala'],
-      personalQualities: ['Précision', 'Réactivité sous pression', 'Sens du détail'],
-
-      salaryRange: '700 à 1 100 USD/mois',
-      workingHours: 'Horaires flexibles selon planning événements',
-      applicationStartDate: '25 septembre 2026',
-      applicationEndDate: '15 octobre 2026',
-      submissionsCount: 17
-    }
-  ]);
+  // Offres d'emploi : aucune offre simulée (salaires, échéances, « 24
+  // candidatures »). Publier un poste qui n'existe pas engage l'entreprise
+  // vis-à-vis de vrais candidats.
+  const [jobOffers, setJobOffers] = useState<JobOffer[]>([]);
 
   // Formulaire de Candidature Recrutement
   const [applicationForm, setApplicationForm] = useState({
@@ -380,6 +289,11 @@ export const OfficialAnnouncementsModule: React.FC = () => {
 
           {/* Liste des annonces produits / services */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            {productAnnouncements.length === 0 && (
+              <p className="md:col-span-3 py-10 text-center text-sm text-slate-500 italic">
+                Aucune annonce publiée pour le moment.
+              </p>
+            )}
             {productAnnouncements.map(ad => (
               <div
                 key={ad.id}
@@ -734,6 +648,11 @@ export const OfficialAnnouncementsModule: React.FC = () => {
           </div>
 
           <div className="space-y-6">
+            {jobOffers.length === 0 && (
+              <p className="py-10 text-center text-sm text-slate-500 italic">
+                Aucun recrutement ouvert pour le moment.
+              </p>
+            )}
             {jobOffers.map(job => (
               <div
                 key={job.id}
