@@ -9,12 +9,13 @@ interface RoleSwitcherBarProps {
 }
 
 export const RoleSwitcherBar: React.FC<RoleSwitcherBarProps> = ({ currentTab, setCurrentTab, onOpenAdminLogin }) => {
-  const { currentUser, isSimulatingVisitor, isAdmin, toggleVisitorMode, logout, toastMessage, dismissToast } = useAuth();
+  const { currentUser, isAdmin, toggleVisitorMode, logout, toastMessage, dismissToast } = useAuth();
   const [showRoleMenu, setShowRoleMenu] = useState(false);
 
-  // If not admin and not simulating visitor, do not show intrusive floating bottom bar!
-  // Normal visitors browse cleanly without visual clutter.
-  if (!isAdmin && isSimulatingVisitor) {
+  // Un visiteur anonyme ne doit jamais voir la barre d'administration :
+  // sans ce garde, le libellé « Session Admin Active » et l'accès au back-office
+  // s'affichaient pour tout le monde, connecté ou non.
+  if (!isAdmin) {
     return (
       <>
         {/* Toast Notification */}

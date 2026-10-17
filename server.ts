@@ -8,18 +8,23 @@ import apiRouter from "./server/api";
 import { getDb, appendAuditLog } from "./server/db";
 
 const app = express();
-const PORT = 3000;
+const PORT = Number(process.env.PORT) || 3000;
 
 app.use(express.json({ limit: '1mb' }));
 
 // Security Headers (CSP compatible YouTube/Supabase/Firebase/Google — voir docs/SECURITY_ARCHITECTURE.md)
+const isProduction = process.env.NODE_ENV === "production";
+
 app.use((req, res, next) => {
   res.setHeader("X-Content-Type-Options", "nosniff");
   res.setHeader("X-Frame-Options", "SAMEORIGIN");
   res.setHeader("X-XSS-Protection", "1; mode=block");
   res.setHeader("Referrer-Policy", "strict-origin-when-cross-origin");
   res.setHeader("Permissions-Policy", "camera=(), microphone=(), geolocation=()");
-  res.setHeader(
+  // La CSP stricte casse le script inline et le WebSocket de Vite (port 24678) :
+  // elle n'est envoyée qu'en production, où le HTML compilé ne contient aucun script inline.
+  if (isProduction) {
+    res.setHeader(
     "Content-Security-Policy",
     "default-src 'self'; " +
     "script-src 'self' https://apis.google.com https://www.gstatic.com; " +
@@ -30,7 +35,8 @@ app.use((req, res, next) => {
     "connect-src 'self' https://*.supabase.co wss://*.supabase.co https://*.googleapis.com https://*.firebaseio.com; " +
     "frame-src https://www.youtube.com https://www.youtube-nocookie.com; " +
     "object-src 'none'; base-uri 'self'; frame-ancestors 'self'"
-  );
+    );
+  }
   next();
 });
 
