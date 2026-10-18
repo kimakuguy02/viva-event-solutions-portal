@@ -110,13 +110,17 @@ create policy requests_owner_staff on public.client_requests for select
     owner_profile_id = auth.uid() or public.has_permission('erp.view')
   );
 drop policy if exists requests_insert on public.client_requests;
+-- Le trigger 016 force deja owner_profile_id ; la policy le verrouille aussi, pour
+-- que la propriete tienne meme si le trigger saute.
 create policy requests_insert on public.client_requests for insert
-  to authenticated with check (true);
+  to authenticated with check (owner_profile_id = auth.uid());
 drop policy if exists requests_update on public.client_requests;
+-- Le default 016 est « SUBMITTED », pas « DRAFT » : l'ancienne clause laissait un
+-- client sans aucun moyen de modifier ou retirer SA propre demande.
 create policy requests_update on public.client_requests for update
   to authenticated
-  using ((owner_profile_id = auth.uid() and status = 'DRAFT') or public.has_permission('erp.update'))
-  with check ((owner_profile_id = auth.uid() and status = 'DRAFT') or public.has_permission('erp.update'));
+  using ((owner_profile_id = auth.uid() and status in ('DRAFT','SUBMITTED')) or public.has_permission('erp.update'))
+  with check ((owner_profile_id = auth.uid() and status in ('DRAFT','SUBMITTED')) or public.has_permission('erp.update'));
 
 drop policy if exists req_attachments_read on public.request_attachments;
 create policy req_attachments_read on public.request_attachments for select
@@ -141,7 +145,7 @@ create policy tickets_owner_staff on public.tickets for select
   );
 drop policy if exists tickets_insert on public.tickets;
 create policy tickets_insert on public.tickets for insert
-  to authenticated with check (true);
+  to authenticated with check (owner_profile_id = auth.uid());
 drop policy if exists tickets_update on public.tickets;
 create policy tickets_update on public.tickets for update
   to authenticated using (
@@ -207,11 +211,16 @@ create policy notif_prefs_owner_update on public.notification_preferences for up
   with check (profile_id = auth.uid());
 
 -- ================= Vue timeline (RLS des tables via security_invoker) =================
+-- created_at et id existent sur crm_interactions ET sur clients : non qualifies,
+-- la vue levait « 42702 column reference is ambiguous », ce qui faisait rouler
+-- 017 AU ENTIER (notifications, 10 policies B2, GRANTs, bucket client_docs).
 create or replace view public.v_client_timeline
 with (security_invoker = true) as
-select owner_profile_id as owner, created_at, 'interaction'::text as source,
-  id::text as ref, summary as label from public.crm_interactions
-  join public.clients c on c.id = client_id
+select c.owner_profile_id as owner, crm_interactions.created_at,
+  'interaction'::text as source,
+  crm_interactions.id::text as ref, crm_interactions.summary as label
+  from public.crm_interactions
+  join public.clients c on c.id = crm_interactions.client_id
 union all
 select submitted_by, created_at, 'devis', reference_number, event_name
   from public.quotes where submitted_by is not null
@@ -221,6 +230,10 @@ select owner_profile_id, created_at, 'demande', reference, objet
 union all
 select owner_profile_id, created_at, 'ticket', reference, sujet
   from public.tickets;
+
+-- Les « alter default privileges ... on tables » ne couvrent pas les vues : sans
+-- GRANT explicite, toute lecture de v_client_timeline repond 42501.
+grant select on public.v_client_timeline to authenticated;
 
 -- ================= GRANTs (RLS filtre ensuite ; anon : rien) =================
 grant select, insert, update, delete on public.contacts to authenticated;
@@ -241,23 +254,37 @@ insert into storage.buckets (id, name, public) values
   ('client_docs', 'client_docs', false)
 on conflict (id) do update set public = excluded.public;
 
+-- Depôt : le chemin porte l'uid du déposant en 1er segment. Sans ce predicat,
+-- n'importe quel CLIENT pouvait ecrire (et donc Precharger/emballer) dans le
+-- dossier d'un autre client.
 drop policy if exists storage_client_docs_upload on storage.objects;
 create policy storage_client_docs_upload on storage.objects for insert
-  to authenticated with check (bucket_id = 'client_docs');
+  to authenticated with check (
+    bucket_id = 'client_docs'
+    and (storage.foldername(name))[1] = auth.uid()::text
+  );
 
+-- Lecture : propriétaire du dossier ou staff. quotes.view est exclu : le rôle
+-- CLIENT le possède (003:194), ce qui exposait les contrats, factures et pièces
+-- d'identité de tous les autres clients à n'importe quel client connecté.
+-- erp.view est conservé : CLIENT ne le possède pas, le secrétariat en a besoin.
 drop policy if exists storage_client_docs_read on storage.objects;
 create policy storage_client_docs_read on storage.objects for select
   to authenticated using (
     bucket_id = 'client_docs'
-    and (storage.objects.owner = auth.uid()
-      or public.has_permission('erp.view') or public.has_permission('quotes.view'))
+    and ((storage.foldername(storage.objects.name))[1] = auth.uid()::text
+      or public.has_permission('erp.view')
+      or public.has_permission('quotes.manage'))
   );
 
+-- Suppression : le déposant dans son dossier, sinon un droit de gestion.
+-- erp.create (droit de dépôt) ne doit pas suffire à effacer les pièces d'autrui.
 drop policy if exists storage_client_docs_delete on storage.objects;
 create policy storage_client_docs_delete on storage.objects for delete
   to authenticated using (
     bucket_id = 'client_docs'
-    and (storage.objects.owner = auth.uid() or public.has_permission('erp.create'))
+    and ((storage.foldername(storage.objects.name))[1] = auth.uid()::text
+      or public.has_permission('erp.validate'))
   );
 
 -- Vérification post-migration (extraits ; détail complet en TESTS) :

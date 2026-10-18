@@ -56,10 +56,19 @@ create policy pages_public_read on public.pages for select
   to anon, authenticated using (is_published);
 
 drop policy if exists pages_staff_write on public.pages;
-create policy pages_staff_write on public.pages for all
+-- for all + cms.view : ADMIN_RH et DG_GERANT ont cms.view sans cms.update et
+-- pouvaient supprimer une page publiee.
+drop policy if exists pages_staff_insert on public.pages;
+create policy pages_staff_insert on public.pages for insert
+  to authenticated with check (public.has_permission('cms.create'));
+drop policy if exists pages_staff_update on public.pages;
+create policy pages_staff_update on public.pages for update
   to authenticated
-  using (public.has_permission('cms.view'))
+  using (public.has_permission('cms.update'))
   with check (public.has_permission('cms.update'));
+drop policy if exists pages_staff_delete on public.pages;
+create policy pages_staff_delete on public.pages for delete
+  to authenticated using (public.has_permission('cms.delete'));
 
 -- SEO : lecture publique (métadonnées affichables), écriture cms.update.
 drop policy if exists seo_public_read on public.seo_meta;
@@ -67,10 +76,17 @@ create policy seo_public_read on public.seo_meta for select
   to anon, authenticated using (true);
 
 drop policy if exists seo_staff_write on public.seo_meta;
-create policy seo_staff_write on public.seo_meta for all
+drop policy if exists seo_staff_insert on public.seo_meta;
+create policy seo_staff_insert on public.seo_meta for insert
+  to authenticated with check (public.has_permission('cms.update'));
+drop policy if exists seo_staff_update on public.seo_meta;
+create policy seo_staff_update on public.seo_meta for update
   to authenticated
-  using (public.has_permission('cms.view'))
+  using (public.has_permission('cms.update'))
   with check (public.has_permission('cms.update'));
+drop policy if exists seo_staff_delete on public.seo_meta;
+create policy seo_staff_delete on public.seo_meta for delete
+  to authenticated using (public.has_permission('cms.delete'));
 
 grant select on public.pages, public.seo_meta to anon;
 grant select, insert, update, delete on public.pages, public.seo_meta to authenticated;

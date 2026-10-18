@@ -300,6 +300,10 @@ create table if not exists public.erp_transactions (
   manager_approved_by uuid references public.profiles (id) on delete set null,
   daf_validated_by uuid references public.profiles (id) on delete set null,
   daf_validated_at timestamptz,
+  -- Ecriture liee lors d'une contrepassation (018.erp_reverse_tx). Declaree ici :
+  -- 011 a besoin de la column pour distinguer une contrepassation legitime d'une
+  -- ecriteure « valide » saisie a la main, et 011 tourne avant 018.
+  reversed_by uuid references public.erp_transactions (id) on delete set null,
   attachment_path text,
   created_at timestamptz not null default now()
 );

@@ -185,8 +185,12 @@ revoke all on function public.has_permission(text) from public;
 revoke all on function public.is_super_admin() from public;
 grant execute on function public.current_role_id() to authenticated, service_role;
 grant execute on function public.current_role_code() to authenticated, service_role;
-grant execute on function public.has_permission(text) to authenticated, service_role;
 grant execute on function public.is_super_admin() to authenticated, service_role;
+-- has_permission est aussi appelé dans des policies « to anon » (form_fields_read, 005).
+-- Sans ce grant, toute policy anon qui invoque la fonction échoue en 42501 au lieu de
+-- renvoyer les lignes publiques. anon n'a pas d'auth.uid() : la fonction renvoie false,
+-- donc le grant n'ouvre rien.
+grant execute on function public.has_permission(text) to anon, authenticated, service_role;
 -- handle_new_user / prevent_privilege_escalation / set_updated_at :
 -- exécution via triggers uniquement, aucun GRANT public.
 
@@ -224,34 +228,39 @@ create policy profiles_update_own_or_staff
 -- Création d'utilisateurs staff : via Edge Function/service_role (bypass RLS), pas via policy.
 
 -- ---- roles ----
+-- Tout compte authentifié doit pouvoir lire le catalogue des rôles : la connexion
+-- elle-même resolve profiles -> roles!inner(code) (AuthContext). Restreindre cette
+-- lecture à roles.view/users.view fait remonter zéro enfant, donc zéro profil, et
+-- chaque auto-inscription CLIENT échoue avec « Compte introuvable ou suspendu ».
+-- Les codes/noms de rôles ne sont pas confidentiels ; les droits, eux, restent sous
+-- role_permissions (policy ci-dessous).
 drop policy if exists roles_select_staff on public.roles;
 create policy roles_select_staff
   on public.roles for select
   to authenticated
-  using (
-    public.has_permission('roles.view')
-    or public.has_permission('users.view')
-  );
+  using (true);
 -- Pas de INSERT/UPDATE/DELETE public : SUPER_ADMIN via service_role/Edge uniquement.
 
 -- ---- permissions ----
+-- Même raisonnement que roles : catalogue lecture seule (les libellés de droits
+-- sont déjà connus du client via la matrice de son propre rôle).
 drop policy if exists permissions_select_staff on public.permissions;
 create policy permissions_select_staff
   on public.permissions for select
   to authenticated
-  using (
-    public.has_permission('roles.view')
-    or public.has_permission('users.view')
-  );
+  using (true);
 -- Pas d'écriture publique.
 
 -- ---- role_permissions ----
+-- L'app résout les droits courants via role_permissions!inner -> permissions!inner(code).
+-- Un CLIENT doit donc voir les lignes de PROPRE rôle ; le staff habilité voit tout.
 drop policy if exists role_permissions_select_staff on public.role_permissions;
 create policy role_permissions_select_staff
   on public.role_permissions for select
   to authenticated
   using (
-    public.has_permission('roles.view')
+    role_id = public.current_role_id()
+    or public.has_permission('roles.view')
     or public.has_permission('users.view')
   );
 -- Pas d'écriture publique : attribution via Edge Function SUPER_ADMIN (service_role).

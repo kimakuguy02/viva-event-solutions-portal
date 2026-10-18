@@ -164,8 +164,10 @@ create policy ai_own on public.ai_actions for select
   to authenticated using (
     requester_profile_id = auth.uid() or public.has_permission('audit.view'));
 drop policy if exists ai_insert on public.ai_actions;
+-- with check (true) faisait de cette table une boite aux lettres libre : n'importe
+-- quel compte authentifie pouvait se presenter comme un autre demandeur.
 create policy ai_insert on public.ai_actions for insert
-  to authenticated with check (true);
+  to authenticated with check (requester_profile_id = auth.uid());
 
 -- Sécurité : lecture audit.view.
 drop policy if exists sec_read on public.security_events;
@@ -179,7 +181,20 @@ create policy sync_own on public.sync_operations for select
     actor_profile_id = auth.uid() or public.has_permission('erp.view'));
 drop policy if exists sync_insert on public.sync_operations;
 create policy sync_insert on public.sync_operations for insert
-  to authenticated with check (true);
+  to authenticated with check (actor_profile_id = auth.uid());
+
+-- workflow_links etait RLS-on SANS aucune policy : invisible pour tous les roles,
+-- y compris SUPER_ADMIN (deny by default). Table de jointure engine/metier, pas de
+-- colonne proprietaire : la frontieres'est pose sur le droit de suivre les formulaires.
+drop policy if exists wf_links_read on public.workflow_links;
+create policy wf_links_read on public.workflow_links for select
+  to authenticated using (public.has_permission('forms.view'));
+drop policy if exists wf_links_insert on public.workflow_links;
+create policy wf_links_insert on public.workflow_links for insert
+  to authenticated with check (public.has_permission('forms.view'));
+drop policy if exists wf_links_delete on public.workflow_links;
+create policy wf_links_delete on public.workflow_links for delete
+  to authenticated using (public.has_permission('forms.update'));
 
 -- Org liens : lecture organisation, écriture organization.manage.
 drop policy if exists org_members_read on public.org_memberships;

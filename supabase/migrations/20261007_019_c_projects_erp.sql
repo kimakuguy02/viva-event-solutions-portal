@@ -196,10 +196,19 @@ create policy milestones_read on public.project_milestones for select
     or exists (select 1 from public.project_members m
       where m.project_id = project_milestones.project_id and m.profile_id = auth.uid()));
 drop policy if exists milestones_write on public.project_milestones;
-create policy milestones_write on public.project_milestones for all
+-- create ne doit pas valoir delete : un preparateur de projet peut porter a jour
+-- une etape, l'effacement reste un droit de mise a jour/suppression.
+drop policy if exists milestones_staff_insert on public.project_milestones;
+create policy milestones_staff_insert on public.project_milestones for insert
+  to authenticated with check (public.has_permission('projects.create'));
+drop policy if exists milestones_staff_update on public.project_milestones;
+create policy milestones_staff_update on public.project_milestones for update
   to authenticated
-  using (public.has_permission('projects.create'))
-  with check (public.has_permission('projects.create'));
+  using (public.has_permission('projects.update'))
+  with check (public.has_permission('projects.update'));
+drop policy if exists milestones_staff_delete on public.project_milestones;
+create policy milestones_staff_delete on public.project_milestones for delete
+  to authenticated using (public.has_permission('projects.delete'));
 
 drop policy if exists deliverables_read on public.project_deliverables;
 create policy deliverables_read on public.project_deliverables for select
@@ -208,10 +217,17 @@ create policy deliverables_read on public.project_deliverables for select
       where p.id = project_deliverables.project_id
       and (p.lead_profile_id = auth.uid() or public.has_permission('projects.view'))));
 drop policy if exists deliverables_write on public.project_deliverables;
-create policy deliverables_write on public.project_deliverables for all
+drop policy if exists deliverables_staff_insert on public.project_deliverables;
+create policy deliverables_staff_insert on public.project_deliverables for insert
+  to authenticated with check (public.has_permission('projects.create'));
+drop policy if exists deliverables_staff_update on public.project_deliverables;
+create policy deliverables_staff_update on public.project_deliverables for update
   to authenticated
-  using (public.has_permission('projects.create'))
-  with check (public.has_permission('projects.create'));
+  using (public.has_permission('projects.update'))
+  with check (public.has_permission('projects.update'));
+drop policy if exists deliverables_staff_delete on public.project_deliverables;
+create policy deliverables_staff_delete on public.project_deliverables for delete
+  to authenticated using (public.has_permission('projects.delete'));
 
 -- Équipements : lecture staff/erp, écriture equipment.manage.
 drop policy if exists equipment_read on public.equipment;

@@ -32,10 +32,19 @@ create policy feature_flags_staff_read on public.feature_flags for select
   to authenticated using (public.has_permission('settings.view'));
 
 drop policy if exists feature_flags_staff_write on public.feature_flags;
-create policy feature_flags_staff_write on public.feature_flags for all
+-- « for all » + settings.view : DG_GERANT et DAF_COMPTABLE lisent les reglages sans
+-- les gerer, et pouvaient donc supprimer les 7 flags d'un seul appel.
+drop policy if exists feature_flags_staff_insert on public.feature_flags;
+create policy feature_flags_staff_insert on public.feature_flags for insert
+  to authenticated with check (public.has_permission('settings.manage'));
+drop policy if exists feature_flags_staff_update on public.feature_flags;
+create policy feature_flags_staff_update on public.feature_flags for update
   to authenticated
-  using (public.has_permission('settings.view'))
+  using (public.has_permission('settings.manage'))
   with check (public.has_permission('settings.manage'));
+drop policy if exists feature_flags_staff_delete on public.feature_flags;
+create policy feature_flags_staff_delete on public.feature_flags for delete
+  to authenticated using (public.has_permission('settings.manage'));
 
 grant select on public.feature_flags to anon;
 grant select, insert, update, delete on public.feature_flags to authenticated;

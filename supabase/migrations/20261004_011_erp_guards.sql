@@ -16,20 +16,19 @@ begin
   if auth.uid() is null then
     return new;
   end if;
-  -- Seul un validateur (erp.validate) peut créer une écriture déjà 'valide'
-  -- (ex. contrepassation émise par un DAF via RPC/Edge).
-  if new.validation_status = 'valide' and not public.has_permission('erp.validate') then
-    new.validation_status := case
-      when new.requires_double_signature then 'en_attente_manager'
-      else 'en_attente_manager'
-    end;
+  -- Une ecriteure creee « valide » par une session n'est legitime que si c'est une
+  -- contrepassation emise par erp_reverse_tx (reversed_by renseigne). L'exemption
+  -- « erp.validate » de la version d'origine laissait un seul compte DAF inserer
+  -- une piece validee avec ses propres visas en un seul appel : la separation des
+  -- fonctions des RPC 018 etait contournable par INSERT direct.
+  if new.validation_status = 'valide' and new.reversed_by is null then
+    new.validation_status := 'en_attente_manager';
   end if;
-  -- Le client ne choisit jamais les visas : remis à NULL à la création.
-  if not public.has_permission('erp.validate') then
-    new.manager_approved_by := null;
-    new.daf_validated_by := null;
-    new.daf_validated_at := null;
-  end if;
+  -- Le client ne choisit jamais les visas : remis a NULL a la creation, y compris
+  -- pour un validateur. Les visas ne sont poses que par les RPC 018 (UPDATE).
+  new.manager_approved_by := null;
+  new.daf_validated_by := null;
+  new.daf_validated_at := null;
   return new;
 end;
 $$;

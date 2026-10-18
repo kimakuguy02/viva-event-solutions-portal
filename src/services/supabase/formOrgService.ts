@@ -171,7 +171,11 @@ export function pgToUnit(p: Record<string, unknown>): OrganizationUnit {
 
 export async function fetchOrgUnits(): Promise<OrganizationUnit[]> {
   const sb = requireSupabase();
-  const { data, error } = await sb.from('org_units').select('*').order('position');
+  const { data: session } = await sb.auth.getSession();
+  // Table = personnel (coordonnees des responsables) ; vue = vitrine, meme shape
+  // hors PII. Sans cette bascule, un visiteur anonymes ne recevrait qu'un 42501.
+  const source = session?.session ? 'org_units' : 'v_org_units_public';
+  const { data, error } = await sb.from(source).select('*').order('position');
   if (error) throw new Error(`Lecture organisation impossible : ${error.message}`);
   const rows = ((data ?? []) as Record<string, unknown>[]);
   const idByCode = new Map(rows.map((r) => [String(r.id), String(r.code ?? r.id)]));

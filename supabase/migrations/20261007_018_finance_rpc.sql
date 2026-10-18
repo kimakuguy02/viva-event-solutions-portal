@@ -4,7 +4,9 @@
 -- jamais du navigateur. SECURITY DEFINER + search_path verrouillé dans chaque
 -- fonction. Aucune donnée modifiée, aucune table supprimée.
 
--- Séquence de références non séquentielles (anti-énumération).
+-- Séquence de références. Les valeurs sont SEQENTIELLES (lpad(nextval)) : la
+-- mention « anti-énumération » du commentaire d'origine etait fausse, une
+-- reference Viva est numerotee et previsible, comme une piece comptable reelle.
 create sequence if not exists public.viva_ref_seq;
 
 -- Génération serveur de référence : <PREFIX>-YYYY-NNNNNN
@@ -48,7 +50,9 @@ begin
   select * into v_tx from public.erp_transactions where piece_reference = p_piece;
   if not found then raise exception 'transaction introuvable ou non autorisée.'; end if;
   if v_tx.validation_status <> 'en_attente_manager' then
-    raise exception 'état incompatible : % (attendu en_attente_manager).', v_tx.validation_status;
+    -- Message neutre : echoes the real status would turn this RPC into an oracle
+    -- revealing the workflow state of a piece the caller cannot SELECT.
+    raise exception 'état incompatible pour cette pièce.';
   end if;
   if v_tx.performed_by = v_uid then
     raise exception 'séparation des fonctions : l’initiateur ne peut pas viser.';
@@ -104,6 +108,9 @@ end;
 $$;
 
 -- Contrepassation : crée l'écriture inverse liée, jamais de modification.
+-- La colonne liée reversed_by est declaree dans 004 : elle etait referencee par
+-- cette fonction sans jamais avoir ete creee par aucune migration (le corps plpgsql
+-- n'est parse qu'a l'appel, d'ou un 42703 au premier clic et non a l'application).
 create or replace function public.erp_reverse_tx(p_piece text, p_reason text)
 returns text
 language plpgsql
@@ -202,6 +209,12 @@ create trigger trg_closure_immutable before update or delete on public.cash_clos
 
 -- Resserrement : update/delete des clôtures exigent erp.validate (plus erp.view seul).
 drop policy if exists closures_staff on public.cash_closures;
+-- Drops manquants : ces trois creations sans « drop ... if exists » rendaient 018
+-- non rejouable (policy already exists au premier retry, alors que 017 peut
+-- echouer et faire rejouer la chaine).
+drop policy if exists closures_staff_read on public.cash_closures;
+drop policy if exists closures_staff_write on public.cash_closures;
+drop policy if exists closures_staff_update on public.cash_closures;
 create policy closures_staff_read on public.cash_closures for select
   to authenticated using (public.has_permission('erp.view'));
 create policy closures_staff_write on public.cash_closures for insert

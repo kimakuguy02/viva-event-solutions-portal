@@ -68,6 +68,15 @@ create policy media_staff_read on public.media_items for select to authenticated
   using (public.has_permission('media.manage'));
 
 drop policy if exists youtube_staff_write on public.youtube_videos;
-create policy youtube_staff_write on public.youtube_videos for all to authenticated
-  using (public.has_permission('media.manage'))
+drop policy if exists youtube_staff_insert on public.youtube_videos;
+drop policy if exists youtube_staff_update on public.youtube_videos;
+drop policy if exists youtube_staff_delete on public.youtube_videos;
+-- « for all » + media.manage = tout détenteur de media.manage pouvait vider la
+-- table youtube_videos (DG, COMMERCIAL). Une policy par command, un droit par command.
+create policy youtube_staff_insert on public.youtube_videos for insert to authenticated
   with check (public.has_permission('media.upload'));
+create policy youtube_staff_update on public.youtube_videos for update to authenticated
+  using (public.has_permission('media.manage'))
+  with check (public.has_permission('media.manage'));
+create policy youtube_staff_delete on public.youtube_videos for delete to authenticated
+  using (public.has_permission('media.delete'));
