@@ -76,11 +76,12 @@ import {
   UserPlus,
   Building2,
   Boxes,
+  ArrowRightLeft,
   Settings
 } from 'lucide-react';
 
 const MainAppContent: React.FC = () => {
-  const { currentUser, isAdmin, isStaffWorker, isSimulatingVisitor } = useAuth();
+  const { currentUser, isAdmin, isStaffWorker, isSimulatingVisitor, isAdminGeneral, isSuperAdmin, staffPortal, setStaffPortal } = useAuth();
   const { activePalette, themeMode } = useTheme();
   const {
     directionsOrg,
@@ -118,8 +119,24 @@ const MainAppContent: React.FC = () => {
     setIsQuoteModalOpen(true);
   };
 
-  // Enterprise ERP Portal for all 5 official workers
-  if (isStaffWorker && !isSimulatingVisitor) {
+  // Enterprise ERP Portal pour tout le personnel certifié.
+  // Bascule ERP ⇄ back-office : simple choix d'affichage, la session Supabase
+  // reste active. Sans elle, « Super Administration » déconnectait et le
+  // back-office devenait inutilisable depuis un compte staff.
+  const canOpenBackOffice = isStaffWorker && (isAdminGeneral || isSuperAdmin);
+  const isErpPortal = isStaffWorker && !(canOpenBackOffice && staffPortal === 'cms');
+
+  // Determine if admin navigation bar should be visible
+  const showAdminPortal = isAdmin && !isSimulatingVisitor;
+  const showClientPortal = currentUser.role === 'client' && !isSimulatingVisitor;
+
+  // SEO réel : titre + meta description par onglet. Appelée avant tout return :
+  // placée sous le branchement ERP, elle faisait varier le nombre de hooks d'un
+  // rendu à l'autre et React détruisait l'arbre entier dès la connexion d'un
+  // membre du personnel (écran noir, portail interne_injoignable).
+  usePageMeta(isErpPortal ? 'erp' : (showAdminPortal || showClientPortal ? 'home' : currentTab));
+
+  if (isErpPortal) {
     return (
       <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col font-sans selection:bg-amber-500 selection:text-slate-950">
         <OfflineBanner />
@@ -128,12 +145,6 @@ const MainAppContent: React.FC = () => {
     );
   }
 
-  // Determine if admin navigation bar should be visible
-  const showAdminPortal = isAdmin && !isSimulatingVisitor;
-  const showClientPortal = currentUser.role === 'client' && !isSimulatingVisitor;
-
-  // SEO réel : titre + meta description par onglet (front-office uniquement).
-  usePageMeta(showAdminPortal || showClientPortal ? 'home' : currentTab);
   const isLight = themeMode === 'light';
 
   return (
@@ -184,6 +195,22 @@ const MainAppContent: React.FC = () => {
                 <span className="w-2 h-2 rounded-full animate-pulse" style={{ backgroundColor: activePalette.colors.accent }}></span>
                 <span className="uppercase tracking-wider">Console Back-Office :</span>
               </div>
+
+              {canOpenBackOffice && (
+                <button
+                  onClick={() => setStaffPortal('erp')}
+                  className="px-3 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 whitespace-nowrap border cursor-pointer shrink-0"
+                  style={{
+                    backgroundColor: activePalette.colors.primary,
+                    borderColor: activePalette.colors.borderGlow,
+                    color: '#FFFFFF'
+                  }}
+                  title="Revenir au portail interne (ERP) sans quitter la session"
+                >
+                  <ArrowRightLeft className="w-3.5 h-3.5" />
+                  <span>Portail interne (ERP)</span>
+                </button>
+              )}
 
               <div className="flex items-center gap-1.5">
                 {[

@@ -34,6 +34,10 @@ export type CanonicalRoleCode =
 
 export type AuthMode = 'supabase' | 'legacy' | 'anonymous';
 
+/** Portail affiché au personnel : ERP interne ou back-office. Un simple choix
+   d'affichage — la session n'est jamais touchée. */
+export type StaffPortal = 'erp' | 'cms';
+
 /** Mapping canonique (DB) → rôle legacy d'affichage (compat UI existante). */
 const CANONICAL_TO_LEGACY: Record<CanonicalRoleCode, UserRole> = {
   SUPER_ADMIN: 'admin',
@@ -146,6 +150,8 @@ interface AuthContextType {
   loading: boolean;
   authError: string | null;
   isSimulatingVisitor: boolean;
+  staffPortal: StaffPortal;
+  setStaffPortal: (portal: StaffPortal) => void;
   isAdmin: boolean;
   isAdminGeneral: boolean;
   isSuperAdmin: boolean;
@@ -188,6 +194,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [loading, setLoading] = useState<boolean>(true);
   const [authError, setAuthError] = useState<string | null>(null);
   const [isSimulatingVisitor, setIsSimulatingVisitor] = useState<boolean>(false);
+  const [staffPortal, setStaffPortal] = useState<StaffPortal>('erp');
   const [toastMessage, setToastMessage] = useState<string | null>(null);
   const schemaMissingRef = useRef(false);
   const authModeRef = useRef<AuthMode>('anonymous');
@@ -249,6 +256,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       setRoleCode(profile.roleCode);
       setCurrentUser(toAppUser(userId, email, profile));
       setIsSimulatingVisitor(false);
+      setStaffPortal('erp');
       setAuthMode('supabase');
       setAuthError(null);
     },
@@ -521,6 +529,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       setRoleCode(null);
       setAuthMode('anonymous');
       setIsSimulatingVisitor(false);
+      setStaffPortal('erp');
       showToast('👤 Session terminée - Retour au mode public');
     }
   };
@@ -633,6 +642,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         loading,
         authError,
         isSimulatingVisitor,
+        staffPortal,
+        setStaffPortal,
         isAdmin,
         isAdminGeneral,
         isSuperAdmin,

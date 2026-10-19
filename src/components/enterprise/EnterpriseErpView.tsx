@@ -41,6 +41,10 @@ export const EnterpriseErpView: React.FC = () => {
   const {
     currentUser,
     logoutToVisitor,
+    toggleVisitorMode,
+    setStaffPortal,
+    isAdminGeneral,
+    isSuperAdmin,
     isDg,
     isDaf,
     isAdminRh,
@@ -185,23 +189,20 @@ export const EnterpriseErpView: React.FC = () => {
             )}
           </div>
 
-          {/* Quick Switch to Super Administration if Super Admin */}
-          {(currentUser.role === 'admin_general' || currentUser.email === 'misterk1502@gmail.com' || currentUser.email === 'direction.generale@viva-eventsolutions.cd') && (
+          {/* Back-office : bascule d'affichage, aucune déconnexion */}
+          {(isAdminGeneral || isSuperAdmin) && (
             <button
-              onClick={() => {
-                logoutToVisitor();
-                // We can set session or trigger super admin tab
-              }}
+              onClick={() => setStaffPortal('cms')}
               className="px-3.5 py-2 rounded-2xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-black text-xs flex items-center gap-1.5 cursor-pointer shadow-lg"
-              title="Accéder à l'espace Super Administration"
+              title="Accéder à l'espace Super Administration (session conservée)"
             >
               <span>⚙️ Super Administration</span>
             </button>
           )}
 
-          {/* Quick Switch to Public Portal & Presentation */}
+          {/* Aperçu public : lecture seule, session conservée */}
           <button
-            onClick={logoutToVisitor}
+            onClick={toggleVisitorMode}
             className="px-3 py-2 rounded-2xl bg-blue-600/20 hover:bg-blue-600/30 text-blue-400 border border-blue-500/40 text-xs font-bold flex items-center gap-1.5 cursor-pointer transition-all shadow"
             title="Consulter le portail public et la présentation officielle"
           >

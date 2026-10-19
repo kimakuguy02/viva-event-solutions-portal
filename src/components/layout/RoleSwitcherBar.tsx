@@ -8,9 +8,49 @@ interface RoleSwitcherBarProps {
   onOpenAdminLogin?: () => void;
 }
 
+const Toast: React.FC<{ message: string; onDismiss: () => void }> = ({ message, onDismiss }) => (
+  <div className="fixed top-20 right-6 z-50 animate-fadeIn">
+    <div className="bg-amber-500 text-slate-950 px-4 py-2.5 rounded-xl shadow-xl font-bold text-xs flex items-center gap-2 border border-amber-300">
+      <Sparkles className="w-4 h-4 shrink-0" />
+      <span>{message}</span>
+      <button
+        onClick={onDismiss}
+        className="ml-2 text-slate-900 hover:text-white p-0.5 rounded cursor-pointer"
+      >
+        ×
+      </button>
+    </div>
+  </div>
+);
+
 export const RoleSwitcherBar: React.FC<RoleSwitcherBarProps> = ({ currentTab, setCurrentTab, onOpenAdminLogin }) => {
-  const { currentUser, isAdmin, toggleVisitorMode, logout, toastMessage, dismissToast } = useAuth();
+  const { currentUser, isAdmin, isSimulatingVisitor, toggleVisitorMode, logout, toastMessage, dismissToast } = useAuth();
   const [showRoleMenu, setShowRoleMenu] = useState(false);
+
+  const isPreviewingAsStaff = isSimulatingVisitor && currentUser.role !== 'visitor';
+
+  // Aperçu visiteur : la barre doit rester visible, sinon plus aucun bouton ne
+  // permet de sortir du mode lecture seule sans recharger la page.
+  if (isPreviewingAsStaff) {
+    return (
+      <>
+        {toastMessage && <Toast message={toastMessage} onDismiss={dismissToast} />}
+        <div className="bg-blue-950/90 border-b border-blue-500/40 text-blue-100 text-xs py-1.5 px-4 sm:px-8 z-50 relative flex flex-wrap items-center justify-between gap-3 shadow-md">
+          <div className="flex items-center gap-2">
+            <Eye className="w-3.5 h-3.5 text-blue-300" />
+            <span className="font-bold">Aperçu du site public — lecture seule ({currentUser.name})</span>
+          </div>
+          <button
+            onClick={toggleVisitorMode}
+            className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-blue-500 hover:bg-blue-400 text-white text-xs font-bold transition-colors cursor-pointer"
+          >
+            <Shield className="w-3.5 h-3.5" />
+            <span>Retour à mon espace</span>
+          </button>
+        </div>
+      </>
+    );
+  }
 
   // Un visiteur anonyme ne doit jamais voir la barre d'administration :
   // sans ce garde, le libellé « Session Admin Active » et l'accès au back-office
@@ -18,21 +58,7 @@ export const RoleSwitcherBar: React.FC<RoleSwitcherBarProps> = ({ currentTab, se
   if (!isAdmin) {
     return (
       <>
-        {/* Toast Notification */}
-        {toastMessage && (
-          <div className="fixed top-20 right-6 z-50 animate-fadeIn">
-            <div className="bg-amber-500 text-slate-950 px-4 py-2.5 rounded-xl shadow-xl font-bold text-xs flex items-center gap-2 border border-amber-300">
-              <Sparkles className="w-4 h-4 shrink-0" />
-              <span>{toastMessage}</span>
-              <button
-                onClick={dismissToast}
-                className="ml-2 text-slate-900 hover:text-white p-0.5 rounded cursor-pointer"
-              >
-                ×
-              </button>
-            </div>
-          </div>
-        )}
+        {toastMessage && <Toast message={toastMessage} onDismiss={dismissToast} />}
       </>
     );
   }
@@ -40,20 +66,7 @@ export const RoleSwitcherBar: React.FC<RoleSwitcherBarProps> = ({ currentTab, se
   return (
     <>
       {/* Toast Notification */}
-      {toastMessage && (
-        <div className="fixed top-20 right-6 z-50 animate-fadeIn">
-          <div className="bg-amber-500 text-slate-950 px-4 py-2.5 rounded-xl shadow-xl font-bold text-xs flex items-center gap-2 border border-amber-300">
-            <Sparkles className="w-4 h-4 shrink-0" />
-            <span>{toastMessage}</span>
-            <button
-              onClick={dismissToast}
-              className="ml-2 text-slate-900 hover:text-white p-0.5 rounded cursor-pointer"
-            >
-              ×
-            </button>
-          </div>
-        </div>
-      )}
+      {toastMessage && <Toast message={toastMessage} onDismiss={dismissToast} />}
 
       {/* Sleek Top Admin Bar (Only when Admin is authenticated) */}
       <div className="bg-slate-950 border-b border-amber-500/30 text-slate-200 text-xs py-1.5 px-4 sm:px-8 z-50 relative flex flex-wrap items-center justify-between gap-3 shadow-md">

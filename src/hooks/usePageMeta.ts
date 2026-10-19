@@ -18,6 +18,7 @@ const META: Record<string, { title: string; description: string }> = {
   ticketing: { title: 'Billetterie — VIVA EVENT SOLUTIONS', description: 'Billets et pass pour les événements VIVA.' },
   voting: { title: 'Votes — VIVA EVENT SOLUTIONS', description: 'Sondages et votes en direct.' },
   'quote-simulator': { title: 'Demander un devis — VIVA EVENT SOLUTIONS', description: 'Simulez et demandez votre devis officiel en ligne.' },
+  erp: { title: 'Portail interne — VIVA EVENT SOLUTIONS', description: 'Outils de gestion réservés au personnel : projets, ERP et pilotage interne.' },
 };
 
 export function usePageMeta(tab: string) {
