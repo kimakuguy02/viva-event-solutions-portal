@@ -171,16 +171,32 @@ export function pgToUnit(p: Record<string, unknown>): OrganizationUnit {
 
 export async function fetchOrgUnits(): Promise<OrganizationUnit[]> {
   const sb = requireSupabase();
-  const { data: session } = await sb.auth.getSession();
-  // Table = personnel (coordonnees des responsables) ; vue = vitrine, meme shape
-  // hors PII. Sans cette bascule, un visiteur anonymes ne recevrait qu'un 42501.
-  const source = session?.session ? 'org_units' : 'v_org_units_public';
-  const { data, error } = await sb.from(source).select('*').order('position');
+  const { data, error } = await sb.from(await orgReadSource()).select('*').order('position');
   if (error) throw new Error(`Lecture organisation impossible : ${error.message}`);
   const rows = ((data ?? []) as Record<string, unknown>[]);
   const idByCode = new Map(rows.map((r) => [String(r.id), String(r.code ?? r.id)]));
   void idByCode;
   return rows.map(pgToUnit);
+}
+
+// Table brute = gestionnaires de l'organigramme (coordonnees du personnel) ; vue =
+// vitrine sans PII, meme shape hors email/telephone/photo. La presence d'une
+// session ne suffit pas : 022 reserve org_units a organization.manage, donc un
+// CLIENT ou un chef d'equipe connecte lirait « [] » et afficherait un organigramme
+// vide. Le droit est lu cote serveur (role_permissions + RLS), jamais devine.
+async function orgReadSource(): Promise<'org_units' | 'v_org_units_public'> {
+  const sb = requireSupabase();
+  const { data: session } = await sb.auth.getSession();
+  const uid = session.session?.user.id;
+  if (!uid) return 'v_org_units_public';
+  const { data: prof } = await sb.from('profiles')
+    .select('role_id').eq('id', uid).maybeSingle();
+  if (!prof?.role_id) return 'v_org_units_public';
+  const { data: perms } = await sb.from('role_permissions')
+    .select('permissions!inner(code)').eq('role_id', prof.role_id);
+  const codes = new Set(((perms ?? []) as { permissions?: { code?: string } }[])
+    .map((p) => p.permissions?.code));
+  return codes.has('organization.manage') ? 'org_units' : 'v_org_units_public';
 }
 
 export async function saveOrgUnits(units: OrganizationUnit[]): Promise<void> {
