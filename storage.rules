@@ -2,64 +2,113 @@ rules_version = '2';
 service firebase.storage {
   match /b/{bucket}/o {
 
-    // Helper functions
-    function isSignedIn() {
-      return request.auth != null;
+    function hasVerifiedEmail() {
+      return request.auth != null &&
+        request.auth.token.email_verified == true;
     }
 
-    function isImageFile() {
-      return request.resource.contentType.matches('image/.*');
+    function isOwner(ownerId) {
+      return request.auth != null &&
+        request.auth.uid == ownerId;
     }
 
-    function isPdfOrDoc() {
-      return request.resource.contentType.matches('application/pdf') ||
-             request.resource.contentType.matches('application/msword') ||
-             request.resource.contentType.matches('application/vnd.openxmlformats-officedocument.*');
+    function isPlatformAdmin() {
+      return hasVerifiedEmail() &&
+        request.auth.token.email in [
+          'misterk1502@gmail.com',
+          'direction.generale@viva-eventsolutions.cd'
+        ];
     }
 
-    function isVideoFile() {
-      return request.resource.contentType.matches('video/.*');
+    function isContentManager() {
+      return hasVerifiedEmail() &&
+        request.auth.token.email in [
+          'misterk1502@gmail.com',
+          'direction.generale@viva-eventsolutions.cd',
+          'malthus.kilumba@viva-eventsolutions.cd',
+          'admin.malthus@viva-eventsolutions.cd',
+          'commercial@viva-eventsolutions.cd'
+        ];
     }
 
-    function isValidSize(maxMb) {
-      return request.resource.size <= maxMb * 1024 * 1024;
+    function isFinanceStaff() {
+      return hasVerifiedEmail() &&
+        request.auth.token.email in [
+          'misterk1502@gmail.com',
+          'direction.generale@viva-eventsolutions.cd',
+          'malthus.kilumba@viva-eventsolutions.cd',
+          'comptable@viva-eventsolutions.cd'
+        ];
     }
 
-    // 1. Médias & Photos publiques de la galerie
+    function isAllowedImageOrVideo(maxMb) {
+      return request.resource != null &&
+        request.resource.size <= maxMb * 1024 * 1024 &&
+        (
+          request.resource.contentType.matches('image/(jpeg|png|webp|gif)') ||
+          request.resource.contentType.matches('video/(mp4|webm|quicktime)')
+        );
+    }
+
+    function isAllowedDocument(maxMb) {
+      return request.resource != null &&
+        request.resource.size <= maxMb * 1024 * 1024 &&
+        (
+          request.resource.contentType.matches('image/(jpeg|png|webp|gif)') ||
+          request.resource.contentType == 'application/pdf' ||
+          request.resource.contentType == 'application/msword' ||
+          request.resource.contentType.matches('application/vnd.openxmlformats-officedocument\\..*')
+        );
+    }
+
+    // Les médias et le CMS sont publics en lecture ; seuls les comptes métier
+    // vérifiés et explicitement autorisés peuvent les modifier.
     match /media/{allPaths=**} {
       allow read: if true;
-      allow write: if isSignedIn() && (isImageFile() || isVideoFile()) && isValidSize(50);
+      allow create, update: if isContentManager() && isAllowedImageOrVideo(50);
+      allow delete: if isContentManager();
     }
 
-    // 2. Photos & Visuels CMS du site
     match /cms/{allPaths=**} {
       allow read: if true;
-      allow write: if isSignedIn() && isImageFile() && isValidSize(15);
+      allow create, update: if isContentManager() &&
+        request.resource != null &&
+        request.resource.size <= 15 * 1024 * 1024 &&
+        request.resource.contentType.matches('image/(jpeg|png|webp|gif)');
+      allow delete: if isContentManager();
     }
 
-    // 3. Justificatifs de devis & cahiers des charges clients
-    match /quotes/{allPaths=**} {
-      allow read, write: if isSignedIn() && (isPdfOrDoc() || isImageFile()) && isValidSize(25);
+    // Dossiers privés : l'identifiant du propriétaire fait partie du chemin.
+    // Le personnel financier peut traiter les pièces justificatives des devis.
+    match /quotes/{ownerId}/{allPaths=**} {
+      allow read: if isOwner(ownerId) || isFinanceStaff();
+      allow create, update: if (isOwner(ownerId) || isFinanceStaff()) &&
+        isAllowedDocument(25);
+      allow delete: if isOwner(ownerId) || isFinanceStaff();
     }
 
-    // 4. ERP Pièces comptables, factures et PV de clôture caisse
-    match /erp/{allPaths=**} {
-      allow read, write: if isSignedIn() && (isPdfOrDoc() || isImageFile()) && isValidSize(20);
+    match /erp/{ownerId}/{allPaths=**} {
+      allow read: if isFinanceStaff();
+      allow create, update: if isFinanceStaff() && isAllowedDocument(20);
+      allow delete: if isFinanceStaff();
     }
 
-    // 5. Signatures électroniques et visas DAF
-    match /signatures/{allPaths=**} {
-      allow read: if isSignedIn();
-      allow write: if isSignedIn() && (request.resource.contentType.matches('image/svg\\+xml') || isImageFile()) && isValidSize(5);
+    match /signatures/{ownerId}/{allPaths=**} {
+      allow read: if isFinanceStaff();
+      allow create, update: if isFinanceStaff() &&
+        request.resource != null &&
+        request.resource.size <= 5 * 1024 * 1024 &&
+        request.resource.contentType.matches('image/(jpeg|png|webp)');
+      allow delete: if isFinanceStaff();
     }
 
-    // 6. Documents d'entreprise et accréditations
-    match /documents/{allPaths=**} {
-      allow read: if true;
-      allow write: if isSignedIn() && (isPdfOrDoc() || isImageFile()) && isValidSize(30);
+    match /documents/{ownerId}/{allPaths=**} {
+      allow read: if isOwner(ownerId) || isPlatformAdmin();
+      allow create, update: if (isOwner(ownerId) || isPlatformAdmin()) &&
+        isAllowedDocument(30);
+      allow delete: if isOwner(ownerId) || isPlatformAdmin();
     }
 
-    // Par défaut : blocage strict
     match /{allPaths=**} {
       allow read, write: if false;
     }

@@ -227,7 +227,9 @@ export interface MediaItem {
   caption?: string;
   type: 'photo' | 'video_file' | 'youtube';
   category: MediaCategory;
-  url: string; // URL Firebase Storage ou lien vidéo
+  url: string; // URL de stockage public ou lien vidéo
+  storageBucket?: string;
+  storagePath?: string;
   thumbnailUrl?: string;
   youtubeVideoId?: string;
   projectName?: string;

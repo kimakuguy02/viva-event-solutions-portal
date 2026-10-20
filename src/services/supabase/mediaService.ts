@@ -5,16 +5,60 @@
 // metadata JSONB sera ajoutée à la migration des données (vague suivante).
 // Fichiers binaires : buckets Supabase (vague Storage) ; ici seules métadonnées.
 import { requireSupabase } from '../supabase';
+import { deleteEnterpriseStorageFile } from '../storageService';
 import type { MediaItem, YouTubeChannelConfig } from '../../types/cmsAndErp';
 
+function resolveStorageLocation(
+  url: string,
+  storageBucket?: string,
+  storagePath?: string,
+): { storageBucket?: string; storagePath?: string } {
+  if (storageBucket && storagePath) return { storageBucket, storagePath };
+  if (!url.startsWith('http')) return { storageBucket, storagePath };
+
+  let parsedUrl: URL;
+  try {
+    parsedUrl = new URL(url);
+  } catch {
+    return { storageBucket, storagePath };
+  }
+
+  const supabaseMediaPrefix = '/storage/v1/object/public/media/';
+  const supabasePathIndex = parsedUrl.pathname.indexOf(supabaseMediaPrefix);
+  if (supabasePathIndex >= 0) {
+    return {
+      storageBucket: 'media',
+      storagePath: decodeURIComponent(parsedUrl.pathname.slice(supabasePathIndex + supabaseMediaPrefix.length)),
+    };
+  }
+
+  const firebaseObject = parsedUrl.pathname.match(/^\/v0\/b\/([^/]+)\/o\/(.+)$/);
+  if (firebaseObject) {
+    return {
+      storageBucket: firebaseObject[1],
+      storagePath: decodeURIComponent(firebaseObject[2]),
+    };
+  }
+
+  return { storageBucket, storagePath };
+}
+
 export function pgToMedia(p: Record<string, unknown>): MediaItem {
+  const url = String(p.public_url ?? '');
+  const location = resolveStorageLocation(
+    url,
+    undefined,
+    typeof p.storage_path === 'string' ? p.storage_path : undefined,
+  );
   return {
     id: String(p.id),
     title: String(p.title ?? ''),
     description: String(p.description ?? ''),
     type: (p.media_type as MediaItem['type']) ?? 'photo',
     category: (p.category as MediaItem['category']) ?? 'general',
-    url: String(p.public_url ?? ''),
+    url,
+    storageBucket: location.storageBucket,
+    storagePath: location.storagePath,
     thumbnailUrl: (p.thumbnail_url as string) ?? undefined,
     youtubeVideoId: (p.youtube_video_id as string) ?? undefined,
     isFeatured: Boolean(p.is_featured ?? false),
@@ -36,8 +80,9 @@ export async function saveMedia(m: MediaItem): Promise<void> {
   const sb = requireSupabase();
   const { data: session } = await sb.auth.getSession();
   if (!session.session) throw new Error('Session requise.');
+  const location = resolveStorageLocation(m.url, m.storageBucket, m.storagePath);
   const payload = {
-    storage_path: m.url.startsWith('http') ? '' : m.url,
+    storage_path: location.storagePath ?? (m.url.startsWith('http') ? '' : m.url),
     public_url: m.url,
     thumbnail_url: m.thumbnailUrl ?? null,
     media_type: m.type,
@@ -74,11 +119,26 @@ export async function saveMedia(m: MediaItem): Promise<void> {
 
 export async function deleteMedia(idOrUrl: string): Promise<void> {
   const sb = requireSupabase();
-  const byId = await sb.from('media_items').delete().eq('id', idOrUrl);
-  if (!byId.error) return;
-  const byUrl = await sb.from('media_items').delete().eq('public_url', idOrUrl);
-  if (byUrl.error) throw new Error(`Suppression média refusée : ${byUrl.error.message}`);
-  // NOTE : suppression du fichier Storage couplée à la vague Storage (pas de faux succès).
+  let query = sb.from('media_items').select('*');
+  query = idOrUrl.startsWith('http')
+    ? query.eq('public_url', idOrUrl)
+    : query.eq('id', idOrUrl);
+  const { data, error } = await query.limit(1).maybeSingle();
+  if (error) throw new Error(`Lecture du média avant suppression impossible : ${error.message}`);
+  if (!data) throw new Error('Média introuvable ou non autorisé.');
+
+  const media = pgToMedia(data as Record<string, unknown>);
+  if (media.storageBucket && media.storagePath) {
+    await deleteEnterpriseStorageFile(media.storagePath, media.storageBucket);
+  }
+
+  const { data: deleted, error: deleteError } = await sb
+    .from('media_items')
+    .delete()
+    .eq('id', media.id)
+    .select('id');
+  if (deleteError) throw new Error(`Suppression de la fiche média refusée : ${deleteError.message}`);
+  if (!deleted?.length) throw new Error('Fiche média introuvable ou suppression non autorisée.');
 }
 
 export async function fetchYouTubeConfig(): Promise<YouTubeChannelConfig | null> {

@@ -129,7 +129,8 @@ router.get('/auth/me', requireAuth, (req: Request, res: Response) => {
 
 router.post('/auth/logout', requireAuth, (req: Request, res: Response) => {
   const db = getDb();
-  db.sessions = db.sessions.filter(s => s.userId !== req.user!.userId);
+  const token = req.headers.authorization!.slice(7);
+  db.sessions = db.sessions.filter(session => session.token !== token);
   saveDb(db);
 
   appendAuditLog({

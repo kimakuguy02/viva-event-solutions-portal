@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { useProjectData } from '../../context/ProjectDataContext';
 import { useAuth } from '../../context/AuthContext';
 import { MediaItem, MediaCategory, YouTubeChannelConfig } from '../../types/cmsAndErp';
-import { uploadToEnterpriseStorage } from '../../services/storageService';
+import { deleteEnterpriseStorageFile, uploadToEnterpriseStorage } from '../../services/storageService';
 import {
   Image,
   Youtube,
@@ -40,6 +40,7 @@ export const MediaManager: React.FC = () => {
   const [isPhotoFeatured, setIsPhotoFeatured] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
   const [uploadError, setUploadError] = useState<string | null>(null);
+  const [mediaError, setMediaError] = useState<string | null>(null);
 
   // YouTube Video Add State
   const [ytUrl, setYtUrl] = useState('');
@@ -49,6 +50,7 @@ export const MediaManager: React.FC = () => {
   const [ytProject, setYtProject] = useState('');
   const [ytDate, setYtDate] = useState(new Date().toISOString().split('T')[0]);
   const [isYtFeatured, setIsYtFeatured] = useState(false);
+  const [youtubeError, setYoutubeError] = useState<string | null>(null);
 
   // YouTube Channel Config State
   const [channelUrl, setChannelUrl] = useState(youtubeConfig.youtubeChannelUrl);
@@ -63,6 +65,15 @@ export const MediaManager: React.FC = () => {
     const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|&v=)([^#&?]*).*/;
     const match = url.match(regExp);
     return (match && match[2].length === 11) ? match[2] : '';
+  };
+
+  const handleDeleteMedia = async (id: string) => {
+    setMediaError(null);
+    try {
+      await deleteMediaItem(id);
+    } catch (err) {
+      setMediaError(`Suppression média refusée : ${err instanceof Error ? err.message : String(err)}.`);
+    }
   };
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -85,30 +96,42 @@ export const MediaManager: React.FC = () => {
     setUploadError(null);
 
     try {
-      // Real upload to Firebase Storage
+      // Supabase Storage is authoritative for Supabase sessions.
       const metadata = await uploadToEnterpriseStorage(photoFile, 'photos');
 
-      // Persist directly to Firestore collection 'media' via ProjectDataContext
-      // (Wave 2 : addMediaItem est Supabase-first et lève en cas de refus)
-      addMediaItem({
-        title: photoTitle,
-        description: photoDesc,
-        caption: photoCaption,
-        type: 'photo',
-        category: photoCategory,
-        url: metadata.storageUrl,
-        thumbnailUrl: metadata.storageUrl,
-        projectName: photoProject,
-        realizationDate: photoDate,
-        isFeatured: isPhotoFeatured,
-        order: mediaItems.length + 1,
-        status: 'published',
-        uploadedBy: currentUser.name
-      }).catch((err: unknown) => {
-        setUploadError(`Fichier téléversé mais fiche média refusée : ${err instanceof Error ? err.message : String(err)}.`);
-      });
+      try {
+        await addMediaItem({
+          title: photoTitle,
+          description: photoDesc,
+          caption: photoCaption,
+          type: 'photo',
+          category: photoCategory,
+          url: metadata.storageUrl,
+          storageBucket: metadata.storageBucket,
+          storagePath: metadata.storagePath,
+          thumbnailUrl: metadata.storageUrl,
+          projectName: photoProject,
+          realizationDate: photoDate,
+          isFeatured: isPhotoFeatured,
+          order: mediaItems.length + 1,
+          status: 'published',
+          uploadedBy: currentUser.name
+        });
+      } catch (err) {
+        try {
+          if (!metadata.storageBucket || !metadata.storagePath) {
+            throw new Error('Le chemin de stockage du fichier est introuvable.');
+          }
+          await deleteEnterpriseStorageFile(metadata.storagePath, metadata.storageBucket);
+          setUploadError(`Fiche média refusée ; le fichier téléversé a été supprimé. ${err instanceof Error ? err.message : String(err)}`);
+        } catch (cleanupError) {
+          setUploadError(
+            `Fiche média refusée et nettoyage du fichier impossible : ${cleanupError instanceof Error ? cleanupError.message : String(cleanupError)}.`
+          );
+        }
+        return;
+      }
 
-      setIsUploading(false);
       setPhotoFile(null);
       setPhotoPreview(null);
       setPhotoTitle('');
@@ -116,13 +139,14 @@ export const MediaManager: React.FC = () => {
       setPhotoCaption('');
       setPhotoProject('');
       setActiveTab('media_list');
-    } catch (err: any) {
+    } catch (err) {
+      setUploadError(err instanceof Error ? err.message : "Erreur lors du téléversement.");
+    } finally {
       setIsUploading(false);
-      setUploadError(err.message || "Erreur lors du téléversement vers Firebase Storage.");
     }
   };
 
-  const handleYouTubeSubmit = (e: React.FormEvent) => {
+  const handleYouTubeSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     const vidId = extractYouTubeId(ytUrl);
     if (!ytUrl || !ytTitle) return;
@@ -130,27 +154,32 @@ export const MediaManager: React.FC = () => {
     const embedUrl = ytUrl;
     const thumbUrl = vidId ? `https://img.youtube.com/vi/${vidId}/maxresdefault.jpg` : undefined;
 
-    addMediaItem({
-      title: ytTitle,
-      description: ytDesc,
-      type: 'youtube',
-      category: ytCategory,
-      url: embedUrl,
-      youtubeVideoId: vidId,
-      thumbnailUrl: thumbUrl,
-      projectName: ytProject,
-      realizationDate: ytDate,
-      isFeatured: isYtFeatured,
-      order: mediaItems.length + 1,
-      status: 'published',
-      uploadedBy: currentUser.name
-    });
+    setYoutubeError(null);
+    try {
+      await addMediaItem({
+        title: ytTitle,
+        description: ytDesc,
+        type: 'youtube',
+        category: ytCategory,
+        url: embedUrl,
+        youtubeVideoId: vidId,
+        thumbnailUrl: thumbUrl,
+        projectName: ytProject,
+        realizationDate: ytDate,
+        isFeatured: isYtFeatured,
+        order: mediaItems.length + 1,
+        status: 'published',
+        uploadedBy: currentUser.name
+      });
 
-    setYtUrl('');
-    setYtTitle('');
-    setYtDesc('');
-    setYtProject('');
-    setActiveTab('media_list');
+      setYtUrl('');
+      setYtTitle('');
+      setYtDesc('');
+      setYtProject('');
+      setActiveTab('media_list');
+    } catch (err) {
+      setYoutubeError(`Enregistrement média refusé : ${err instanceof Error ? err.message : String(err)}.`);
+    }
   };
 
   const handleSaveChannelConfig = (e: React.FormEvent) => {
@@ -180,7 +209,7 @@ export const MediaManager: React.FC = () => {
             </h2>
           </div>
           <p className="text-xs text-slate-400 mt-1">
-            Publication sur Firebase Storage & Firestore des réalisations, photos de sommets et intégration vidéo YouTube.
+            Publication des réalisations et photos dans la médiathèque, avec Firebase réservé aux sessions legacy.
           </p>
         </div>
 
@@ -235,6 +264,11 @@ export const MediaManager: React.FC = () => {
       {/* 1. MEDIA LIST */}
       {activeTab === 'media_list' && (
         <div className="space-y-4">
+          {mediaError && (
+            <p role="alert" className="rounded-xl border border-rose-500/40 bg-rose-500/20 p-3 text-xs text-rose-300">
+              {mediaError}
+            </p>
+          )}
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             {mediaItems.map(item => (
               <div
@@ -311,7 +345,7 @@ export const MediaManager: React.FC = () => {
                   </button>
 
                   <button
-                    onClick={() => deleteMediaItem(item.id)}
+                    onClick={() => { void handleDeleteMedia(item.id); }}
                     className="p-1.5 rounded-lg text-rose-400 hover:text-rose-300 hover:bg-rose-500/20 cursor-pointer"
                     title="Supprimer"
                   >
@@ -454,7 +488,7 @@ export const MediaManager: React.FC = () => {
             {isUploading ? (
               <span className="flex items-center gap-2">
                 <span className="w-4 h-4 border-2 border-slate-950 border-t-transparent rounded-full animate-spin"></span>
-                Téléversement Firebase Storage en cours...
+                Téléversement sécurisé en cours...
               </span>
             ) : (
               <>
@@ -475,6 +509,12 @@ export const MediaManager: React.FC = () => {
               Ajouter une Vidéo YouTube Officielle
             </h3>
           </div>
+
+          {youtubeError && (
+            <p role="alert" className="rounded-xl border border-rose-500/40 bg-rose-500/20 p-3 text-xs text-rose-300">
+              {youtubeError}
+            </p>
+          )}
 
           <div className="space-y-2">
             <label className="text-xs font-bold text-slate-300 block">
@@ -592,7 +632,7 @@ export const MediaManager: React.FC = () => {
           {channelSavedNotice && (
             <div className="p-3 rounded-xl bg-emerald-500/20 border border-emerald-500/40 text-emerald-300 text-xs flex items-center gap-2">
               <Check className="w-4 h-4" />
-              <span>Paramètres de la chaîne YouTube enregistrés dans Firestore !</span>
+              <span>Paramètres de la chaîne YouTube enregistrés.</span>
             </div>
           )}
 

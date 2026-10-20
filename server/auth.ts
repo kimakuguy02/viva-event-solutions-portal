@@ -70,20 +70,53 @@ export function verifySessionToken(token: string): SessionTokenPayload | null {
 
   const [payloadBase64, signature] = parts;
   const expectedSig = crypto.createHmac('sha256', SESSION_SECRET).update(payloadBase64).digest('base64url');
+  const signatureBytes = Buffer.from(signature);
+  const expectedSignatureBytes = Buffer.from(expectedSig);
 
-  if (!crypto.timingSafeEqual(Buffer.from(signature), Buffer.from(expectedSig))) {
+  if (
+    signatureBytes.length !== expectedSignatureBytes.length ||
+    !crypto.timingSafeEqual(signatureBytes, expectedSignatureBytes)
+  ) {
     return null;
   }
 
+  let payload: SessionTokenPayload;
   try {
-    const payload: SessionTokenPayload = JSON.parse(Buffer.from(payloadBase64, 'base64url').toString('utf-8'));
-    if (Date.now() > payload.expiresAt) {
-      return null;
-    }
-    return payload;
+    payload = JSON.parse(Buffer.from(payloadBase64, 'base64url').toString('utf-8'));
   } catch {
     return null;
   }
+
+  if (
+    typeof payload.userId !== 'string' ||
+    typeof payload.expiresAt !== 'number' ||
+    !Number.isFinite(payload.expiresAt) ||
+    Date.now() >= payload.expiresAt
+  ) {
+    return null;
+  }
+
+  const db = getDb();
+  const sessionExists = db.sessions.some(session =>
+    session.token === token &&
+    session.userId === payload.userId &&
+    session.expiresAt === payload.expiresAt
+  );
+  if (!sessionExists) return null;
+
+  const user = db.users.find(candidate => candidate.id === payload.userId);
+  if (!user || user.status === 'suspended' || typeof user.role !== 'string') {
+    return null;
+  }
+
+  return {
+    ...payload,
+    email: user.email,
+    role: user.role,
+    permissions: Array.isArray(user.permissions)
+      ? user.permissions.filter((permission: unknown): permission is string => typeof permission === 'string')
+      : [],
+  };
 }
 
 // Rate limiting state

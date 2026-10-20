@@ -36,3 +36,32 @@ PII, rate limiting, audit, logs, sessions.
 - IDOR : toute ressource owner-scopée (`submitted_by/owner/lead/assigned`).
 - PII : aucune donnée personnelle dans les seeds/logs ; `metadata JSONB` minimisé.
 - Sessions : TTL court, refresh rotatif, cookies `HttpOnly;Secure;SameSite`.
+
+## Corrections locales (2026-10-20)
+
+Ces changements sont présents dans le dépôt ; leur déploiement distant reste à
+vérifier séparément.
+
+- Storage : la session Supabase utilise les buckets et policies RLS existants ;
+  médias publics, fichiers privés sous le préfixe UID et liens privés signés à
+  durée limitée. Le repli Firebase legacy applique des règles plus strictes,
+  avec lecture privée par propriétaire et écriture du personnel par liste de
+  comptes vérifiés. En cas d'échec d'enregistrement des métadonnées média, le
+  client tente de supprimer le fichier et signale explicitement tout échec de
+  nettoyage ; la suppression d'une fiche média supprime aussi son objet et
+  remonte tout refus. Cette liste est transitoire : la cible reste une
+  autorisation par custom claims gérés côté serveur.
+- Finance : création, visas, validation DAF, contrepassation et clôture ne
+  basculent plus sur Firestore ou l'état local lorsque Supabase/RPC est absent.
+  La migration 023 déplace le calcul et la création des clôtures dans une RPC,
+  et retire le droit d'INSERT direct. Les échecs sont remontés à l'interface.
+  Les soldes d'ouverture codés en dur ont été retirés ; le calcul de clôture
+  indique explicitement l'absence d'un solde d'ouverture configuré et ne peut
+  donc pas déclarer une clôture conforme avant configuration.
+- Sessions Express : un jeton doit encore exister dans la liste serveur ; les
+  comptes suspendus ou supprimés sont refusés, les rôles/permissions sont
+  relus depuis la base et le logout révoque le jeton présenté.
+- À vérifier avant production : déployer les règles Storage et les migrations
+  financières 018 et 023, confirmer les rôles/email vérifiés autorisés, puis
+  exécuter les tests avec Firebase Emulator et contre un environnement Supabase
+  de test.
