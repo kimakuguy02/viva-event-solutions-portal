@@ -69,8 +69,9 @@ export interface CrmInteraction {
   clientId: string;
   clientName: string;
   date: string;
-  type: 'appel' | 'reunion' | 'email' | 'visite_terrain' | 'devis_transmis';
+  type: 'appel' | 'reunion' | 'email' | 'visite_terrain' | 'devis_transmis' | 'autre';
   authorName: string;
+  authorProfileId?: string;
   summary: string;
   nextAction?: string;
   nextFollowUpDate?: string;
@@ -126,6 +127,9 @@ export interface DailyCashClosure {
   pvReference: string;
   status: 'conforme' | 'ecart_justifie' | 'anomalie';
   closedAt: string;
+  /** Visa DAF posé par la RPC closure_validate (jamais par le navigateur). */
+  validatedBy?: string;
+  validatedAt?: string;
 }
 
 // ==================== GESTION DE PROJETS & TÂCHES ====================

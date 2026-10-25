@@ -195,7 +195,7 @@ export const TechArchitectureViewer: React.FC = () => {
                   <td className="p-3 text-emerald-400 font-bold">Lecture & Édition</td>
                 </tr>
                 <tr>
-                  <td className="p-3 font-semibold text-white">Simulateur & Soumission de Devis</td>
+                  <td className="p-3 font-semibold text-white">Devis & Soumission</td>
                   <td className="p-3 text-emerald-400 font-bold">Création Devis</td>
                   <td className="p-3 text-emerald-400 font-bold">Chiffrage & Édition</td>
                   <td className="p-3 text-slate-500">Lecture Stocks</td>

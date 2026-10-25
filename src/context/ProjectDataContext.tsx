@@ -1,4 +1,6 @@
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
+import { useAuth } from './AuthContext';
+import { adoptLegacyCache, cacheScopeFor, readScopedCache, scopedCacheKey } from '../utils/scopedCache';
 import { Project, QuoteRequest, EquipmentItem, Partner, TicketSession, PlatformContentConfig, Department } from '../types';
 import {
   DirectionOrg,
@@ -31,7 +33,7 @@ import {
   logAuditEvent,
   auth
 } from '../services/firebase';
-import { isSupabaseConfigured } from '../services/supabase';
+import { isSupabaseConfigured, supabase } from '../services/supabase';
 import { logAudit } from '../services/supabase/auditService';
 import {
   fetchMenus as fetchPgMenus,
@@ -71,8 +73,7 @@ import {
   insertQuote as insertPgQuote,
   updateQuoteStatus as updatePgQuoteStatus,
 } from '../services/supabase/businessService';
-import { onAuthStateChanged } from 'firebase/auth';
-import { where } from 'firebase/firestore';
+import { deleteEnterpriseStorageFile } from '../services/storageService';
 import { platformSession } from '../services/platformSession';
 
 export interface LiveQuestion {
@@ -92,6 +93,68 @@ export interface LivePoll {
   options: { id: string; text: string; votes: number }[];
   totalVotes: number;
   isActive: boolean;
+}
+
+export type DataSourceKey =
+  | 'menus'
+  | 'modules'
+  | 'cms'
+  | 'forms'
+  | 'orgUnits'
+  | 'media'
+  | 'youtube'
+  | 'projects'
+  | 'quotes'
+  | 'submissions';
+
+export interface DataSourceHealth {
+  status: 'loading' | 'ok' | 'error' | 'idle';
+  message?: string;
+}
+
+export const DATA_SOURCE_LABELS: Record<DataSourceKey, string> = {
+  menus: 'Menus de navigation',
+  modules: 'Modules',
+  cms: 'Sections CMS',
+  forms: 'Formulaires',
+  orgUnits: 'Organisation',
+  media: 'Médias',
+  youtube: 'Chaîne YouTube',
+  projects: 'Projets',
+  quotes: 'Devis',
+  submissions: 'Soumissions de formulaires',
+};
+
+// Projets, devis et soumissions sont protégés par RLS (session requise).
+// Les lister ici provoquait un 401 anonyme à chaque chargement de vitrine.
+const PUBLIC_DATA_SOURCES: DataSourceKey[] = ['menus', 'modules', 'cms', 'forms', 'orgUnits', 'media', 'youtube'];
+const AUTH_DATA_SOURCES: DataSourceKey[] = ['projects', 'quotes', 'submissions'];
+
+// Correctif éditorial validé par la direction : la copie publiée en base
+// contient encore « notre établissement ». On aligne l'état chargé et le
+// cache sur la formulation officielle tant que la ligne CMS n'est pas republiée.
+const WELCOME_COPY_OLD = 'notre établissement';
+const WELCOME_COPY_NEW = 'notre société';
+
+function normalizeCmsCopy(sections: CmsSectionItem[]): CmsSectionItem[] {
+  let changed = false;
+  const fix = (value?: string) => {
+    if (!value || !value.includes(WELCOME_COPY_OLD)) return value;
+    changed = true;
+    return value.split(WELCOME_COPY_OLD).join(WELCOME_COPY_NEW);
+  };
+
+  const next = sections.map(section => {
+    if (section.contentKey !== 'home.welcome.title') return section;
+    return {
+      ...section,
+      content: fix(section.content) ?? section.content,
+      draftContent: fix(section.draftContent),
+      publishedContent: fix(section.publishedContent),
+    };
+  });
+
+  return changed ? next : sections;
 }
 
 interface ProjectDataContextType {
@@ -114,6 +177,11 @@ interface ProjectDataContextType {
   mediaItems: MediaItem[];
   youtubeConfig: YouTubeChannelConfig;
 
+  // Provenance des données : Postgres est la source de vérité.
+  dataHealth: Record<DataSourceKey, DataSourceHealth>;
+  reloadDataSource: (key: DataSourceKey) => void;
+  reloadAllDataSources: () => void;
+
   // Platform & CMS Content Actions
   updatePlatformConfig: (newConfig: Partial<PlatformContentConfig>) => void;
   updateDepartment: (id: number, updatedData: Partial<Department>) => void;
@@ -135,9 +203,9 @@ interface ProjectDataContextType {
   submitDynamicForm: (formId: string, data: Record<string, any>, submittedByName?: string) => Promise<string>;
 
   // Médias, Réalisations & Vidéos Actions
-  addMediaItem: (media: Omit<MediaItem, 'id' | 'uploadedAt'>) => void;
+  addMediaItem: (media: Omit<MediaItem, 'id' | 'uploadedAt'>) => Promise<void>;
   updateMediaItem: (id: string, updated: Partial<MediaItem>) => void;
-  deleteMediaItem: (id: string) => void;
+  deleteMediaItem: (id: string) => Promise<void>;
   updateYouTubeConfig: (cfg: Partial<YouTubeChannelConfig>) => void;
 
   // Project Actions
@@ -160,9 +228,6 @@ interface ProjectDataContextType {
   upvoteQuestion: (questionId: string) => void;
   moderateQuestion: (questionId: string, approve: boolean, markAnswered?: boolean) => void;
   votePoll: (optionId: string) => void;
-
-  // Reset Data
-  resetToDefaults: () => void;
 
   // CMS Draft / Preview / Visual Edit Actions
   isVisualEditMode: boolean;
@@ -195,6 +260,10 @@ const INITIAL_POLL: LivePoll = {
 };
 
 export const ProjectDataProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  const { currentUser } = useAuth();
+  const cacheScope = cacheScopeFor(currentUser);
+  const [activeCacheScope, setActiveCacheScope] = useState<string>(cacheScope);
+
   const [platformConfig, setPlatformConfig] = useState<PlatformContentConfig>(() => {
     const saved = localStorage.getItem('viva_platform_config');
     if (saved) {
@@ -218,23 +287,38 @@ export const ProjectDataProvider: React.FC<{ children: React.ReactNode }> = ({ c
   });
 
   const [projects, setProjects] = useState<Project[]>(() => {
-    const saved = localStorage.getItem('viva_projects');
-    return saved ? JSON.parse(saved) : [];
+    adoptLegacyCache(localStorage, currentUser, ['viva_projects', 'viva_quotes']);
+    // Un visiteur n'a pas de cache de données client : le serveur seul fait foi.
+    if (cacheScope === 'anonymous') return [];
+    return readScopedCache<Project>(localStorage, 'viva_projects', cacheScope) ?? [];
   });
 
-  const [quotes, setQuotes] = useState<QuoteRequest[]>(() => {
-    const saved = localStorage.getItem('viva_quotes');
-    return saved ? JSON.parse(saved) : [];
-  });
+  const [quotes, setQuotes] = useState<QuoteRequest[]>(() =>
+    cacheScope === 'anonymous'
+      ? []
+      : readScopedCache<QuoteRequest>(localStorage, 'viva_quotes', cacheScope) ?? []
+  );
 
   const [equipment, setEquipment] = useState<EquipmentItem[]>(() => {
     const saved = localStorage.getItem('viva_equipment');
-    return saved ? JSON.parse(saved) : INITIAL_EQUIPMENT;
+    if (saved) {
+      try {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+      } catch (e) {}
+    }
+    return INITIAL_EQUIPMENT;
   });
 
   const [partners, setPartners] = useState<Partner[]>(() => {
     const saved = localStorage.getItem('viva_partners');
-    return saved ? JSON.parse(saved) : INITIAL_PARTNERS;
+    if (saved) {
+      try {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+      } catch (e) {}
+    }
+    return INITIAL_PARTNERS;
   });
 
   const [tickets] = useState<TicketSession[]>([]);
@@ -306,10 +390,10 @@ export const ProjectDataProvider: React.FC<{ children: React.ReactNode }> = ({ c
     if (saved) {
       try {
         const parsed = JSON.parse(saved);
-        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+        if (Array.isArray(parsed) && parsed.length > 0) return normalizeCmsCopy(parsed);
       } catch (e) {}
     }
-    return INITIAL_CMS_SECTIONS;
+    return normalizeCmsCopy(INITIAL_CMS_SECTIONS);
   });
 
   const [mediaItems, setMediaItems] = useState<MediaItem[]>(() => {
@@ -337,8 +421,21 @@ export const ProjectDataProvider: React.FC<{ children: React.ReactNode }> = ({ c
   const [activeVisualEditKey, setActiveVisualEditKey] = useState<string | null>(null);
   const [previewDraftMode, setPreviewDraftMode] = useState<boolean>(false);
 
-  // Offline cache only. Firestore remains the authoritative source of truth.
-  // The cache is never used to overwrite a non-empty Firestore snapshot.
+  const [dataHealth, setDataHealth] = useState<Record<DataSourceKey, DataSourceHealth>>({
+    menus: { status: 'loading' },
+    modules: { status: 'loading' },
+    cms: { status: 'loading' },
+    forms: { status: 'loading' },
+    orgUnits: { status: 'loading' },
+    media: { status: 'loading' },
+    youtube: { status: 'loading' },
+    projects: { status: 'loading' },
+    quotes: { status: 'loading' },
+    submissions: { status: 'loading' },
+  });
+
+  // Cache hors-ligne des données client. Supabase est la source de vérité :
+  // le cache ne sert qu'à l'affichage pendant une coupure, jamais à écrire.
   const persistCache = useCallback((key: string, value: unknown) => {
     try {
       localStorage.setItem(key, JSON.stringify(value));
@@ -347,10 +444,44 @@ export const ProjectDataProvider: React.FC<{ children: React.ReactNode }> = ({ c
     }
   }, []);
 
+  // Résidus d'anciennes versions : un visiteur ne doit garder aucun devis local.
+  useEffect(() => {
+    try {
+      localStorage.removeItem('viva_projects::anonymous');
+      localStorage.removeItem('viva_quotes::anonymous');
+    } catch {
+      /* stockage indisponible : rien à nettoyer */
+    }
+  }, []);
+
+  // Changement de compte : on quitte le cache du compte précédent avant de
+  // charger celui du nouveau. L'état du compte sortant n'est jamais réutilisé.
+  useEffect(() => {
+    if (activeCacheScope === cacheScope) return;
+    adoptLegacyCache(localStorage, currentUser, ['viva_projects', 'viva_quotes']);
+    if (cacheScope === 'anonymous') {
+      setProjects([]);
+      setQuotes([]);
+    } else {
+      setProjects(readScopedCache<Project>(localStorage, 'viva_projects', cacheScope) ?? []);
+      setQuotes(readScopedCache<QuoteRequest>(localStorage, 'viva_quotes', cacheScope) ?? []);
+    }
+    setActiveCacheScope(cacheScope);
+  }, [activeCacheScope, cacheScope, currentUser]);
+
+  useEffect(() => {
+    if (activeCacheScope !== cacheScope) return;
+    if (cacheScope === 'anonymous') return;
+    persistCache(scopedCacheKey('viva_projects', activeCacheScope), projects);
+  }, [projects, activeCacheScope, cacheScope, persistCache]);
+  useEffect(() => {
+    if (activeCacheScope !== cacheScope) return;
+    if (cacheScope === 'anonymous') return;
+    persistCache(scopedCacheKey('viva_quotes', activeCacheScope), quotes);
+  }, [quotes, activeCacheScope, cacheScope, persistCache]);
+
   useEffect(() => persistCache('viva_platform_config', platformConfig), [platformConfig, persistCache]);
   useEffect(() => persistCache('viva_departments', departments), [departments, persistCache]);
-  useEffect(() => persistCache('viva_projects', projects), [projects, persistCache]);
-  useEffect(() => persistCache('viva_quotes', quotes), [quotes, persistCache]);
   useEffect(() => persistCache('viva_equipment', equipment), [equipment, persistCache]);
   useEffect(() => persistCache('viva_partners', partners), [partners, persistCache]);
   useEffect(() => persistCache('viva_directions_org', directionsOrg), [directionsOrg, persistCache]);
@@ -363,40 +494,15 @@ export const ProjectDataProvider: React.FC<{ children: React.ReactNode }> = ({ c
   useEffect(() => persistCache('viva_media_items', mediaItems), [mediaItems, persistCache]);
   useEffect(() => persistCache('viva_youtube_config', youtubeConfig), [youtubeConfig, persistCache]);
 
-  // Firestore is the runtime source of truth. These listeners replace local state
-  // with the current server snapshot; localStorage is only the offline cache.
+  // Le catalogue officiel (départements, équipement, partenaires, directions)
+  // n'est plus écouté depuis Firestore : sa base est vide, et un snapshot vide
+  // écraserait les données officielles locales. Ces collections restent dans
+  // l'état local + cache hors-ligne jusqu'à leur migration Postgres.
+  // La configuration plateforme ne s'applique que si un document « main »
+  // existe : un snapshot vide ne peut donc rien écraser.
   useEffect(() => {
     const unsubscribers: Array<() => void> = [];
 
-    const subscribe = <T,>(
-      collectionName: string,
-      setter: React.Dispatch<React.SetStateAction<T[]>>,
-      label: string
-    ) => {
-      try {
-        const unsubscribe = subscribeFirestoreCollection<T>(collectionName, items => {
-          setter(items);
-        });
-        unsubscribers.push(unsubscribe);
-      } catch (error) {
-        console.warn(`[Firebase] ${label} listener unavailable; offline cache retained:`, error);
-      }
-    };
-
-    // Public / shared configuration and content.
-    subscribe<Project>('projects', setProjects, 'Projects');
-    subscribe<MediaItem>('media', setMediaItems, 'Media');
-    subscribe<DynamicMenu>('dynamic_menus', setDynamicMenus, 'Menus');
-    subscribe<DynamicModule>('dynamic_modules', setDynamicModules, 'Modules');
-    subscribe<DynamicForm>('dynamic_forms', setDynamicForms, 'Forms');
-    subscribe<OrganizationUnit>('organization_units', setOrgUnits, 'Organization units');
-    subscribe<DirectionOrg>('organization_directions', setDirectionsOrg, 'Organization directions');
-    subscribe<CmsSectionItem>('cms_sections', setCmsSections, 'CMS');
-    subscribe<EquipmentItem>('equipment', setEquipment, 'Equipment');
-    subscribe<Partner>('partners', setPartners, 'Partners');
-    subscribe<Department>('departments', setDepartments, 'Departments');
-
-    // Singleton platform configuration.
     try {
       const unsubscribePlatform = subscribeFirestoreCollection<PlatformContentConfig>(
         'platform_config',
@@ -413,229 +519,92 @@ export const ProjectDataProvider: React.FC<{ children: React.ReactNode }> = ({ c
       console.warn('[Firebase] Platform configuration listener unavailable:', error);
     }
 
-    try {
-      const unsubscribeYouTube = subscribeFirestoreCollection<YouTubeChannelConfig>(
-        'platform_config',
-        items => {
-          const youtube = items.find((item: any) => (item as any).id === 'youtube');
-          if (youtube) {
-            const { id: _id, ...config } = youtube as any;
-            setYouTubeConfig(prev => ({ ...prev, ...config }));
-          }
-        }
-      );
-      unsubscribers.push(unsubscribeYouTube);
-    } catch (error) {
-      console.warn('[Firebase] YouTube configuration listener unavailable:', error);
-    }
-
-    // Auth-scoped data. Quotes and form submissions are never exposed globally.
-    let unsubscribeQuotes: (() => void) | undefined;
-    let unsubscribeSubmissions: (() => void) | undefined;
-
-    const unsubscribeAuth = onAuthStateChanged(auth, user => {
-      unsubscribeQuotes?.();
-      unsubscribeSubmissions?.();
-      unsubscribeQuotes = undefined;
-      unsubscribeSubmissions = undefined;
-
-      if (!user) return;
-
-      const isStaffOrAdmin = Boolean(
-        user.email?.endsWith('@viva-eventsolutions.cd') ||
-        user.email === 'misterk1502@gmail.com'
-      );
-
-      try {
-        if (isStaffOrAdmin) {
-          unsubscribeQuotes = subscribeFirestoreCollection<QuoteRequest>(
-            'quotes',
-            items => setQuotes(items)
-          );
-          unsubscribeSubmissions = subscribeFirestoreCollection<FormSubmission>(
-            'form_submissions',
-            items => setFormSubmissions(items)
-          );
-        } else if (user.email) {
-          unsubscribeQuotes = subscribeFirestoreCollection<QuoteRequest>(
-            'quotes',
-            items => setQuotes(items),
-            where('clientEmail', '==', user.email)
-          );
-        }
-      } catch (error) {
-        console.warn('[Firebase] Auth-scoped listeners unavailable; offline cache retained:', error);
-      }
-    });
-
     return () => {
       unsubscribers.forEach(unsubscribe => {
         try { unsubscribe(); } catch { /* noop */ }
       });
-      unsubscribeQuotes?.();
-      unsubscribeSubmissions?.();
-      unsubscribeAuth();
     };
   }, []);
 
-  // Wave 2 — overlay Supabase (SSOT) par-dessus l'état Firestore/legacy.
-  // PG gagne sur les conflits (même id, code ou contentKey) ; les éléments
-  // Firestore-only sont conservés jusqu'à la migration des données.
-  // Échec PG = état legacy conservé + warn explicite (transitoire, pas silencieux).
-  useEffect(() => {
-    if (!isSupabaseConfigured()) return;
-    let cancelled = false;
-    (async () => {
-      try {
-        const [pgMenus, pgModules, pgSections, pgForms, pgUnits] = await Promise.all([
-          fetchPgMenus(),
-          fetchPgModules(),
-          fetchPgSections(),
-          fetchPgForms().catch(e => {
-            console.warn('[Supabase Wave 2] Formulaires indisponibles :', e);
-            return [];
-          }),
-          fetchPgOrgUnits().catch(e => {
-            console.warn('[Supabase Wave 2] Organisation indisponible :', e);
-            return [];
-          }),
-        ]);
-        if (cancelled) return;
-        if (pgMenus.length > 0) {
-          setDynamicMenus(prev => {
-            const overlay = new Map(pgMenus.map(m => [m.id, m]));
-            const merged = prev.map(m => overlay.get(m.id) ?? m);
-            for (const m of pgMenus) if (!merged.some(x => x.id === m.id)) merged.push(m);
-            return merged;
-          });
+  // Wave 2 — Postgres est la source de vérité des collections ci-dessous.
+  // Un succès (même vide) remplace l'état local : plus de fusion avec les
+  // données legacy. Un échec conserve l'état précédent mais est exposé via
+  // dataHealth (bandeau back-office) : jamais silencieux.
+  const loadDataSource = useCallback(async (key: DataSourceKey) => {
+    setDataHealth(h => ({ ...h, [key]: { status: 'loading' } }));
+    try {
+      switch (key) {
+        case 'menus': setDynamicMenus(await fetchPgMenus()); break;
+        case 'modules': setDynamicModules(await fetchPgModules()); break;
+        case 'cms': setCmsSections(normalizeCmsCopy(await fetchPgSections())); break;
+        case 'forms': setDynamicForms(await fetchPgForms()); break;
+        case 'orgUnits': setOrgUnits(await fetchPgOrgUnits()); break;
+        case 'media': setMediaItems(await fetchPgMedia()); break;
+        case 'youtube': {
+          const yt = await fetchPgYouTube();
+          if (yt) setYouTubeConfig(yt);
+          break;
         }
-        if (pgModules.length > 0) {
-          setDynamicModules(prev => {
-            const overlay = new Map(pgModules.map(m => [m.id, m]));
-            const merged = prev.map(m => overlay.get(m.id) ?? m);
-            for (const m of pgModules) if (!merged.some(x => x.id === m.id)) merged.push(m);
-            return merged;
-          });
-        }
-        if (pgSections.length > 0) {
-          setCmsSections(prev => {
-            const byKey = new Map(pgSections.map(s => [s.contentKey, s]));
-            const byId = new Map(pgSections.map(s => [s.id, s]));
-            const merged = prev.map(s => byKey.get(s.contentKey) ?? byId.get(s.id) ?? s);
-            for (const s of pgSections) {
-              if (!merged.some(x => x.contentKey === s.contentKey || x.id === s.id)) merged.push(s);
-            }
-            return merged;
-          });
-        }
-        if (pgForms.length > 0) {
-          setDynamicForms(prev => {
-            const overlay = new Map<string, DynamicForm>();
-            for (const f of pgForms) overlay.set(f.id, f);
-            const merged = prev.map(f => overlay.get(f.id) ?? f);
-            for (const f of pgForms) if (!merged.some(x => x.id === f.id)) merged.push(f);
-            return merged;
-          });
-        }
-        if (pgUnits.length > 0) {
-          setOrgUnits(prev => {
-            const overlay = new Map<string, OrganizationUnit>();
-            const byCode = new Map<string, OrganizationUnit>();
-            for (const u of pgUnits) {
-              overlay.set(u.id, u);
-              byCode.set(u.code ?? u.id, u);
-            }
-            const merged = prev.map(u => overlay.get(u.id) ?? (u.code ? byCode.get(u.code) : undefined) ?? u);
-            for (const u of pgUnits) {
-              if (!merged.some(x => x.id === u.id || (x.code && x.code === u.code))) merged.push(u);
-            }
-            return merged;
-          });
-        }
-        // Soumissions staff : lecture PG (RLS forms.manage), fusion sans doublons.
-        try {
-          const pgSubs = await fetchPgSubmissions();
-          if (pgSubs.length > 0) {
-            setFormSubmissions(prev => {
-              const ids = new Set(prev.map(s => s.id));
-              return [...prev, ...pgSubs.filter(s => !ids.has(s.id))];
-            });
-          }
-        } catch (e) {
-          console.warn('[Supabase Wave 2] Soumissions indisponibles (permission ?) :', e);
-        }
-        // Médias + YouTube : overlay PG (SSOT), Firestore-only conservé en transition.
-        try {
-          const [pgMedia, pgYt] = await Promise.all([
-            fetchPgMedia().catch(e => {
-              console.warn('[Supabase Wave 2] Médias indisponibles :', e);
-              return [];
-            }),
-            fetchPgYouTube().catch(e => {
-              console.warn('[Supabase Wave 2] Config YouTube indisponible :', e);
-              return null;
-            }),
-          ]);
-          if (pgMedia.length > 0) {
-            setMediaItems(prev => {
-              const byUrl = new Map<string, MediaItem>();
-              for (const m of pgMedia) byUrl.set(m.url, m);
-              const merged = prev.map(m => byUrl.get(m.url) ?? m);
-              for (const m of pgMedia) {
-                if (!merged.some(x => x.url === m.url || x.id === m.id)) merged.push(m);
-              }
-              return merged;
-            });
-          }
-          if (pgYt) setYouTubeConfig(pgYt);
-        } catch (e) {
-          console.warn('[Supabase Wave 2] Médias/YouTube indisponibles :', e);
-        }
-        // Projets + devis : overlay PG (SSOT), Firestore-only conservé en transition.
-        try {
-          const [pgProjects, pgQuotes] = await Promise.all([
-            fetchPgProjects().catch(e => {
-              console.warn('[Supabase Wave 2] Projets indisponibles :', e);
-              return [];
-            }),
-            fetchPgQuotes().catch(e => {
-              console.warn('[Supabase Wave 2] Devis indisponibles :', e);
-              return [];
-            }),
-          ]);
-          if (pgProjects.length > 0) {
-            setProjects(prev => {
-              const overlay = new Map<string, Project>();
-              for (const p of pgProjects) overlay.set(p.code, p);
-              const merged = prev.map(p => overlay.get(p.code) ?? p);
-              for (const p of pgProjects) {
-                if (!merged.some(x => x.code === p.code)) merged.push(p);
-              }
-              return merged;
-            });
-          }
-          if (pgQuotes.length > 0) {
-            setQuotes(prev => {
-              const overlay = new Map<string, QuoteRequest>();
-              for (const q of pgQuotes) overlay.set(q.referenceNumber, q);
-              const merged = prev.map(q => overlay.get(q.referenceNumber) ?? q);
-              for (const q of pgQuotes) {
-                if (!merged.some(x => x.referenceNumber === q.referenceNumber)) merged.push(q);
-              }
-              return merged;
-            });
-          }
-        } catch (e) {
-          console.warn('[Supabase Wave 2] Projets/devis indisponibles :', e);
-        }
-      } catch (e) {
-        console.warn('[Supabase Wave 2] Overlay indisponible, état legacy conservé :', e);
+        case 'projects': setProjects(await fetchPgProjects()); break;
+        case 'quotes': setQuotes(await fetchPgQuotes()); break;
+        case 'submissions': setFormSubmissions(await fetchPgSubmissions()); break;
       }
-    })();
-    return () => {
-      cancelled = true;
-    };
+      setDataHealth(h => ({ ...h, [key]: { status: 'ok' } }));
+    } catch (e) {
+      const message = e instanceof Error ? e.message : String(e);
+      console.error(`[Postgres] Lecture « ${DATA_SOURCE_LABELS[key]} » impossible : ${message}`);
+      setDataHealth(h => ({ ...h, [key]: { status: 'error', message } }));
+    }
   }, []);
+
+  const reloadDataSource = useCallback((key: DataSourceKey) => {
+    void loadDataSource(key);
+  }, [loadDataSource]);
+
+  const reloadAllDataSources = useCallback(() => {
+    PUBLIC_DATA_SOURCES.forEach(key => void loadDataSource(key));
+    void (async () => {
+      if (!isSupabaseConfigured() || !supabase) return;
+      const { data } = await supabase.auth.getSession();
+      if (data.session) AUTH_DATA_SOURCES.forEach(key => void loadDataSource(key));
+    })();
+  }, [loadDataSource]);
+
+  useEffect(() => {
+    if (!isSupabaseConfigured()) {
+      setDataHealth(h => {
+        const next = { ...h };
+        for (const key of [...PUBLIC_DATA_SOURCES, ...AUTH_DATA_SOURCES]) {
+          next[key] = {
+            status: 'error',
+            message: 'Supabase non configuré (VITE_SUPABASE_URL / VITE_SUPABASE_ANON_KEY).',
+          };
+        }
+        return next;
+      });
+      return;
+    }
+    PUBLIC_DATA_SOURCES.forEach(key => void loadDataSource(key));
+  }, [loadDataSource]);
+
+  // Devis & soumissions : RLS exige une session ; rechargés à chaque changement.
+  useEffect(() => {
+    if (!isSupabaseConfigured() || !supabase) return;
+    let active = true;
+    const run = (hasSession: boolean) => {
+      if (!active) return;
+      for (const key of AUTH_DATA_SOURCES) {
+        if (hasSession) void loadDataSource(key);
+        else setDataHealth(h => ({ ...h, [key]: { status: 'idle', message: 'Session requise.' } }));
+      }
+    };
+    supabase.auth.getSession().then(({ data }) => run(Boolean(data.session)));
+    const { data: sub } = supabase.auth.onAuthStateChange((_event, session) => run(Boolean(session)));
+    return () => {
+      active = false;
+      sub.subscription.unsubscribe();
+    };
+  }, [loadDataSource]);
 
   // ==================== ACTIONS ====================
 
@@ -684,9 +653,6 @@ export const ProjectDataProvider: React.FC<{ children: React.ReactNode }> = ({ c
     }
     setOrgUnits(prev => [...prev, newUnit]);
 
-    setFirestoreDocument('organization_units', newId, newUnit)
-      .catch(e => console.warn('[Firebase LEGACY mirror] Org unit persist notice:', e));
-
     logAuditEvent({
       action: 'ORGANIZATION_UNIT_CREATED',
       resource: 'organization_units',
@@ -710,8 +676,6 @@ export const ProjectDataProvider: React.FC<{ children: React.ReactNode }> = ({ c
       }
     }
     setOrgUnits(prev => prev.map(u => u.id === id ? { ...u, ...updated, updatedAt: new Date().toISOString() } : u));
-    updateFirestoreDocument('organization_units', id, { ...updated, updatedAt: new Date().toISOString() })
-      .catch(e => console.warn('[Firebase LEGACY mirror] Org unit update notice:', e));
   };
 
   const deleteOrgUnit = async (id: string) => {
@@ -726,8 +690,6 @@ export const ProjectDataProvider: React.FC<{ children: React.ReactNode }> = ({ c
       }
     }
     setOrgUnits(prev => prev.filter(u => u.id !== id));
-    deleteFirestoreDocument('organization_units', id)
-      .catch(e => console.warn('[Firebase LEGACY mirror] Org unit delete notice:', e));
     logAuditEvent({
       action: 'ORGANIZATION_UNIT_DELETED',
       resource: 'organization_units',
@@ -736,7 +698,6 @@ export const ProjectDataProvider: React.FC<{ children: React.ReactNode }> = ({ c
   };
 
   const updateDynamicMenus = async (menus: DynamicMenu[]) => {
-    const previous = dynamicMenus;
     // Wave 2 — SSOT Supabase d'abord ; succès UI seulement après confirmation.
     if (isSupabaseConfigured()) {
       try {
@@ -753,19 +714,6 @@ export const ProjectDataProvider: React.FC<{ children: React.ReactNode }> = ({ c
       setDynamicMenus(menus);
     }
 
-    // Miroir LEGACY Firestore (transition : lecteurs non migrés). Best-effort.
-    menus.forEach(m => {
-      setFirestoreDocument('dynamic_menus', m.id, m)
-        .catch(e => console.warn('[Firebase LEGACY mirror] Menu persist notice:', e));
-    });
-
-    previous
-      .filter(m => !menus.some(next => next.id === m.id))
-      .forEach(m => {
-        deleteFirestoreDocument('dynamic_menus', m.id)
-          .catch(e => console.warn('[Firebase LEGACY mirror] Menu delete notice:', e));
-      });
-
     logAuditEvent({
       action: 'DYNAMIC_MENUS_UPDATED',
       resource: 'dynamic_menus',
@@ -774,7 +722,6 @@ export const ProjectDataProvider: React.FC<{ children: React.ReactNode }> = ({ c
   };
 
   const updateDynamicModules = async (mods: DynamicModule[]) => {
-    const previous = dynamicModules;
     // Wave 2 — SSOT Supabase d'abord ; succès UI seulement après confirmation.
     if (isSupabaseConfigured()) {
       try {
@@ -790,19 +737,6 @@ export const ProjectDataProvider: React.FC<{ children: React.ReactNode }> = ({ c
     } else {
       setDynamicModules(mods);
     }
-
-    // Miroir LEGACY Firestore (transition). Best-effort.
-    mods.forEach(mod => {
-      setFirestoreDocument('dynamic_modules', mod.id, mod)
-        .catch(e => console.warn('[Firebase LEGACY mirror] Module persist notice:', e));
-    });
-
-    previous
-      .filter(mod => !mods.some(next => next.id === mod.id))
-      .forEach(mod => {
-        deleteFirestoreDocument('dynamic_modules', mod.id)
-          .catch(e => console.warn('[Firebase LEGACY mirror] Module delete notice:', e));
-      });
 
     logAuditEvent({
       action: 'DYNAMIC_MODULES_UPDATED',
@@ -836,9 +770,6 @@ export const ProjectDataProvider: React.FC<{ children: React.ReactNode }> = ({ c
       setDynamicForms(prev => [...prev, newForm]);
     }
 
-    setFirestoreDocument('dynamic_forms', newId, newForm)
-      .catch(e => console.warn('[Firebase LEGACY mirror] Form persist notice:', e));
-
     logAuditEvent({
       action: 'DYNAMIC_FORM_CREATED',
       resource: 'dynamic_forms',
@@ -860,8 +791,6 @@ export const ProjectDataProvider: React.FC<{ children: React.ReactNode }> = ({ c
       }
     }
     setDynamicForms(prev => prev.map(f => f.id === id ? { ...f, ...updated, updatedAt: new Date().toISOString() } : f));
-    updateFirestoreDocument('dynamic_forms', id, { ...updated, updatedAt: new Date().toISOString() })
-      .catch(e => console.warn('[Firebase LEGACY mirror] Form update notice:', e));
   };
 
   const deleteDynamicForm = async (id: string) => {
@@ -876,8 +805,6 @@ export const ProjectDataProvider: React.FC<{ children: React.ReactNode }> = ({ c
       }
     }
     setDynamicForms(prev => prev.filter(f => f.id !== id));
-    deleteFirestoreDocument('dynamic_forms', id)
-      .catch(e => console.warn('[Firebase LEGACY mirror] Form delete notice:', e));
     logAuditEvent({
       action: 'DYNAMIC_FORM_DELETED',
       resource: 'dynamic_forms',
@@ -890,37 +817,36 @@ export const ProjectDataProvider: React.FC<{ children: React.ReactNode }> = ({ c
     const user = auth.currentUser;
 
     // Wave 2 — soumission PG si le formulaire y existe (insert RLS public prévu).
+    // Une panne PG est remontée : pas de repli silencieux qui ferait croire à
+    // une réception alors que le staff ne verrait rien dans Supabase.
     if (isSupabaseConfigured()) {
-      try {
-        const pgForms = await fetchPgForms();
-        const pgForm = pgForms.find(f => f.id === formId);
-        if (pgForm) {
-          const subId = await submitPgForm(
-            (pgForm as unknown as { pgId: string }).pgId ?? pgForm.id,
-            pgForm.name,
-            data,
-            {
-              email: user?.email || (data.email as string) || 'visiteur@viva-eventsolutions.cd',
-              name: submittedByName || (data.fullName as string) || user?.displayName || 'Candidat / Client',
-            },
-          );
-          setFormSubmissions(prev => [{
-            id: subId,
-            formId,
-            formName: pgForm.name,
-            data,
-            submittedBy: user?.uid || 'visitor',
-            submittedByEmail: user?.email || (data.email as string) || 'visiteur@viva-eventsolutions.cd',
-            submittedByName: submittedByName || (data.fullName as string) || user?.displayName || 'Candidat / Client',
-            status: 'soumis',
-            submittedAt: new Date().toISOString(),
-          }, ...prev]);
-          await logAudit('DYNAMIC_FORM_SUBMITTED', 'form_submissions', subId, { formName: pgForm.name });
-          return subId;
-        }
-      } catch (e) {
-        console.warn('[Supabase Wave 2] Soumission PG impossible, repli legacy :', e);
+      const pgForms = await fetchPgForms();
+      const pgForm = pgForms.find(f => f.id === formId);
+      if (pgForm) {
+        const subId = await submitPgForm(
+          (pgForm as unknown as { pgId: string }).pgId ?? pgForm.id,
+          pgForm.name,
+          data,
+          {
+            email: user?.email || (data.email as string) || 'visiteur@viva-eventsolutions.cd',
+            name: submittedByName || (data.fullName as string) || user?.displayName || 'Candidat / Client',
+          },
+        );
+        setFormSubmissions(prev => [{
+          id: subId,
+          formId,
+          formName: pgForm.name,
+          data,
+          submittedBy: user?.uid || 'visitor',
+          submittedByEmail: user?.email || (data.email as string) || 'visiteur@viva-eventsolutions.cd',
+          submittedByName: submittedByName || (data.fullName as string) || user?.displayName || 'Candidat / Client',
+          status: 'soumis',
+          submittedAt: new Date().toISOString(),
+        }, ...prev]);
+        await logAudit('DYNAMIC_FORM_SUBMITTED', 'form_submissions', subId, { formName: pgForm.name });
+        return subId;
       }
+      console.warn('[Supabase] Formulaire absent de Postgres, repli legacy :', formId);
     }
 
     const submissionId = `sub-${Date.now()}`;
@@ -980,9 +906,6 @@ export const ProjectDataProvider: React.FC<{ children: React.ReactNode }> = ({ c
       setMediaItems(prev => [newMedia, ...prev]);
     }
 
-    setFirestoreDocument('media', newId, newMedia)
-      .catch(e => console.warn('[Firebase LEGACY mirror] Media persist notice:', e));
-
     logAuditEvent({
       action: 'MEDIA_ITEM_CREATED',
       resource: 'media',
@@ -1003,8 +926,6 @@ export const ProjectDataProvider: React.FC<{ children: React.ReactNode }> = ({ c
       }
     }
     setMediaItems(prev => prev.map(m => m.id === id ? { ...m, ...updated } : m));
-    updateFirestoreDocument('media', id, updated)
-      .catch(e => console.warn('[Firebase LEGACY mirror] Media update notice:', e));
   };
 
   const deleteMediaItem = async (id: string) => {
@@ -1018,10 +939,13 @@ export const ProjectDataProvider: React.FC<{ children: React.ReactNode }> = ({ c
         console.error('[Supabase Wave 2] Suppression média refusée :', e);
         throw e;
       }
+    } else if (current?.storagePath || current?.url.includes('firebasestorage.googleapis.com')) {
+      await deleteEnterpriseStorageFile(
+        current.storagePath ?? current.url,
+        current.storageBucket,
+      );
     }
     setMediaItems(prev => prev.filter(m => m.id !== id));
-    deleteFirestoreDocument('media', id)
-      .catch(e => console.warn('[Firebase LEGACY mirror] Media delete notice:', e));
     logAuditEvent({
       action: 'MEDIA_ITEM_DELETED',
       resource: 'media',
@@ -1057,9 +981,6 @@ export const ProjectDataProvider: React.FC<{ children: React.ReactNode }> = ({ c
       });
       return;
     }
-    // Miroir LEGACY Firestore (transition). Best-effort.
-    setFirestoreDocument('platform_config', 'youtube', mergedPreview)
-      .catch(e => console.warn('[Firebase LEGACY mirror] YouTube config persist notice:', e));
     logAuditEvent({
       action: 'YOUTUBE_CONFIG_UPDATED',
       resource: 'platform_config',
@@ -1100,19 +1021,6 @@ export const ProjectDataProvider: React.FC<{ children: React.ReactNode }> = ({ c
     } else {
       setCmsSections(secs);
     }
-
-    // Miroir LEGACY Firestore (transition). Best-effort.
-    secs.forEach(section => {
-      setFirestoreDocument('cms_sections', section.id, section)
-        .catch(e => console.warn('[Firebase LEGACY mirror] CMS section persist notice:', e));
-    });
-
-    previous
-      .filter(section => !secs.some(next => next.id === section.id))
-      .forEach(section => {
-        deleteFirestoreDocument('cms_sections', section.id)
-          .catch(e => console.warn('[Firebase LEGACY mirror] CMS section delete notice:', e));
-      });
 
     logAuditEvent({
       action: 'CMS_SECTIONS_UPDATED',
@@ -1188,7 +1096,6 @@ export const ProjectDataProvider: React.FC<{ children: React.ReactNode }> = ({ c
     }
 
     setCmsSections(prev => prev.map(s => s.id === target.id ? updatedItem : s));
-    await setFirestoreDocument('cms_sections', target.id, updatedItem);
 
     logAuditEvent({
       action: 'CMS_DRAFT_SAVED',
@@ -1277,7 +1184,6 @@ export const ProjectDataProvider: React.FC<{ children: React.ReactNode }> = ({ c
     };
 
     setCmsSections(prev => prev.map(s => s.id === target.id ? updatedItem : s));
-    await setFirestoreDocument('cms_sections', target.id, updatedItem);
 
     if (target.contentKey === 'home.welcome.title' || target.contentKey === 'welcomeMessage') {
       updatePlatformConfig({ welcomeMessage: newContent });
@@ -1356,22 +1262,6 @@ export const ProjectDataProvider: React.FC<{ children: React.ReactNode }> = ({ c
     }
     setProjects(prev => [newProject, ...prev]);
 
-    // Persist to Firestore (LEGACY mirror). Best-effort.
-    setFirestoreDocument('projects', newId, {
-      id: newId,
-      code,
-      title: newProject.title,
-      client: newProject.client,
-      type: newProject.type || '',
-      startDate: newProject.startDate || '',
-      endDate: newProject.endDate || '',
-      location: newProject.location || '',
-      budgetUSD: Number(newProject.budgetUSD) || 0,
-      progressPercent: Number(newProject.progressPercent) || 0,
-      status: newProject.status,
-      leadManager: newProject.leadManager || ''
-    }).catch(e => console.warn('[Firebase LEGACY mirror] project persist notice:', e));
-
     logAuditEvent({
       action: 'PROJECT_CREATED',
       resource: 'projects',
@@ -1397,9 +1287,6 @@ export const ProjectDataProvider: React.FC<{ children: React.ReactNode }> = ({ c
       }
     }
     setProjects(prev => prev.map(p => (p.id === id ? merged : p)));
-    await setFirestoreDocument('projects', id, merged).catch(e => {
-      console.warn('[Firebase LEGACY mirror] project details notice:', e);
-    });
   };
 
   const updateProjectStatus = async (id: string, status: Project['status'], progress: number) => {
@@ -1417,14 +1304,33 @@ export const ProjectDataProvider: React.FC<{ children: React.ReactNode }> = ({ c
     setProjects(prev =>
       prev.map(p => (p.id === id ? { ...p, status, progressPercent: progress } : p))
     );
-    updateFirestoreDocument('projects', id, { status, progressPercent: progress })
-      .catch(e => console.warn('[Firebase LEGACY mirror] project status update notice:', e));
   };
 
   const submitQuoteRequest = async (
     quoteData: Omit<QuoteRequest, 'id' | 'referenceNumber' | 'createdAt' | 'status'>
   ): Promise<string> => {
-    const referenceNumber = `DEV-VES-2026-${Math.floor(100 + Math.random() * 900)}`;
+    // SSOT Supabase : la référence vient du serveur, jamais du navigateur.
+    // Échec = erreur propagée, aucun succès affiché.
+    let referenceNumber: string;
+    if (isSupabaseConfigured()) {
+      try {
+        referenceNumber = await insertPgQuote({
+          clientName: quoteData.clientName,
+          clientEmail: quoteData.clientEmail,
+          eventName: quoteData.eventName,
+          eventDate: quoteData.eventDate,
+          location: quoteData.location,
+          attendees: Number(quoteData.estimatedAttendees) || 0,
+          budgetUSD: Number(quoteData.estimatedBudgetUSD) || 0,
+        });
+      } catch (e) {
+        console.error('[Supabase Wave 2] Soumission devis refusée :', e);
+        throw e;
+      }
+    } else {
+      referenceNumber = `DEV-VES-${new Date().getFullYear()}-${Date.now().toString().slice(-6)}`;
+    }
+
     const newQuote: QuoteRequest = {
       ...quoteData,
       id: `qte-${Date.now()}`,
@@ -1432,56 +1338,10 @@ export const ProjectDataProvider: React.FC<{ children: React.ReactNode }> = ({ c
       createdAt: new Date().toISOString().split('T')[0],
       status: 'submitted'
     };
-    // Wave 2 — SSOT Supabase d'abord ; échec = erreur propagée, aucun succès affiché.
-    if (isSupabaseConfigured()) {
-      try {
-        await insertPgQuote({
-          referenceNumber,
-          clientName: newQuote.clientName,
-          clientEmail: newQuote.clientEmail,
-          eventName: newQuote.eventName,
-          eventDate: newQuote.eventDate,
-          location: newQuote.location,
-          attendees: Number(newQuote.estimatedAttendees) || 0,
-          budgetUSD: Number(newQuote.estimatedBudgetUSD) || 0,
-        });
-        await logAudit('QUOTE_SUBMITTED', 'quotes', referenceNumber, {
-          eventName: newQuote.eventName,
-        });
-      } catch (e) {
-        console.error('[Supabase Wave 2] Soumission devis refusée :', e);
-        throw e;
-      }
-    }
     setQuotes(prev => [newQuote, ...prev]);
 
-    // Persist to Firestore (LEGACY mirror). Best-effort.
-    setFirestoreDocument('quotes', newQuote.id, {
-      id: newQuote.id,
-      referenceNumber,
-      clientName: newQuote.clientName,
-      clientEmail: newQuote.clientEmail,
-      clientPhone: newQuote.clientPhone || '',
-      clientOrganization: newQuote.clientOrganization || '',
-      eventType: newQuote.eventType || '',
-      eventName: newQuote.eventName,
-      eventDate: newQuote.eventDate || '',
-      location: newQuote.location || '',
-      estimatedAttendees: Number(newQuote.estimatedAttendees) || 0,
-      estimatedBudgetUSD: Number(newQuote.estimatedBudgetUSD) || 0,
-      status: 'submitted',
-      priority: newQuote.priority || 'normale',
-      customNotes: newQuote.customNotes || '',
-      createdAt: newQuote.createdAt,
-      userId: auth.currentUser?.uid || ''
-    }).catch(e => console.warn('[Firebase LEGACY mirror] quote persist notice:', e));
-
-    logAuditEvent({
-      action: 'QUOTE_SUBMITTED',
-      resource: 'quotes',
-      resourceId: newQuote.id,
-      details: `Nouveau devis : ${referenceNumber} (${newQuote.eventName})`
-    });
+    // L'audit QUOTE_SUBMITTED est écrit par la RPC serveur : plus de 401
+    // anonyme sur audit_logs ni de miroir Firestore pour ce parcours.
     platformSession.logDomainEvent('devis', `Devis soumis : ${referenceNumber} (${newQuote.eventName})`);
 
     return referenceNumber;
@@ -1502,8 +1362,6 @@ export const ProjectDataProvider: React.FC<{ children: React.ReactNode }> = ({ c
     setQuotes(prev =>
       prev.map(q => (q.id === id ? { ...q, status } : q))
     );
-    updateFirestoreDocument('quotes', id, { status })
-      .catch(e => console.warn('[Firebase LEGACY mirror] quote status update notice:', e));
 
     logAuditEvent({
       action: 'QUOTE_STATUS_UPDATED',
@@ -1596,59 +1454,6 @@ export const ProjectDataProvider: React.FC<{ children: React.ReactNode }> = ({ c
     });
   };
 
-  const resetToDefaults = () => {
-    // P0 Wave 1 — GARDE ANTI-DESTRUCTION : aucun appel direct n'exécute le reset.
-    // Le seul chemin autorisé arme explicitement via sessionStorage('viva_reset_armed'
-    // === 'RESET VIVA'), posé uniquement par ResetDatabaseModal après confirmation
-    // tapée + SUPER_ADMIN. SCOPE STRICT : Firestore + cache local UNIQUEMENT.
-    // Ne touche JAMAIS à Supabase/PostgreSQL (aucune écriture distante ici).
-    if (typeof window !== 'undefined' && window.sessionStorage?.getItem('viva_reset_armed') !== 'RESET VIVA') {
-      console.warn(
-        '[resetToDefaults] REFUSÉ : reset non armé. Utilisez ResetDatabaseModal (confirmation "RESET VIVA"). Aucune donnée modifiée.',
-      );
-      return;
-    }
-    if (typeof window !== 'undefined') window.sessionStorage.removeItem('viva_reset_armed');
-    setPlatformConfig(DEFAULT_PLATFORM_CONFIG);
-    setDepartments(POLES_15_OFFICIAL_DATA);
-    setProjects([]);
-    setQuotes([]);
-    setEquipment(INITIAL_EQUIPMENT);
-    setPartners(INITIAL_PARTNERS);
-    setDirectionsOrg(INITIAL_DIRECTIONS_ORG);
-    setOrgUnits(INITIAL_ORG_UNITS);
-    setDynamicMenus(INITIAL_DYNAMIC_MENUS);
-    setDynamicModules(INITIAL_DYNAMIC_MODULES);
-    setDynamicForms(INITIAL_DYNAMIC_FORMS);
-    setMediaItems(INITIAL_MEDIA_ITEMS);
-    setYouTubeConfig(INITIAL_YOUTUBE_CONFIG);
-    setCmsSections(INITIAL_CMS_SECTIONS);
-
-    // A reset is an explicit administrator operation, so mirror it to Firestore.
-    setFirestoreDocument('platform_config', 'main', DEFAULT_PLATFORM_CONFIG).catch(() => {});
-    setFirestoreDocument('platform_config', 'youtube', INITIAL_YOUTUBE_CONFIG).catch(() => {});
-    POLES_15_OFFICIAL_DATA.forEach(d => setFirestoreDocument('departments', String(d.id), d).catch(() => {}));
-    INITIAL_EQUIPMENT.forEach(e => setFirestoreDocument('equipment', e.id, e).catch(() => {}));
-    INITIAL_PARTNERS.forEach(p => setFirestoreDocument('partners', p.id, p).catch(() => {}));
-    INITIAL_DIRECTIONS_ORG.forEach(d => setFirestoreDocument('organization_directions', String(d.id), d).catch(() => {}));
-    INITIAL_ORG_UNITS.forEach(u => setFirestoreDocument('organization_units', u.id, u).catch(() => {}));
-    INITIAL_DYNAMIC_MENUS.forEach(m => setFirestoreDocument('dynamic_menus', m.id, m).catch(() => {}));
-    INITIAL_DYNAMIC_MODULES.forEach(m => setFirestoreDocument('dynamic_modules', m.id, m).catch(() => {}));
-    INITIAL_DYNAMIC_FORMS.forEach(f => setFirestoreDocument('dynamic_forms', f.id, f).catch(() => {}));
-    INITIAL_MEDIA_ITEMS.forEach(m => setFirestoreDocument('media', m.id, m).catch(() => {}));
-    INITIAL_CMS_SECTIONS.forEach(c => setFirestoreDocument('cms_sections', c.id, c).catch(() => {}));
-
-    Object.keys(localStorage)
-      .filter(key => key.startsWith('viva_'))
-      .forEach(key => localStorage.removeItem(key));
-
-    logAuditEvent({
-      action: 'PLATFORM_DATA_RESET',
-      resource: 'platform',
-      details: 'Réinitialisation explicite des données vers les valeurs par défaut.'
-    });
-  };
-
   return (
     <ProjectDataContext.Provider
       value={{
@@ -1670,6 +1475,9 @@ export const ProjectDataProvider: React.FC<{ children: React.ReactNode }> = ({ c
         cmsSections,
         mediaItems,
         youtubeConfig,
+        dataHealth,
+        reloadDataSource,
+        reloadAllDataSources,
         updatePlatformConfig,
         updateDepartment,
         addDepartment,
@@ -1699,7 +1507,6 @@ export const ProjectDataProvider: React.FC<{ children: React.ReactNode }> = ({ c
         upvoteQuestion,
         moderateQuestion,
         votePoll,
-        resetToDefaults,
         isVisualEditMode,
         setVisualEditMode,
         activeVisualEditKey,

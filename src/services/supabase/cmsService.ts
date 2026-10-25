@@ -79,12 +79,20 @@ export async function fetchSections(): Promise<CmsSectionItem[]> {
   const { data, error } = await sb.from('cms_sections').select('*').order('page').order('content_key');
   if (error) throw new Error(`Lecture CMS impossible : ${error.message}`);
   const sections = (data ?? []).map(pgToSection);
+  // L'historique est réservé au staff : un visiteur ne doit pas bloquer la
+  // lecture de tout le CMS parce que la requête annexe est refusée par RLS.
+  const { data: session } = await sb.auth.getSession();
+  if (!session.session) return sections;
   // Versions jointes (une requête par section serait N+1 : on les charge en bloc)
   const { data: versions, error: vErr } = await sb
     .from('cms_versions')
     .select('*')
     .order('created_at', { ascending: false });
-  if (vErr) throw new Error(`Lecture versions CMS impossible : ${vErr.message}`);
+  if (vErr) {
+    // L'historique est secondaire : son refus ne doit pas vider la vitrine.
+    console.warn(`[CMS] Historique indisponible : ${vErr.message}`);
+    return sections;
+  }
   const bySection = new Map<string, CmsVersion[]>();
   for (const v of (versions ?? []) as Record<string, string>[]) {
     const arr = bySection.get(v.section_id) ?? [];

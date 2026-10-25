@@ -94,7 +94,7 @@ export const DepartmentsCatalog: React.FC<DepartmentsCatalogProps> = ({
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-12">
         {/* 1. Header Banner */}
         <div className="text-center max-w-3xl mx-auto space-y-4">
-          <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-blue-50 border border-blue-100 text-xs font-semibold text-[#4A6CF7]">
+          <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-[var(--viva-muted-surface)] border border-[var(--viva-border)] text-xs font-semibold text-[var(--viva-primary)]">
             <Layers className="w-3.5 h-3.5" />
             <span>Architecture Opérationnelle 360°</span>
           </div>
@@ -103,7 +103,7 @@ export const DepartmentsCatalog: React.FC<DepartmentsCatalogProps> = ({
             Nos 15 Pôles d'Ingénierie Intégrés
           </h2>
 
-          <p className="text-base text-[#6B7280] leading-relaxed">
+          <p className="text-base text-[var(--viva-text-muted)] leading-relaxed">
             Chaque pôle dispose de ses équipes dédiées et de son propre parc matériel, garantissant une exécution millimétrée sans dépendance de sous-traitance.
           </p>
         </div>
@@ -118,8 +118,8 @@ export const DepartmentsCatalog: React.FC<DepartmentsCatalogProps> = ({
                 onClick={() => setActiveCategory(cat.id)}
                 className={`px-4 py-2 rounded-full text-xs font-semibold whitespace-nowrap transition-all cursor-pointer ${
                   activeCategory === cat.id
-                    ? 'bg-[#4A6CF7] text-white shadow-sm shadow-blue-500/20'
-                    : 'bg-white hover:bg-slate-100 text-[#6B7280] border border-slate-200/80'
+                    ? 'bg-[var(--viva-primary)] text-white shadow-sm shadow-blue-500/20'
+                    : 'bg-white hover:bg-slate-100 text-[var(--viva-text-muted)] border border-slate-200/80'
                 }`}
               >
                 {cat.label}
@@ -135,7 +135,7 @@ export const DepartmentsCatalog: React.FC<DepartmentsCatalogProps> = ({
               value={searchQuery}
               onChange={e => setSearchQuery(e.target.value)}
               placeholder="Rechercher un pôle, matériel, mot-clé..."
-              className="w-full pl-10 pr-8 py-2.5 rounded-full border border-slate-200 bg-white text-xs sm:text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-[#4A6CF7]/20 focus:border-[#4A6CF7] transition-all shadow-sm"
+              className="w-full pl-10 pr-8 py-2.5 rounded-full border border-slate-200 bg-white text-xs sm:text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-[var(--viva-primary)]/20 focus:border-[var(--viva-primary)] transition-all shadow-sm"
             />
             {searchQuery && (
               <button
@@ -156,22 +156,22 @@ export const DepartmentsCatalog: React.FC<DepartmentsCatalogProps> = ({
             return (
               <div
                 key={dept.id}
-                className="flex flex-col justify-between bg-white rounded-3xl p-7 sm:p-8 border border-slate-100 shadow-sm hover:shadow-xl hover:shadow-blue-500/5 hover:border-blue-100 transition-all duration-300 transform hover:-translate-y-1 group"
+                className="flex flex-col justify-between bg-white rounded-3xl p-7 sm:p-8 border border-slate-100 shadow-sm hover:shadow-xl hover:shadow-blue-500/5 hover:border-[var(--viva-border)] transition-all duration-300 transform hover:-translate-y-1 group"
               >
                 <div className="space-y-5">
                   {/* Round Blue Icon + Pole Number */}
                   <div className="flex items-center justify-between">
-                    <div className="w-14 h-14 rounded-full bg-blue-50 text-[#4A6CF7] flex items-center justify-center transition-transform group-hover:scale-105">
+                    <div className="w-14 h-14 rounded-full bg-[var(--viva-muted-surface)] text-[var(--viva-primary)] flex items-center justify-center transition-transform group-hover:scale-105">
                       {getDepartmentIcon(dept.iconName, "w-6 h-6")}
                     </div>
-                    <span className="text-[11px] font-bold font-mono text-[#4A6CF7] bg-blue-50 px-3 py-1 rounded-full">
+                    <span className="text-[11px] font-bold font-mono text-[var(--viva-primary)] bg-[var(--viva-muted-surface)] px-3 py-1 rounded-full">
                       PÔLE {poleNumberFormatted}
                     </span>
                   </div>
 
                   {/* Title & Tagline */}
                   <div>
-                    <h3 className="text-lg font-bold text-slate-900 leading-snug group-hover:text-[#4A6CF7] transition-colors">
+                    <h3 className="text-lg font-bold text-slate-900 leading-snug group-hover:text-[var(--viva-primary)] transition-colors">
                       {dept.shortName || dept.name}
                     </h3>
                     <p className="text-xs font-semibold text-[#8B5CF6] mt-1 line-clamp-1">
@@ -180,12 +180,12 @@ export const DepartmentsCatalog: React.FC<DepartmentsCatalogProps> = ({
                   </div>
 
                   {/* Description */}
-                  <p className="text-xs sm:text-sm text-[#6B7280] leading-relaxed line-clamp-3">
+                  <p className="text-xs sm:text-sm text-[var(--viva-text-muted)] leading-relaxed line-clamp-3">
                     {dept.meaning || dept.description}
                   </p>
 
                   {/* Concrete example or Capabilities pill */}
-                  <div className="p-3.5 rounded-2xl bg-slate-50 border border-slate-100 text-xs text-[#6B7280] space-y-1.5">
+                  <div className="p-3.5 rounded-2xl bg-slate-50 border border-slate-100 text-xs text-[var(--viva-text-muted)] space-y-1.5">
                     {dept.concreteExample ? (
                       <p className="line-clamp-2">
                         <strong className="text-slate-900 font-semibold">Exemple : </strong>
@@ -194,7 +194,7 @@ export const DepartmentsCatalog: React.FC<DepartmentsCatalogProps> = ({
                     ) : (
                       dept.subPillars.slice(0, 2).map((sub, sIdx) => (
                         <div key={sIdx} className="flex items-center gap-2 truncate">
-                          <span className="w-1.5 h-1.5 rounded-full bg-[#4A6CF7] shrink-0" />
+                          <span className="w-1.5 h-1.5 rounded-full bg-[var(--viva-primary)] shrink-0" />
                           <span className="truncate font-medium text-slate-700">{sub.title}</span>
                         </div>
                       ))
@@ -206,7 +206,7 @@ export const DepartmentsCatalog: React.FC<DepartmentsCatalogProps> = ({
                 <div className="flex items-center gap-2.5 pt-6 mt-6 border-t border-slate-100">
                   <button
                     onClick={() => setActiveModalDept(dept)}
-                    className="flex-1 py-2.5 px-4 rounded-full bg-slate-50 hover:bg-[#4A6CF7] hover:text-white text-slate-700 text-xs font-semibold transition-all flex items-center justify-center gap-2 cursor-pointer shadow-sm"
+                    className="flex-1 py-2.5 px-4 rounded-full bg-slate-50 hover:bg-[var(--viva-primary)] hover:text-white text-slate-700 text-xs font-semibold transition-all flex items-center justify-center gap-2 cursor-pointer shadow-sm"
                   >
                     <span>Détails & Spécifications</span>
                     <ArrowRight className="w-3.5 h-3.5" />
@@ -216,7 +216,7 @@ export const DepartmentsCatalog: React.FC<DepartmentsCatalogProps> = ({
                     <button
                       onClick={() => onSelectDepartmentForQuote(dept.id)}
                       title="Ajouter au devis"
-                      className="p-2.5 rounded-full bg-blue-50 text-[#4A6CF7] hover:bg-[#4A6CF7] hover:text-white transition-all cursor-pointer"
+                      className="p-2.5 rounded-full bg-[var(--viva-muted-surface)] text-[var(--viva-primary)] hover:bg-[var(--viva-primary)] hover:text-white transition-all cursor-pointer"
                     >
                       <FileText className="w-4 h-4" />
                     </button>
@@ -234,11 +234,11 @@ export const DepartmentsCatalog: React.FC<DepartmentsCatalogProps> = ({
               {/* Modal Header */}
               <div className="flex items-start justify-between gap-4 border-b border-slate-100 pb-5">
                 <div className="flex items-center gap-4">
-                  <div className="w-14 h-14 rounded-full bg-blue-50 text-[#4A6CF7] flex items-center justify-center">
+                  <div className="w-14 h-14 rounded-full bg-[var(--viva-muted-surface)] text-[var(--viva-primary)] flex items-center justify-center">
                     {getDepartmentIcon(activeModalDept.iconName, "w-7 h-7")}
                   </div>
                   <div>
-                    <span className="text-xs font-mono font-bold text-[#4A6CF7] uppercase tracking-wider block">
+                    <span className="text-xs font-mono font-bold text-[var(--viva-primary)] uppercase tracking-wider block">
                       PÔLE {activeModalDept.number < 10 ? `0${activeModalDept.number}` : activeModalDept.number} SUR 15
                     </span>
                     <h3 className="text-xl sm:text-2xl font-bold text-slate-900">
@@ -255,7 +255,7 @@ export const DepartmentsCatalog: React.FC<DepartmentsCatalogProps> = ({
               </div>
 
               {/* Tagline */}
-              <div className="p-4 rounded-2xl bg-blue-50/50 border border-blue-100 text-xs sm:text-sm font-medium text-[#4A6CF7] italic">
+              <div className="p-4 rounded-2xl bg-[var(--viva-muted-surface)] border border-[var(--viva-border)] text-xs sm:text-sm font-medium text-[var(--viva-primary)] italic">
                 « {activeModalDept.tagline} »
               </div>
 
@@ -263,11 +263,11 @@ export const DepartmentsCatalog: React.FC<DepartmentsCatalogProps> = ({
               <div className="space-y-4 text-xs sm:text-sm">
                 {activeModalDept.meaning && (
                   <div className="p-5 rounded-2xl bg-slate-50 border border-slate-100 space-y-1.5">
-                    <div className="flex items-center gap-2 font-bold text-xs uppercase text-[#4A6CF7]">
+                    <div className="flex items-center gap-2 font-bold text-xs uppercase text-[var(--viva-primary)]">
                       <HelpCircle className="w-4 h-4" />
                       <span>Rôle & Périmètre Stratégique</span>
                     </div>
-                    <p className="text-[#6B7280] leading-relaxed">
+                    <p className="text-[var(--viva-text-muted)] leading-relaxed">
                       {activeModalDept.meaning}
                     </p>
                   </div>
@@ -279,7 +279,7 @@ export const DepartmentsCatalog: React.FC<DepartmentsCatalogProps> = ({
                       <CheckCircle2 className="w-4 h-4" />
                       <span>Justification Opérationnelle en RDC</span>
                     </div>
-                    <p className="text-[#6B7280] leading-relaxed">
+                    <p className="text-[var(--viva-text-muted)] leading-relaxed">
                       {activeModalDept.justification}
                     </p>
                   </div>
@@ -299,11 +299,11 @@ export const DepartmentsCatalog: React.FC<DepartmentsCatalogProps> = ({
 
                 {activeModalDept.equipmentAvailable && (
                   <div className="p-5 rounded-2xl bg-slate-50 border border-slate-100 space-y-1.5">
-                    <div className="flex items-center gap-2 font-bold text-xs uppercase text-blue-600">
+                    <div className="flex items-center gap-2 font-bold text-xs uppercase text-[var(--viva-primary)]">
                       <Wrench className="w-4 h-4" />
                       <span>Équipements & Matériels Clés</span>
                     </div>
-                    <p className="text-[#6B7280] leading-relaxed font-mono text-xs">
+                    <p className="text-[var(--viva-text-muted)] leading-relaxed font-mono text-xs">
                       {activeModalDept.equipmentAvailable}
                     </p>
                   </div>
@@ -322,10 +322,10 @@ export const DepartmentsCatalog: React.FC<DepartmentsCatalogProps> = ({
                       className="p-4 rounded-2xl bg-slate-50 border border-slate-100 space-y-1"
                     >
                       <div className="flex items-center gap-2 font-semibold text-xs text-slate-900">
-                        <span className="w-2 h-2 rounded-full bg-[#4A6CF7]" />
+                        <span className="w-2 h-2 rounded-full bg-[var(--viva-primary)]" />
                         <span>{sub.title}</span>
                       </div>
-                      <p className="text-[11px] text-[#6B7280] leading-relaxed">
+                      <p className="text-[11px] text-[var(--viva-text-muted)] leading-relaxed">
                         {sub.description}
                       </p>
                     </div>
@@ -349,7 +349,7 @@ export const DepartmentsCatalog: React.FC<DepartmentsCatalogProps> = ({
                       setActiveModalDept(null);
                       onSelectDepartmentForQuote(id);
                     }}
-                    className="px-6 py-2.5 rounded-full bg-[#4A6CF7] hover:bg-[#3A5BD9] text-white text-xs font-bold shadow-md hover:shadow-blue-500/25 transition-all flex items-center gap-2 cursor-pointer"
+                    className="px-6 py-2.5 rounded-full bg-[var(--viva-primary)] hover:bg-[var(--viva-primary-dark)] text-white text-xs font-bold shadow-md hover:shadow-blue-500/25 transition-all flex items-center gap-2 cursor-pointer"
                   >
                     <FileText className="w-4 h-4" />
                     <span>Demander un Devis pour ce Pôle</span>

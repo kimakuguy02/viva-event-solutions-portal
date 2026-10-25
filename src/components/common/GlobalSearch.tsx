@@ -65,7 +65,7 @@ export const GlobalSearch: React.FC<Props> = () => {
             results.map((r, i) => (
               <div key={`${r.kind}-${i}`} className="p-2.5 rounded-xl hover:bg-slate-50">
                 <div className="flex items-center gap-2">
-                  <span className="text-[10px] font-bold uppercase text-[#4A6CF7]">{r.kind}</span>
+                  <span className="text-[10px] font-bold uppercase text-[var(--viva-primary)]">{r.kind}</span>
                 </div>
                 <p className="text-xs font-bold text-slate-800 truncate">{r.label}</p>
                 <p className="text-[11px] text-slate-500 truncate">{r.detail}</p>

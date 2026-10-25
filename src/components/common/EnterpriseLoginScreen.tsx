@@ -1,15 +1,13 @@
 import React, { useState } from 'react';
 import { useAuth, OFFICIAL_VIVA_WORKERS } from '../../context/AuthContext';
 import { useEnterpriseErp } from '../../context/EnterpriseErpContext';
+import { useTheme } from '../../context/ThemeContext';
 import {
-  Shield,
   Lock,
   Mail,
-  KeyRound,
   ArrowRight,
   CheckCircle2,
   Database,
-  Building2,
   LogIn,
   AlertCircle,
   ShieldCheck
@@ -26,6 +24,8 @@ export const EnterpriseLoginScreen: React.FC<EnterpriseLoginScreenProps> = ({
 }) => {
   const { loginWithServer, loginWithGoogle } = useAuth();
   const { exchangeRate } = useEnterpriseErp();
+  const { activePalette, themeMode } = useTheme();
+  const isLight = themeMode === 'light';
 
   const [email, setEmail] = useState('direction.generale@viva-eventsolutions.cd');
   const [password, setPassword] = useState('');
@@ -62,124 +62,178 @@ export const EnterpriseLoginScreen: React.FC<EnterpriseLoginScreenProps> = ({
     setError(null);
   };
 
+  const highlights = [
+    {
+      title: 'Comptabilité SYSCOHADA / IFRS RDC :',
+      body: `Gestion bi-devise parfaite (1 USD = ${exchangeRate} CDF), rapprochements bancaires et journaux d'écritures.`,
+      color: activePalette.colors.tertiary
+    },
+    {
+      title: 'Règle Anti-Fraude Double Signature :',
+      body: 'Tout décaissement > 100 USD requiert la validation Manager + le code OTP sécurisé du DAF.',
+      color: activePalette.colors.accent
+    },
+    {
+      title: 'Clôture Journalière Obligatoire :',
+      body: 'Rapprochement quotidien de caisse physique avec procès-verbal scellé.',
+      color: activePalette.colors.primary
+    },
+    {
+      title: 'Traçabilité des Actifs (QUI, QUOI, QUAND) :',
+      body: 'Suivi des prêts de matériel lourd et contrôle technique contradictoire au retour.',
+      color: activePalette.colors.tertiary
+    }
+  ];
+
   return (
-    <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col justify-center items-center p-4 sm:p-6 selection:bg-amber-500 selection:text-slate-950">
-      <div className="max-w-4xl w-full grid grid-cols-1 lg:grid-cols-12 gap-8 items-center">
-        {/* Left Column: Brand & Enterprise Presentation */}
+    <div
+      className="min-h-screen flex flex-col justify-center items-center p-4 sm:p-6 relative overflow-hidden"
+      style={{ backgroundColor: activePalette.colors.bgMain, color: activePalette.colors.textMain }}
+    >
+      {/* Ambiances de marque */}
+      <div className="pointer-events-none absolute inset-0" aria-hidden="true">
+        <div
+          className="absolute -top-32 -left-24 w-96 h-96 rounded-full blur-3xl opacity-25"
+          style={{ backgroundColor: activePalette.colors.primary }}
+        />
+        <div
+          className="absolute -bottom-40 -right-16 w-[28rem] h-[28rem] rounded-full blur-3xl opacity-20"
+          style={{ backgroundColor: activePalette.colors.accent }}
+        />
+        <div
+          className="absolute top-1/3 right-1/4 w-72 h-72 rounded-full blur-3xl opacity-15"
+          style={{ backgroundColor: activePalette.colors.tertiary }}
+        />
+      </div>
+
+      <div className="relative max-w-5xl w-full grid grid-cols-1 lg:grid-cols-12 gap-8 items-center py-6">
+        {/* Colonne marque */}
         <div className="lg:col-span-6 space-y-6">
           <div className="flex items-center gap-3">
-            <div className="w-12 h-12 rounded-2xl bg-gradient-to-tr from-amber-600 via-amber-500 to-yellow-400 p-0.5 shadow-xl flex items-center justify-center">
-              <div className="w-full h-full bg-slate-950 rounded-[14px] flex items-center justify-center text-amber-400 font-black text-2xl font-mono">
+            <div
+              className="w-12 h-12 rounded-2xl p-0.5 flex items-center justify-center shadow-xl"
+              style={{ background: activePalette.design.accentGradient }}
+            >
+              <div
+                className="w-full h-full rounded-[14px] flex items-center justify-center font-black text-2xl font-mono"
+                style={{ backgroundColor: activePalette.colors.bgMain, color: activePalette.colors.accent }}
+              >
                 V
               </div>
             </div>
             <div>
-              <span className="text-[11px] font-bold uppercase tracking-widest text-amber-400 font-mono">
+              <span
+                className="text-[11px] font-bold uppercase tracking-widest font-mono"
+                style={{ color: activePalette.colors.accent }}
+              >
                 Portail Entreprise Certifié
               </span>
-              <h1 className="text-2xl sm:text-3xl font-black text-white tracking-tight">
+              <h1 className="text-2xl sm:text-3xl font-black tracking-tight viva-heading">
                 VIVA EVENT SOLUTIONS
               </h1>
             </div>
           </div>
 
-          <div className="space-y-3 text-slate-300 text-xs sm:text-sm leading-relaxed">
-            <p className="font-semibold text-white">
+          <div className="space-y-3 text-xs sm:text-sm leading-relaxed viva-muted">
+            <p className="font-semibold" style={{ color: activePalette.colors.textMain }}>
               Système de Gestion Intégrée (ERP) dédié aux travailleurs et à la direction :
             </p>
             <div className="space-y-2 text-xs">
-              <div className="flex items-start gap-2.5 p-2.5 rounded-xl bg-slate-900 border border-slate-800">
-                <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0 mt-0.5" />
-                <span>
-                  <strong>Comptabilité SYSCOHADA / IFRS RDC :</strong> Gestion bi-devise parfaite (1 USD = {exchangeRate} CDF), rapprochements bancaires et journaux d'écritures.
-                </span>
-              </div>
-
-              <div className="flex items-start gap-2.5 p-2.5 rounded-xl bg-slate-900 border border-slate-800">
-                <CheckCircle2 className="w-4 h-4 text-amber-400 shrink-0 mt-0.5" />
-                <span>
-                  <strong>Règle Anti-Fraude Double Signature :</strong> Tout décaissement &gt; 100 USD requiert la validation Manager + le code OTP sécurisé du DAF.
-                </span>
-              </div>
-
-              <div className="flex items-start gap-2.5 p-2.5 rounded-xl bg-slate-900 border border-slate-800">
-                <CheckCircle2 className="w-4 h-4 text-blue-400 shrink-0 mt-0.5" />
-                <span>
-                  <strong>Clôture Journalière Obligatoire :</strong> Rapprochement quotidien de caisse physique avec procès-verbal scellé.
-                </span>
-              </div>
-
-              <div className="flex items-start gap-2.5 p-2.5 rounded-xl bg-slate-900 border border-slate-800">
-                <CheckCircle2 className="w-4 h-4 text-purple-400 shrink-0 mt-0.5" />
-                <span>
-                  <strong>Traçabilité des Actifs (QUI, QUOI, QUAND) :</strong> Suivi des prêts de matériel lourd et contrôle technique contradictoire au retour.
-                </span>
-              </div>
+              {highlights.map(item => (
+                <div
+                  key={item.title}
+                  className="flex items-start gap-2.5 p-2.5 rounded-xl border"
+                  style={{
+                    backgroundColor: activePalette.colors.bgSurface,
+                    borderColor: activePalette.colors.border
+                  }}
+                >
+                  <CheckCircle2 className="w-4 h-4 shrink-0 mt-0.5" style={{ color: item.color }} />
+                  <span>
+                    <strong style={{ color: activePalette.colors.textMain }}>{item.title}</strong>{' '}
+                    {item.body}
+                  </span>
+                </div>
+              ))}
             </div>
           </div>
 
-          <div className="flex items-center gap-4 text-xs text-slate-400 pt-2 border-t border-slate-800">
-            <span className="flex items-center gap-1.5 font-mono text-emerald-400">
+          <div
+            className="flex items-center gap-4 text-xs viva-muted pt-2 border-t"
+            style={{ borderColor: activePalette.colors.border }}
+          >
+            <span className="flex items-center gap-1.5 font-mono" style={{ color: activePalette.colors.accent }}>
               <ShieldCheck className="w-3.5 h-3.5" />
               Sécurité Serveur RBAC
             </span>
             <span className="flex items-center gap-1.5 font-mono">
-              <Database className="w-3.5 h-3.5 text-blue-400" />
+              <Database className="w-3.5 h-3.5" style={{ color: activePalette.colors.tertiary }} />
               Base Centrale Synchronisée
             </span>
           </div>
         </div>
 
-        {/* Right Column: Login Card & Worker Account Selector */}
-        <div className="lg:col-span-6 bg-slate-900 border border-slate-800 rounded-3xl p-6 sm:p-8 shadow-2xl space-y-6">
-          <div className="border-b border-slate-800 pb-4">
-            <h2 className="text-xl font-bold text-white flex items-center gap-2">
-              <LogIn className="w-5 h-5 text-amber-400" />
+        {/* Carte de connexion */}
+        <div
+          className="lg:col-span-6 rounded-3xl border p-6 sm:p-8 shadow-2xl space-y-6"
+          style={{
+            backgroundColor: activePalette.colors.bgSurface,
+            borderColor: activePalette.colors.border,
+            borderRadius: activePalette.design.radiusCard,
+            boxShadow: activePalette.design.cardShadow
+          }}
+        >
+          <div
+            className="border-b pb-4"
+            style={{ borderColor: activePalette.colors.border }}
+          >
+            <h2 className="text-xl font-bold viva-heading flex items-center gap-2">
+              <LogIn className="w-5 h-5" style={{ color: activePalette.colors.accent }} />
               <span>Connexion Travailleur ERP</span>
             </h2>
-            <p className="text-xs text-slate-400 mt-1">
+            <p className="text-xs viva-muted mt-1">
               Authentification sécurisée par mot de passe vérifié côté serveur.
             </p>
           </div>
 
           {error && (
-            <div className="p-3 rounded-xl bg-rose-500/20 border border-rose-500/40 text-rose-300 text-xs font-semibold flex items-center gap-2">
-              <AlertCircle className="w-4 h-4 text-rose-400 shrink-0" />
+            <div className="p-3 rounded-xl bg-rose-500/15 border border-rose-500/40 text-rose-500 text-xs font-semibold flex items-center gap-2">
+              <AlertCircle className="w-4 h-4 shrink-0" />
               <span>{error}</span>
             </div>
           )}
 
           <form onSubmit={handleSubmit} className="space-y-4 text-xs">
             <div>
-              <label className="text-slate-300 font-bold block mb-1.5 uppercase text-[10px] tracking-wider">
+              <label className="viva-muted font-bold block mb-1.5 uppercase text-[10px] tracking-wider">
                 Adresse Email Professionnelle
               </label>
               <div className="relative">
-                <Mail className="w-4 h-4 absolute left-3 top-3 text-slate-400" />
+                <Mail className="w-4 h-4 absolute left-3 top-3" style={{ color: activePalette.colors.textMuted }} />
                 <input
                   type="email"
                   required
                   value={email}
                   onChange={e => setEmail(e.target.value)}
                   placeholder="nom@viva-eventsolutions.cd"
-                  className="w-full bg-slate-950 border border-slate-800 rounded-xl pl-9 pr-3 py-2.5 text-white font-mono focus:outline-none focus:border-amber-500"
+                  className="viva-input w-full pl-9 pr-3 py-2.5 font-mono text-xs"
                 />
               </div>
             </div>
 
             <div>
-              <label className="text-slate-300 font-bold block mb-1.5 uppercase text-[10px] tracking-wider">
+              <label className="viva-muted font-bold block mb-1.5 uppercase text-[10px] tracking-wider">
                 Mot de Passe Sécurisé
               </label>
               <div className="relative">
-                <Lock className="w-4 h-4 absolute left-3 top-3 text-slate-400" />
+                <Lock className="w-4 h-4 absolute left-3 top-3" style={{ color: activePalette.colors.textMuted }} />
                 <input
                   type="password"
                   required
                   value={password}
                   onChange={e => setPassword(e.target.value)}
                   placeholder="••••••••••••"
-                  className="w-full bg-slate-950 border border-slate-800 rounded-xl pl-9 pr-3 py-2.5 text-white font-mono focus:outline-none focus:border-amber-500"
+                  className="viva-input w-full pl-9 pr-3 py-2.5 font-mono text-xs"
                 />
               </div>
             </div>
@@ -187,11 +241,11 @@ export const EnterpriseLoginScreen: React.FC<EnterpriseLoginScreenProps> = ({
             <button
               type="submit"
               disabled={isLoading || !password}
-              className="w-full py-3 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-black text-xs uppercase tracking-wider flex items-center justify-center gap-2 cursor-pointer transition-all shadow-lg hover:shadow-amber-500/20 disabled:opacity-50 disabled:cursor-not-allowed"
+              className="viva-btn-primary w-full py-3 text-xs uppercase tracking-wider flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {isLoading ? (
                 <span className="flex items-center gap-2">
-                  <span className="w-3.5 h-3.5 border-2 border-slate-950 border-t-transparent rounded-full animate-spin"></span>
+                  <span className="w-3.5 h-3.5 border-2 border-current border-t-transparent rounded-full animate-spin"></span>
                   Vérification Serveur...
                 </span>
               ) : (
@@ -204,8 +258,16 @@ export const EnterpriseLoginScreen: React.FC<EnterpriseLoginScreenProps> = ({
           </form>
 
           <div className="relative flex items-center justify-center my-3">
-            <div className="border-t border-slate-800 w-full"></div>
-            <span className="bg-slate-900 px-3 text-[10px] text-slate-500 uppercase tracking-widest absolute">ou</span>
+            <div
+              className="border-t w-full"
+              style={{ borderColor: activePalette.colors.border }}
+            ></div>
+            <span
+              className="px-3 text-[10px] uppercase tracking-widest absolute viva-muted"
+              style={{ backgroundColor: activePalette.colors.bgSurface }}
+            >
+              ou
+            </span>
           </div>
 
           <button
@@ -218,7 +280,11 @@ export const EnterpriseLoginScreen: React.FC<EnterpriseLoginScreenProps> = ({
               else if (!res.success) setError(res.error || "Erreur de connexion Google.");
             }}
             disabled={isLoading}
-            className="w-full py-2.5 px-4 rounded-xl bg-slate-950 hover:bg-slate-800 text-slate-200 border border-slate-800 font-semibold text-xs flex items-center justify-center gap-2.5 cursor-pointer transition-all shadow hover:border-slate-600"
+            className="w-full py-2.5 px-4 rounded-xl border font-semibold text-xs flex items-center justify-center gap-2.5 cursor-pointer transition-all viva-muted hover:opacity-80"
+            style={{
+              backgroundColor: activePalette.colors.bgSubtle,
+              borderColor: activePalette.colors.border
+            }}
           >
             <svg className="w-4 h-4" viewBox="0 0 24 24">
               <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" />
@@ -229,54 +295,71 @@ export const EnterpriseLoginScreen: React.FC<EnterpriseLoginScreenProps> = ({
             <span>Connexion Google (Firebase Auth)</span>
           </button>
 
-          {/* Quick email selection helper (fills email only, requires real password) */}
-          <div className="space-y-2 pt-2 border-t border-slate-800">
-            <span className="text-[10px] uppercase font-bold text-slate-400 tracking-wider block">
+          {/* Sélection rapide d'email (ne remplit jamais le mot de passe) */}
+          <div
+            className="space-y-2 pt-2 border-t"
+            style={{ borderColor: activePalette.colors.border }}
+          >
+            <span className="text-[10px] uppercase font-bold tracking-wider block viva-muted">
               Comptes Officiels VIVA EVENT (cliquez pour remplir l'email) :
             </span>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-              {OFFICIAL_VIVA_WORKERS.slice(0, 4).map(worker => (
-                <button
-                  key={worker.id}
-                  type="button"
-                  onClick={() => handleSelectEmail(worker.email)}
-                  className={`p-2.5 rounded-xl border text-left transition-all cursor-pointer group ${
-                    email === worker.email
-                      ? 'bg-amber-500/20 border-amber-500/40 text-white'
-                      : 'bg-slate-950 border-slate-800/80 hover:border-amber-500/40 text-slate-300'
-                  }`}
-                >
-                  <div className="flex items-center gap-2">
-                    <div
-                      className="w-2.5 h-2.5 rounded-full shrink-0"
-                      style={{ backgroundColor: worker.avatarColor }}
-                    />
-                    <span className="text-xs font-bold text-white line-clamp-1 group-hover:text-amber-400 transition-colors">
-                      {worker.name}
-                    </span>
-                  </div>
-                  <p className="text-[10px] text-slate-400 line-clamp-1 pl-4.5 mt-0.5">
-                    {worker.jobTitle.split('(')[0]}
-                  </p>
-                </button>
-              ))}
+              {OFFICIAL_VIVA_WORKERS.slice(0, 4).map(worker => {
+                const isSelected = email === worker.email;
+                return (
+                  <button
+                    key={worker.id}
+                    type="button"
+                    onClick={() => handleSelectEmail(worker.email)}
+                    className="p-2.5 rounded-xl border text-left transition-all cursor-pointer group"
+                    style={{
+                      backgroundColor: isSelected ? `${activePalette.colors.primary}1A` : activePalette.colors.bgSubtle,
+                      borderColor: isSelected ? activePalette.colors.primary : activePalette.colors.border
+                    }}
+                  >
+                    <div className="flex items-center gap-2">
+                      <div
+                        className="w-2.5 h-2.5 rounded-full shrink-0"
+                        style={{ backgroundColor: worker.avatarColor }}
+                      />
+                      <span
+                        className="text-xs font-bold line-clamp-1 transition-colors"
+                        style={{ color: isSelected ? activePalette.colors.primary : activePalette.colors.textMain }}
+                      >
+                        {worker.name}
+                      </span>
+                    </div>
+                    <p className="text-[10px] viva-muted line-clamp-1 pl-4.5 mt-0.5">
+                      {worker.jobTitle.split('(')[0]}
+                    </p>
+                  </button>
+                );
+              })}
             </div>
 
             <button
               type="button"
               onClick={() => handleSelectEmail('commercial@viva-eventsolutions.cd')}
-              className={`w-full p-2 rounded-xl border text-left transition-all cursor-pointer flex items-center justify-between ${
-                email === 'commercial@viva-eventsolutions.cd'
-                  ? 'bg-purple-500/20 border-purple-500/40 text-white'
-                  : 'bg-slate-950 border-slate-800/80 hover:border-purple-500/40 text-slate-300'
-              }`}
+              className="w-full p-2 rounded-xl border text-left transition-all cursor-pointer flex items-center justify-between"
+              style={{
+                backgroundColor:
+                  email === 'commercial@viva-eventsolutions.cd'
+                    ? `${activePalette.colors.accent}1A`
+                    : activePalette.colors.bgSubtle,
+                borderColor:
+                  email === 'commercial@viva-eventsolutions.cd'
+                    ? activePalette.colors.accent
+                    : activePalette.colors.border
+              }}
             >
               <div className="flex items-center gap-2">
-                <div className="w-2.5 h-2.5 rounded-full bg-purple-400" />
-                <span className="text-xs font-bold text-white">Sarah KALONJI • Commercial / Secrétaire</span>
+                <div className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: activePalette.colors.accent }} />
+                <span className="text-xs font-bold viva-heading">Sarah KALONJI • Commercial / Secrétaire</span>
               </div>
-              <span className="text-[10px] text-purple-400 font-bold">Sélectionner</span>
+              <span className="text-[10px] font-bold" style={{ color: activePalette.colors.accent }}>
+                Sélectionner
+              </span>
             </button>
           </div>
 
@@ -285,7 +368,8 @@ export const EnterpriseLoginScreen: React.FC<EnterpriseLoginScreenProps> = ({
               <button
                 type="button"
                 onClick={onContinueAsVisitor}
-                className="text-xs text-slate-400 hover:text-white cursor-pointer underline underline-offset-4"
+                className="text-xs viva-muted hover:opacity-80 cursor-pointer underline underline-offset-4"
+                style={{ color: isLight ? activePalette.colors.textMuted : activePalette.colors.textMuted }}
               >
                 Consulter la Vitrine Événementielle Publique (Mode Visiteur)
               </button>

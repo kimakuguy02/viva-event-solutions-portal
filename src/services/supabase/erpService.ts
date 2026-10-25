@@ -10,6 +10,7 @@ import type {
   ProjectTask,
   DailyCashClosure,
   CrmClient,
+  CrmInteraction,
   TaskStatus,
 } from '../../types/erp';
 
@@ -52,6 +53,12 @@ export async function fetchTransactions(): Promise<AccountingTransaction[]> {
   return ((data ?? []) as Record<string, unknown>[]).map(pgToTx);
 }
 
+export interface StoredTxStatus {
+  pieceReference: string;
+  requiresDoubleSignature: boolean;
+  validationStatus: AccountingTransaction['validationStatus'];
+}
+
 export async function createTransaction(input: {
   type: 'recette' | 'depense';
   category: AccountingTransaction['category'];
@@ -64,10 +71,11 @@ export async function createTransaction(input: {
   requiresDoubleSignature: boolean;
   pieceReference: string;
   attachmentPath?: string;
-}): Promise<{ pieceReference: string }> {
+}): Promise<StoredTxStatus | null> {
   const sb = requireSupabase();
   const uid = await sessionUid();
-  // Statut initial : le trigger 011 + RLS décident (jamais 'valide' direct sans droit).
+  // Statut initial et seuil : le trigger 026 décide en base à partir des montants ;
+  // la valeur envoyée ici n'est qu'une intention sans effet d'autorité.
   const { error } = await sb.from('erp_transactions').insert({
     piece_reference: input.pieceReference,
     direction: input.type,
@@ -80,11 +88,26 @@ export async function createTransaction(input: {
     counterparty: input.beneficiaryOrPayer,
     performed_by: uid,
     requires_double_signature: input.requiresDoubleSignature,
-    validation_status: input.requiresDoubleSignature ? 'en_attente_manager' : 'valide',
     attachment_path: input.attachmentPath ?? null,
   });
   if (error) throw new Error(`Écriture transaction refusée : ${error.message}`);
-  return { pieceReference: input.pieceReference };
+
+  // Relecture : l'écran n'affiche que ce que la base a réellement retenu. null =
+  // écriture acceptée mais non relisible par ce rôle (RLS select) ; l'appelant
+  // doit recharger la liste au lieu d'inventer un statut.
+  const { data, error: readError } = await sb
+    .from('erp_transactions')
+    .select('*')
+    .eq('piece_reference', input.pieceReference)
+    .maybeSingle();
+  if (readError) throw new Error(`Écriture enregistrée mais relue avec erreur : ${readError.message}`);
+  if (!data) return null;
+  const stored = pgToTx(data as Record<string, unknown>);
+  return {
+    pieceReference: stored.pieceReference,
+    requiresDoubleSignature: stored.requiresDoubleSignature,
+    validationStatus: stored.validationStatus,
+  };
 }
 
 export async function setTxValidation(
@@ -96,7 +119,7 @@ export async function setTxValidation(
   return rpcApproveManager(pieceReference);
 }
 
-/** Erreur RPC absente distant (migration 018 non appliquée) : repli legacy explicite. */
+/** Détecte une RPC absente afin de remonter une erreur explicite sans repli local. */
 export function isRpcMissing(e: unknown): boolean {
   const msg = e instanceof Error ? e.message : String(e ?? '');
   return msg.includes('PGRST202') || msg.includes('Could not find the function');
@@ -123,8 +146,46 @@ export async function rpcReverseTx(pieceReference: string, reason: string): Prom
 
 export async function rpcValidateClosure(closureId: string): Promise<void> {
   const sb = requireSupabase();
+  if (!isPgId(closureId)) throw new Error('Clôture locale : seule une clôture enregistrée en base peut être visée.');
   const { error } = await sb.rpc('closure_validate', { p_id: closureId });
   if (error) throw new Error(`Validation clôture refusée : ${error.message}`);
+}
+
+export interface OpeningBalance {
+  account: string;
+  currency: 'USD' | 'CDF';
+  amount: number;
+}
+
+export async function fetchOpeningBalances(): Promise<OpeningBalance[]> {
+  const sb = requireSupabase();
+  const { data, error } = await sb.from('opening_balances').select('account,currency,amount');
+  if (error) throw new Error(`Lecture soldes d'ouverture impossible : ${error.message}`);
+  return ((data ?? []) as Record<string, unknown>[]).map(row => ({
+    account: String(row.account),
+    currency: (row.currency as OpeningBalance['currency']) ?? 'USD',
+    amount: Number(row.amount ?? 0),
+  }));
+}
+
+/** Solde d'ouverture d'un compte : seule la RPC 027 écrit (RLS = lecture seule). */
+export async function rpcSetOpeningBalance(
+  account: string,
+  currency: 'USD' | 'CDF',
+  amount: number,
+): Promise<void> {
+  const sb = requireSupabase();
+  const { error } = await sb.rpc('opening_balance_set', {
+    p_account: account,
+    p_currency: currency,
+    p_amount: amount,
+  });
+  if (error) {
+    if (isRpcMissing(error)) {
+      throw new Error("Solde d'ouverture indisponible : la RPC opening_balance_set (migration 027) doit être déployée.");
+    }
+    throw new Error(`Solde d'ouverture refusé : ${error.message}`);
+  }
 }
 
 /* ---------- TASKS ---------- */
@@ -190,36 +251,49 @@ export async function setTaskStatus(pgUuid: string, status: TaskStatus, complete
 /* ---------- CLOSURES ---------- */
 
 export async function createClosure(input: {
-  date: string;
   currency: 'USD' | 'CDF';
-  theoretical: number;
   counted: number;
-  discrepancy: number;
   justification?: string;
-  pvReference: string;
-  status: string;
-}): Promise<void> {
+}): Promise<DailyCashClosure> {
   const sb = requireSupabase();
-  const uid = await sessionUid();
-  const { error } = await sb.from('cash_closures').insert({
-    closure_date: input.date,
-    currency: input.currency,
-    theoretical_balance: input.theoretical,
-    counted_balance: input.counted,
-    discrepancy: input.discrepancy,
-    justification: input.justification ?? null,
-    closed_by: uid,
-    pv_reference: input.pvReference,
-    status: input.status,
+  await sessionUid();
+  const { data, error } = await sb.rpc('closure_create', {
+    p_currency: input.currency,
+    p_counted: input.counted,
+    p_justification: input.justification?.trim() || null,
   });
-  if (error) throw new Error(`Écriture clôture refusée : ${error.message}`);
+  if (error) {
+    if (isRpcMissing(error)) {
+      throw new Error('Clôture indisponible : la RPC closure_create (migration 023) doit être déployée.');
+    }
+    throw new Error(`Écriture clôture refusée : ${error.message}`);
+  }
+  if (!data || typeof data !== 'object') {
+    throw new Error('La base n’a pas retourné la clôture créée.');
+  }
+  const row = data as Record<string, unknown>;
+  return {
+    id: String(row.id),
+    date: String(row.closure_date ?? ''),
+    currency: (row.currency as DailyCashClosure['currency']) ?? input.currency,
+    theoreticalBalance: Number(row.theoretical_balance ?? 0),
+    physicalCountedBalance: Number(row.counted_balance ?? 0),
+    discrepancy: Number(row.discrepancy ?? 0),
+    justification: String(row.justification ?? ''),
+    closedBy: String(row.closed_by ?? ''),
+    pvReference: String(row.pv_reference ?? ''),
+    status: (row.status as DailyCashClosure['status']) ?? 'anomalie',
+    closedAt: String(row.created_at ?? ''),
+    validatedBy: row.validated_by ? String(row.validated_by) : undefined,
+    validatedAt: row.validated_at ? String(row.validated_at) : undefined,
+  };
 }
 
 export async function fetchClosures(): Promise<DailyCashClosure[]> {
   const sb = requireSupabase();
   const { data, error } = await sb.from('cash_closures').select('*').order('closure_date', { ascending: false }).limit(100);
   if (error) throw new Error(`Lecture clôtures impossible : ${error.message}`);
-  return ((data ?? []) as Record<string, unknown>[]).map((c) => ({
+  return ((data ?? []) as Record<string, unknown>[]).map(c => ({
     id: String(c.id),
     date: String(c.closure_date ?? ''),
     currency: (c.currency as DailyCashClosure['currency']) ?? 'USD',
@@ -227,10 +301,12 @@ export async function fetchClosures(): Promise<DailyCashClosure[]> {
     physicalCountedBalance: Number(c.counted_balance ?? 0),
     discrepancy: Number(c.discrepancy ?? 0),
     justification: String(c.justification ?? ''),
-    closedBy: '',
+    closedBy: String(c.closed_by ?? ''),
     pvReference: String(c.pv_reference ?? ''),
-    status: (c.status as DailyCashClosure['status']) ?? 'conforme',
+    status: (c.status as DailyCashClosure['status']) ?? 'anomalie',
     closedAt: String(c.created_at ?? ''),
+    validatedBy: c.validated_by ? String(c.validated_by) : undefined,
+    validatedAt: c.validated_at ? String(c.validated_at) : undefined,
   }));
 }
 
@@ -292,4 +368,115 @@ export async function saveCrmClient(c: {
     const { error } = await sb.from('clients').insert(payload);
     if (error) throw new Error(`Écriture client refusée : ${error.message}`);
   }
+}
+
+/* ---------- CRM INTERACTIONS ---------- */
+
+// La table PG n'accepte pas les libellés UI 'visite_terrain' / 'devis_transmis'.
+// Mapping bijectif sur les seules valeurs que l'UI peut produire.
+const TO_DB_TYPE: Record<CrmInteraction['type'], string> = {
+  appel: 'appel',
+  reunion: 'reunion',
+  email: 'email',
+  visite_terrain: 'visite',
+  devis_transmis: 'note',
+  autre: 'autre',
+};
+
+const FROM_DB_TYPE: Record<string, CrmInteraction['type']> = {
+  appel: 'appel',
+  reunion: 'reunion',
+  email: 'email',
+  visite: 'visite_terrain',
+  visite_terrain: 'visite_terrain',
+  note: 'devis_transmis',
+  devis_transmis: 'devis_transmis',
+  autre: 'autre',
+};
+
+function interactionDate(value: unknown): string {
+  const raw = String(value ?? '');
+  if (!raw) return '';
+  const parsed = new Date(raw);
+  return Number.isNaN(parsed.getTime())
+    ? raw
+    : parsed.toLocaleString('fr-FR', { dateStyle: 'short', timeStyle: 'short' });
+}
+
+function pgToCrmInteraction(
+  row: Record<string, unknown>,
+  client?: { code: string; name: string }
+): CrmInteraction {
+  return {
+    id: String(row.id ?? ''),
+    clientId: client?.code ?? '',
+    clientName: client?.name ?? '',
+    date: interactionDate(row.created_at),
+    type: FROM_DB_TYPE[String(row.type ?? '')] ?? 'autre',
+    authorName: String(row.author_label ?? ''),
+    authorProfileId: (row.author_profile_id as string) ?? undefined,
+    summary: String(row.summary ?? ''),
+    nextAction: (row.next_action as string) || undefined,
+    nextFollowUpDate: (row.due_at as string) || undefined,
+  };
+}
+
+export async function fetchCrmInteractions(): Promise<CrmInteraction[]> {
+  const sb = requireSupabase();
+  const [interactions, clients] = await Promise.all([
+    sb.from('crm_interactions').select('*').order('created_at', { ascending: false }).limit(300),
+    sb.from('clients').select('id, code, name').limit(500),
+  ]);
+  if (interactions.error) throw new Error(`Lecture interactions impossible : ${interactions.error.message}`);
+  if (clients.error) throw new Error(`Lecture clients CRM impossible : ${clients.error.message}`);
+
+  const byId = new Map<string, { code: string; name: string }>();
+  for (const c of (clients.data ?? []) as Record<string, unknown>[]) {
+    byId.set(String(c.id), { code: String(c.code ?? ''), name: String(c.name ?? '') });
+  }
+
+  return ((interactions.data ?? []) as Record<string, unknown>[]).map((row) =>
+    pgToCrmInteraction(row, byId.get(String(row.client_id)))
+  );
+}
+
+export async function createCrmInteraction(input: {
+  clientCode: string;
+  type: CrmInteraction['type'];
+  summary: string;
+  nextAction?: string;
+  nextFollowUpDate?: string;
+}): Promise<CrmInteraction> {
+  const sb = requireSupabase();
+  await sessionUid();
+
+  const summary = input.summary.trim();
+  if (!summary) throw new Error('Le compte-rendu de l’échange est obligatoire.');
+
+  const { data: clients, error: clientError } = await sb
+    .from('clients')
+    .select('id, code, name')
+    .eq('code', input.clientCode)
+    .limit(1);
+  if (clientError) throw new Error(`Recherche du client impossible : ${clientError.message}`);
+  const client = (clients ?? [])[0] as { id?: string; code?: string; name?: string } | undefined;
+  if (!client?.id) throw new Error(`Client « ${input.clientCode} » introuvable ou non autorisé.`);
+
+  const { data, error } = await sb
+    .from('crm_interactions')
+    .insert({
+      client_id: client.id,
+      type: TO_DB_TYPE[input.type] ?? 'autre',
+      summary,
+      next_action: input.nextAction?.trim() || null,
+      due_at: input.nextFollowUpDate || null,
+    })
+    .select('*')
+    .single();
+  if (error) throw new Error(`Enregistrement de l’échange refusé : ${error.message}`);
+
+  return pgToCrmInteraction(
+    data as Record<string, unknown>,
+    { code: String(client.code ?? ''), name: String(client.name ?? '') }
+  );
 }

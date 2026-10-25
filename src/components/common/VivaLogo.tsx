@@ -54,7 +54,7 @@ export const VivaLogo: React.FC<VivaLogoProps> = ({
   }
 
   // Official Logo Colors from Theme
-  const blueColor = themeOverride?.primary || activePalette.colors.primary || '#4A6CF7';
+  const blueColor = themeOverride?.primary || activePalette.colors.primary || '#8B5CF6';
   const accentColor = themeOverride?.accent || activePalette.colors.accent || '#8B5CF6';
   const yellowColor = themeOverride?.accent || '#F3B228';
   const isLight = activePalette.mode === 'light';

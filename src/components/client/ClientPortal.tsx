@@ -405,7 +405,7 @@ export const ClientPortal: React.FC<ClientPortalProps> = ({ onOpenQuoteModal }) 
                 Besoin de matériel ou de services pour votre prochain événement ?
               </h3>
               <p className="text-xs sm:text-sm text-slate-300 leading-relaxed">
-                Passez votre commande directement depuis votre compte : réservez notre parc matériel lourd (3 200 kVA d'énergie autonome, Line Array, 200 m² écrans LED) et nos équipes techniques spécialisées.
+                Passez votre commande directement depuis votre compte : réservez notre parc matériel lourd (énergie autonome, Line Array, écrans LED) et nos équipes techniques spécialisées.
               </p>
             </div>
 
@@ -1025,7 +1025,7 @@ export const ClientPortal: React.FC<ClientPortalProps> = ({ onOpenQuoteModal }) 
                     { key: 'scenic', label: 'Scénographie 3D & Lumière' },
                     { key: 'led', label: 'Murs LED 4K Géants' },
                     { key: 'audio', label: 'Sonorisation Line Array' },
-                    { key: 'power', label: 'Énergie Autonome (3200 kVA)' },
+                    { key: 'power', label: 'Énergie Autonome' },
                     { key: 'streaming', label: 'Live Streaming & Régie' },
                     { key: 'translation', label: 'Traduction Simultanée' },
                     { key: 'security', label: 'Sécurité & Escorte VIP' },

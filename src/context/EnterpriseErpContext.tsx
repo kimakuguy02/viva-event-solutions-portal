@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import {
   EmployeeProfile,
   CrmClient,
@@ -21,15 +21,19 @@ import {
 } from '../data/enterpriseErpData';
 import { saveToOfflineStore, loadFromOfflineStore, ensureErpCacheVersion } from '../services/offlineDb';
 import { platformSession } from '../services/platformSession';
-import { isSupabaseConfigured } from '../services/supabase';
+import { isSupabaseConfigured, supabase } from '../services/supabase';
+import type { DataSourceHealth } from './ProjectDataContext';
 import { logAudit } from '../services/supabase/auditService';
 import {
   isPgId,
+  type StoredTxStatus,
   fetchTransactions as fetchPgTransactions,
   createTransaction as createPgTransaction,
   rpcApproveManager,
   rpcValidateDaf,
   rpcReverseTx,
+  rpcValidateClosure,
+  rpcSetOpeningBalance,
   isRpcMissing,
   fetchTasks as fetchPgTasks,
   createTask as createPgTask,
@@ -38,27 +42,37 @@ import {
   fetchClosures as fetchPgClosures,
   fetchCrmClients as fetchPgCrmClients,
   saveCrmClient as savePgCrmClient,
+  fetchCrmInteractions as fetchPgCrmInteractions,
+  createCrmInteraction as createPgCrmInteraction,
 } from '../services/supabase/erpService';
 import { 
   setFirestoreDocument, 
   updateFirestoreDocument, 
-  subscribeFirestoreCollection, 
-  logAuditEvent,
-  auth
+  logAuditEvent
 } from '../services/firebase';
-import { onAuthStateChanged } from 'firebase/auth';
+
+export type ErpSourceKey = 'transactions' | 'tasks' | 'crmClients' | 'crmInteractions' | 'cashClosures';
+
+export const ERP_SOURCE_LABELS: Record<ErpSourceKey, string> = {
+  transactions: 'Transactions ERP',
+  tasks: 'Tâches ERP',
+  crmClients: 'Clients CRM',
+  crmInteractions: 'Interactions CRM',
+  cashClosures: 'Clôtures de caisse',
+};
+
+const ERP_SOURCE_KEYS: ErpSourceKey[] = ['transactions', 'tasks', 'crmClients', 'crmInteractions', 'cashClosures'];
 
 interface EnterpriseErpContextType {
   // Organigramme & Personnel
   employees: EmployeeProfile[];
   updateEmployeePosition: (empId: string, updatedPos: Partial<EmployeeProfile['jobPosition']>) => void;
-
   // CRM (Clients & Prospects)
   crmClients: CrmClient[];
   crmInteractions: CrmInteraction[];
   addCrmClient: (client: Omit<CrmClient, 'id' | 'code' | 'totalRevenueUSD' | 'contractsCount' | 'lastInteractionDate'>) => void;
   updateCrmClientStatus: (clientId: string, status: CrmClient['status']) => void;
-  addCrmInteraction: (interaction: Omit<CrmInteraction, 'id'>) => void;
+  addCrmInteraction: (interaction: Omit<CrmInteraction, 'id'>) => Promise<void>;
 
   // Comptabilité & Trésorerie (SYSCOHADA / IFRS RDC)
   transactions: AccountingTransaction[];
@@ -74,7 +88,12 @@ interface EnterpriseErpContextType {
     beneficiaryOrPayer: string;
     performedBy: string;
     attachmentUrl?: string;
-  }) => Promise<{ id: string; requiresDoubleSignature: boolean }>;
+  }) => Promise<{
+    id: string;
+    requiresDoubleSignature: boolean;
+    /** Statut réellement stocké ; null quand ce rôle ne peut pas relire la ligne. */
+    validationStatus: AccountingTransaction['validationStatus'] | null;
+  }>;
   approveTransactionManager: (txId: string, managerName: string) => Promise<void>;
   validateTransactionDaf: (txId: string) => Promise<boolean>;
   validateTransactionDafOtp: (txId: string, otpCode: string, dafName: string) => Promise<boolean>;
@@ -85,6 +104,10 @@ interface EnterpriseErpContextType {
     justification?: string;
     closedBy: string;
   }) => Promise<DailyCashClosure>;
+  /** Visa DAF d'une clôture (RPC closure_validate) ; aucun statut posé côté écran. */
+  validateCashClosure: (closureId: string) => Promise<void>;
+  /** Solde d'ouverture d'un compte de caisse (RPC opening_balance_set, 027). */
+  setOpeningBalance: (account: string, currency: 'USD' | 'CDF', amount: number) => Promise<void>;
 
   // Gestion de Projets & Tâches
   tasks: ProjectTask[];
@@ -108,6 +131,11 @@ interface EnterpriseErpContextType {
   isOnline: boolean;
   lastSyncTimestamp: string;
   syncOfflineData: () => Promise<void>;
+
+  // Provenance des données ERP : Postgres est la source de vérité.
+  erpDataHealth: Record<ErpSourceKey, DataSourceHealth>;
+  reloadErpDataSource: (key: ErpSourceKey) => void;
+  reloadAllErpDataSources: () => void;
 }
 
 const EnterpriseErpContext = createContext<EnterpriseErpContextType | undefined>(undefined);
@@ -184,6 +212,14 @@ export const EnterpriseErpProvider: React.FC<{ children: React.ReactNode }> = ({
     return saved ? JSON.parse(saved) : [];
   });
 
+  const [erpDataHealth, setErpDataHealth] = useState<Record<ErpSourceKey, DataSourceHealth>>({
+    transactions: { status: 'loading' },
+    tasks: { status: 'loading' },
+    crmClients: { status: 'loading' },
+    crmInteractions: { status: 'loading' },
+    cashClosures: { status: 'loading' },
+  });
+
   // Load from IndexedDB on startup
   useEffect(() => {
     let cancelled = false;
@@ -215,141 +251,64 @@ export const EnterpriseErpProvider: React.FC<{ children: React.ReactNode }> = ({
     return () => { cancelled = true; };
   }, []);
 
-  // Wave 2 — overlay Supabase (SSOT) : PG gagne par clé stable
-  // (piece_reference, code, uuid) ; legacy conservé en transition.
-  useEffect(() => {
-    if (!isSupabaseConfigured()) return;
-    let cancelled = false;
-    (async () => {
-      try {
-        const [pgTx, pgTasks, pgClients, pgClosures] = await Promise.all([
-          fetchPgTransactions().catch(e => {
-            console.warn('[Supabase Wave 2] Transactions indisponibles :', e);
-            return [];
-          }),
-          fetchPgTasks().catch(e => {
-            console.warn('[Supabase Wave 2] Tâches ERP indisponibles :', e);
-            return [];
-          }),
-          fetchPgCrmClients().catch(e => {
-            console.warn('[Supabase Wave 2] Clients indisponibles :', e);
-            return [];
-          }),
-          fetchPgClosures().catch(e => {
-            console.warn('[Supabase Wave 2] Clôtures indisponibles :', e);
-            return [];
-          }),
-        ]);
-        if (cancelled) return;
-        if (pgTx.length > 0) {
-          setTransactions(prev => {
-            const overlay = new Map<string, AccountingTransaction>();
-            for (const t of pgTx) overlay.set(t.pieceReference, t);
-            const merged = prev.map(t => overlay.get(t.pieceReference) ?? t);
-            for (const t of pgTx) {
-              if (!merged.some(x => x.pieceReference === t.pieceReference)) merged.push(t);
-            }
-            return merged;
-          });
-        }
-        if (pgTasks.length > 0) {
-          setTasks(prev => {
-            const overlay = new Map<string, ProjectTask>();
-            for (const t of pgTasks) overlay.set(t.id, t);
-            const merged = prev.map(t => overlay.get(t.id) ?? t);
-            for (const t of pgTasks) {
-              if (!merged.some(x => x.id === t.id)) merged.push(t);
-            }
-            return merged;
-          });
-        }
-        if (pgClients.length > 0) {
-          setCrmClients(prev => {
-            const overlay = new Map<string, CrmClient>();
-            for (const c of pgClients) overlay.set(c.code, c);
-            const merged = prev.map(c => overlay.get(c.code) ?? c);
-            for (const c of pgClients) {
-              if (!merged.some(x => x.code === c.code)) merged.push(c);
-            }
-            return merged;
-          });
-        }
-        if (pgClosures.length > 0) {
-          setCashClosures(prev => {
-            const ids = new Set(prev.map(c => c.id));
-            return [...prev, ...pgClosures.filter(c => !ids.has(c.id))];
-          });
-        }
-      } catch (e) {
-        console.warn('[Supabase Wave 2] Overlay ERP indisponible :', e);
+  // Wave 2 — Postgres est la source de vérité ERP. Un succès (même vide)
+  // remplace l'état local ; un échec est exposé via erpDataHealth.
+  const loadErpDataSource = useCallback(async (key: ErpSourceKey) => {
+    setErpDataHealth(h => ({ ...h, [key]: { status: 'loading' } }));
+    try {
+      switch (key) {
+        case 'transactions': setTransactions(await fetchPgTransactions()); break;
+        case 'tasks': setTasks(await fetchPgTasks()); break;
+        case 'crmClients': setCrmClients(await fetchPgCrmClients()); break;
+        case 'crmInteractions': setCrmInteractions(await fetchPgCrmInteractions()); break;
+        case 'cashClosures': setCashClosures(await fetchPgClosures()); break;
       }
-    })();
-    return () => {
-      cancelled = true;
-    };
+      setErpDataHealth(h => ({ ...h, [key]: { status: 'ok' } }));
+    } catch (e) {
+      const message = e instanceof Error ? e.message : String(e);
+      console.error(`[Postgres] Lecture « ${ERP_SOURCE_LABELS[key]} » impossible : ${message}`);
+      setErpDataHealth(h => ({ ...h, [key]: { status: 'error', message } }));
+    }
   }, []);
 
-  // Real-time synchronization with Firestore for ERP transactions & tasks
+  const reloadErpDataSource = useCallback((key: ErpSourceKey) => {
+    void loadErpDataSource(key);
+  }, [loadErpDataSource]);
+
+  const reloadAllErpDataSources = useCallback(() => {
+    for (const key of ERP_SOURCE_KEYS) void loadErpDataSource(key);
+  }, [loadErpDataSource]);
+
+  // Données ERP : RLS exige une session staff ; rechargées à chaque changement.
   useEffect(() => {
-    let unsubTxs: (() => void) | undefined;
-    let unsubTasks: (() => void) | undefined;
-    let unsubCrm: (() => void) | undefined;
-
-    const unsubscribeAuth = onAuthStateChanged(auth, (user) => {
-      if (unsubTxs) { unsubTxs(); unsubTxs = undefined; }
-      if (unsubTasks) { unsubTasks(); unsubTasks = undefined; }
-      if (unsubCrm) { unsubCrm(); unsubCrm = undefined; }
-
-      // Only subscribe to protected collections when user has an active session and staff/admin role
-      const isStaffOrAdmin = user && (
-        user.email?.endsWith('@viva-eventsolutions.cd') ||
-        user.email === 'misterk1502@gmail.com'
-      );
-
-      if (isStaffOrAdmin) {
-        try {
-          unsubTxs = subscribeFirestoreCollection<AccountingTransaction>('erp_transactions', (items) => {
-            if (items && items.length > 0) {
-              setTransactions(prev => {
-                const incomingIds = new Set(items.map(t => t.id));
-                const nonOverlapping = prev.filter(p => !incomingIds.has(p.id));
-                return [...items, ...nonOverlapping];
-              });
-            }
-          });
-
-          unsubTasks = subscribeFirestoreCollection<ProjectTask>('erp_tasks', (items) => {
-            if (items && items.length > 0) {
-              setTasks(prev => {
-                const incomingIds = new Set(items.map(t => t.id));
-                const nonOverlapping = prev.filter(p => !incomingIds.has(p.id));
-                return [...items, ...nonOverlapping];
-              });
-            }
-          });
-
-          unsubCrm = subscribeFirestoreCollection<CrmClient>('crm_clients', (items) => {
-            if (items && items.length > 0) {
-              setCrmClients(prev => {
-                const incomingIds = new Set(items.map(c => c.id));
-                const nonOverlapping = prev.filter(p => !incomingIds.has(p.id));
-                return [...items, ...nonOverlapping];
-              });
-            }
-          });
-        } catch (err) {
-          console.warn('[Firebase ERP] Realtime subscriber notice:', err);
-        }
+    if (!isSupabaseConfigured() || !supabase) {
+      setErpDataHealth({
+        transactions: { status: 'error', message: 'Supabase non configuré.' },
+        tasks: { status: 'error', message: 'Supabase non configuré.' },
+        crmClients: { status: 'error', message: 'Supabase non configuré.' },
+        crmInteractions: { status: 'error', message: 'Supabase non configuré.' },
+        cashClosures: { status: 'error', message: 'Supabase non configuré.' },
+      });
+      return;
+    }
+    let active = true;
+    const run = (hasSession: boolean) => {
+      if (!active) return;
+      for (const key of ERP_SOURCE_KEYS) {
+        if (hasSession) void loadErpDataSource(key);
+        else setErpDataHealth(h => ({ ...h, [key]: { status: 'idle', message: 'Session staff requise.' } }));
       }
-    });
-
-    return () => {
-      if (unsubTxs) unsubTxs();
-      if (unsubTasks) unsubTasks();
-      if (unsubCrm) unsubCrm();
-      unsubscribeAuth();
     };
-  }, []);
+    supabase.auth.getSession().then(({ data }) => run(Boolean(data.session)));
+    const { data: sub } = supabase.auth.onAuthStateChange((_event, session) => run(Boolean(session)));
+    return () => {
+      active = false;
+      sub.subscription.unsubscribe();
+    };
+  }, [loadErpDataSource]);
+
+  // Les collections ERP (transactions, tâches, clients) sont portées par
+  // Postgres : plus d'écoute Firestore qui réinjecterait des données legacy.
 
   // Sync to IndexedDB & localStorage on change
   useEffect(() => {
@@ -472,25 +431,44 @@ export const EnterpriseErpProvider: React.FC<{ children: React.ReactNode }> = ({
       .catch(e => console.warn('[Firebase ERP] CRM client status update notice:', e));
   };
 
-  const addCrmInteraction = (interaction: Omit<CrmInteraction, 'id'>) => {
-    const newInter: CrmInteraction = {
-      ...interaction,
-      id: `inter-${Date.now()}`
-    };
-    setCrmInteractions(prev => [newInter, ...prev]);
+  const addCrmInteraction = async (interaction: Omit<CrmInteraction, 'id'>) => {
+    if (!isSupabaseConfigured()) {
+      throw new Error('Enregistrement de l’échange indisponible : Supabase doit être configuré. Aucune écriture locale seule ne sera créée.');
+    }
 
-    // Update client's last interaction date
+    // Les clients issus de PG portent id = code ; ceux créés dans la session
+    // portent un id local. La résolution serveur se fait toujours par code.
+    const targetClient = crmClients.find(c => c.id === interaction.clientId);
+    const clientCode = targetClient?.code || interaction.clientId;
+
+    const created = await createPgCrmInteraction({
+      clientCode,
+      type: interaction.type,
+      summary: interaction.summary,
+      nextAction: interaction.nextAction,
+      nextFollowUpDate: interaction.nextFollowUpDate,
+    });
+
+    // Le trigger serveur est l'autorité sur l'auteur ; on complète seulement
+    // l'affichage local avec l'identité de session.
+    const enriched: CrmInteraction = {
+      ...created,
+      clientName: created.clientName || interaction.clientName,
+      authorName: created.authorName || interaction.authorName,
+    };
+
+    setCrmInteractions(prev => [enriched, ...prev.filter(i => i.id !== enriched.id)]);
+
     setCrmClients(prev => prev.map(c => {
-      if (c.id === interaction.clientId) {
-        return { ...c, lastInteractionDate: interaction.date.split(' ')[0] };
-      }
-      return c;
+      if (c.id !== interaction.clientId) return c;
+      const day = enriched.date ? enriched.date.split(' ')[0] : c.lastInteractionDate;
+      return { ...c, lastInteractionDate: day };
     }));
   };
 
   // COMPTABILITÉ & TRÉSORERIE (RÈGLE DOUBLE SIGNATURE STRICTE)
-  // Wave 2 : persistance Supabase d'abord (trigger 011 verrouille le statut
-  // initial) ; la validation OTP reste un flux client à RPC-ifier (Phase 5).
+  // Les écritures financières sont persistées uniquement dans Supabase ; les
+  // visas de validation sont exécutés par les RPC serveur.
   const addTransaction = async (tx: {
     type: 'recette' | 'depense';
     category: AccountingTransaction['category'];
@@ -502,8 +480,13 @@ export const EnterpriseErpProvider: React.FC<{ children: React.ReactNode }> = ({
     performedBy: string;
     attachmentUrl?: string;
   }) => {
+    if (!isSupabaseConfigured()) {
+      throw new Error('Écriture financière indisponible : Supabase doit être configuré. Aucune écriture locale ou legacy ne sera créée.');
+    }
+
     const amountCDF = tx.amountUSD * USD_TO_CDF_RATE;
-    // RÈGLE ANTI-FRAUDE : Décaissement > 100 USD (ou > 285 000 CDF) = Double Signature (Manager + OTP DAF)
+    // Règle anti-fraude : cette valeur n'est qu'une intention. Le trigger serveur
+    // (migration 026) re-dérive le seuil et le statut depuis les montants stockés.
     const requiresDouble = tx.type === 'depense' && (tx.amountUSD > DOUBLE_SIGNATURE_THRESHOLD_USD || amountCDF > DOUBLE_SIGNATURE_THRESHOLD_CDF);
     const newId = `tx-${Date.now()}`;
 
@@ -521,71 +504,75 @@ export const EnterpriseErpProvider: React.FC<{ children: React.ReactNode }> = ({
       beneficiaryOrPayer: tx.beneficiaryOrPayer,
       performedBy: tx.performedBy,
       requiresDoubleSignature: requiresDouble,
-      validationStatus: requiresDouble ? 'en_attente_manager' : 'valide',
+      validationStatus: 'en_attente_manager',
       attachmentUrl: tx.attachmentUrl
     };
 
-    setTransactions(prev => [newTx, ...prev]);
-
-    // Wave 2 — SSOT Supabase d'abord (trigger 011 verrouille le statut initial).
-    if (isSupabaseConfigured()) {
-      try {
-        await createPgTransaction({
-          type: newTx.type,
-          category: newTx.category,
-          accountCode: newTx.accountCode,
-          description: newTx.description,
-          amountUSD: newTx.amountUSD,
-          amountCDF: newTx.amountCDF,
-          paymentAccount: newTx.paymentAccount,
-          beneficiaryOrPayer: newTx.beneficiaryOrPayer,
-          requiresDoubleSignature: requiresDouble,
-          pieceReference: newTx.pieceReference,
-        });
-        await logAudit('ERP_TRANSACTION_CREATED', 'erp_transactions', newTx.pieceReference, {
-          amountUSD: newTx.amountUSD,
-        });
-      } catch (e) {
-        // Retrait optimiste : la persistance serveur fait foi.
-        setTransactions(prev => prev.filter(t => t.id !== newId));
-        console.error('[Supabase Wave 2] Création transaction refusée :', e);
-        throw e;
-      }
+    // Wave 2 — SSOT Supabase d'abord (le trigger 026 verrouille seuil et statut).
+    let stored: StoredTxStatus | null = null;
+    try {
+      stored = await createPgTransaction({
+        type: newTx.type,
+        category: newTx.category,
+        accountCode: newTx.accountCode,
+        description: newTx.description,
+        amountUSD: newTx.amountUSD,
+        amountCDF: newTx.amountCDF,
+        paymentAccount: newTx.paymentAccount,
+        beneficiaryOrPayer: newTx.beneficiaryOrPayer,
+        requiresDoubleSignature: requiresDouble,
+        pieceReference: newTx.pieceReference,
+      });
+      await logAudit('ERP_TRANSACTION_CREATED', 'erp_transactions', newTx.pieceReference, {
+        amountUSD: newTx.amountUSD,
+      });
+    } catch (e) {
+      console.error('[Supabase Wave 2] Création transaction refusée :', e);
+      throw e;
     }
 
-    // Persist to Firestore (LEGACY mirror). Best-effort.
-    setFirestoreDocument('erp_transactions', newId, newTx)
-      .catch(e => console.warn('[Firebase LEGACY mirror] Transaction persist notice:', e));
+    if (!stored) {
+      // Écriture acceptée mais non relisible par ce rôle (RLS select) : on relit
+      // la source Postgres au lieu d'afficher un statut inventé.
+      await loadErpDataSource('transactions');
+      return { id: newTx.pieceReference, requiresDoubleSignature: requiresDouble, validationStatus: null };
+    }
 
-    logAuditEvent({
-      action: 'ERP_TRANSACTION_CREATED',
-      resource: 'erp_transactions',
-      resourceId: newId,
-      details: `${newTx.type.toUpperCase()} : ${newTx.amountUSD} USD - ${newTx.description} (${requiresDouble ? 'Double signature requise' : 'Validation immédiate'})`
-    });
+    const confirmed: AccountingTransaction = {
+      ...newTx,
+      id: stored.pieceReference,
+      pieceReference: stored.pieceReference,
+      requiresDoubleSignature: stored.requiresDoubleSignature,
+      validationStatus: stored.validationStatus,
+    };
+    setTransactions(prev => [
+      confirmed,
+      ...prev.filter(t => t.pieceReference !== confirmed.pieceReference),
+    ]);
 
-    return { id: newTx.id, requiresDoubleSignature: requiresDouble };
+    return {
+      id: confirmed.id,
+      requiresDoubleSignature: confirmed.requiresDoubleSignature,
+      validationStatus: confirmed.validationStatus,
+    };
   };
 
   const approveTransactionManager = async (txId: string, managerName: string) => {
     const target = transactions.find(t => t.id === txId);
-    // RPC serveur d'abord (018) ; sans RPC distant, repli legacy explicite (non sécurisé).
-    if (isSupabaseConfigured() && target) {
-      try {
-        await rpcApproveManager(target.pieceReference);
-        await logAudit('ERP_TRANSACTION_MANAGER_APPROVED', 'erp_transactions', target.pieceReference, {
-          manager: managerName,
-        });
-      } catch (e) {
-        console.warn(
-          isRpcMissing(e)
-            ? '[Supabase] RPC erp_approve_manager absente (018 non appliquée), repli legacy NON SÉCURISÉ :'
-            : '[Supabase] Visa manager refusé :',
-          e,
-        );
-        if (!isRpcMissing(e)) throw e;
-      }
+    if (!target) throw new Error('Transaction introuvable.');
+    if (!isSupabaseConfigured()) {
+      throw new Error('Visa financier indisponible : Supabase doit être configuré. Aucune validation locale ne sera effectuée.');
     }
+
+    try {
+      await rpcApproveManager(target.pieceReference);
+    } catch (e) {
+      if (isRpcMissing(e)) {
+        throw new Error('Visa manager indisponible : la RPC erp_approve_manager doit être déployée. Aucune validation locale ne sera effectuée.');
+      }
+      throw e;
+    }
+
     setTransactions(prev => prev.map(t => {
       if (t.id === txId) {
         return {
@@ -596,44 +583,27 @@ export const EnterpriseErpProvider: React.FC<{ children: React.ReactNode }> = ({
       }
       return t;
     }));
-
-    updateFirestoreDocument('erp_transactions', txId, {
-      validationStatus: 'en_attente_otp_daf',
-      managerApprovedBy: managerName
-    }).catch(e => console.warn('[Firebase ERP] Manager approval persist notice:', e));
-
-    logAuditEvent({
-      action: 'ERP_TRANSACTION_MANAGER_APPROVED',
-      resource: 'erp_transactions',
-      resourceId: txId,
-      details: `Visa Manager apposé par : ${managerName}`
-    });
   };
 
-  // Validation DAF via RPC serveur (018) : séparation initiateur/manager/DAF
-  // vérifiée en base sur auth.uid(). Sans RPC distant : repli legacy explicite
-  // (non sécurisé) en attendant 018. L'OTP simulé côté client est SUPPRIMÉ :
-  // la validation est une attestation nominative (canal OTP réel = phase ultérieure).
+  // La transition DAF est autorisée uniquement par la RPC qui vérifie en base
+  // la séparation des fonctions. Aucun repli client ou Firestore n'est admis.
   const validateTransactionDaf = async (txId: string): Promise<boolean> => {
     const targetTx = transactions.find(t => t.id === txId);
-    if (!targetTx) return false;
-
-    if (isSupabaseConfigured()) {
-      try {
-        await rpcValidateDaf(targetTx.pieceReference);
-        await logAudit('ERP_TRANSACTION_DOUBLE_SIGNATURE_COMPLETE', 'erp_transactions', targetTx.pieceReference, {});
-      } catch (e) {
-        console.warn(
-          isRpcMissing(e)
-            ? '[Supabase] RPC erp_validate_daf absente (018 non appliquée), repli legacy NON SÉCURISÉ :'
-            : '[Supabase] Validation DAF refusée :',
-          e,
-        );
-        if (!isRpcMissing(e)) return false;
-      }
+    if (!targetTx) throw new Error('Transaction introuvable.');
+    if (!isSupabaseConfigured()) {
+      throw new Error('Validation financière indisponible : Supabase doit être configuré. Aucune validation locale ne sera effectuée.');
     }
 
-    const verifiedAt = new Date().toLocaleString('fr-FR');
+    try {
+      await rpcValidateDaf(targetTx.pieceReference);
+    } catch (e) {
+      if (isRpcMissing(e)) {
+        throw new Error('Validation DAF indisponible : la RPC erp_validate_daf doit être déployée. Aucune validation locale ne sera effectuée.');
+      }
+      throw e;
+    }
+
+    const verifiedAt = new Date().toISOString();
 
     setTransactions(prev => prev.map(t => {
       if (t.id === txId) {
@@ -645,19 +615,6 @@ export const EnterpriseErpProvider: React.FC<{ children: React.ReactNode }> = ({
       }
       return t;
     }));
-
-    // Persist validation to Firestore (LEGACY mirror) & Lock document
-    updateFirestoreDocument('erp_transactions', txId, {
-      validationStatus: 'valide',
-      dafOtpVerifiedAt: verifiedAt
-    }).catch(e => console.warn('[Firebase LEGACY mirror] DAF validation persist notice:', e));
-
-    logAuditEvent({
-      action: 'ERP_TRANSACTION_DOUBLE_SIGNATURE_COMPLETE',
-      resource: 'erp_transactions',
-      resourceId: txId,
-      details: `Double signature complétée. Transaction verrouillée et immuable.`
-    });
 
     return true;
   };
@@ -676,6 +633,9 @@ export const EnterpriseErpProvider: React.FC<{ children: React.ReactNode }> = ({
     }
     if (original.validationStatus !== 'valide') {
       return { success: false, error: "Seule une transaction validée peut faire l'objet d'une contrepassation." };
+    }
+    if (!isSupabaseConfigured()) {
+      return { success: false, error: 'Contrepassation indisponible : Supabase doit être configuré. Aucune écriture locale ne sera créée.' };
     }
 
     const reversalId = `tx-rev-${Date.now()}`;
@@ -696,38 +656,22 @@ export const EnterpriseErpProvider: React.FC<{ children: React.ReactNode }> = ({
       validationStatus: 'valide'
     };
 
-    setTransactions(prev => [reversalTx, ...prev]);
-
-    // RPC serveur d'abord (018) : contre-écriture liée, statut décidé serveur.
-    if (isSupabaseConfigured()) {
-      try {
-        const serverRef = await rpcReverseTx(original.pieceReference, reason);
-        await logAudit('ERP_TRANSACTION_REVERSED_COUNTERPASS', 'erp_transactions', serverRef, {
-          reason,
-          performedBy,
-        });
-      } catch (e) {
-        console.warn(
-          isRpcMissing(e)
-            ? '[Supabase] RPC erp_reverse_tx absente (018 non appliquée), repli legacy NON SÉCURISÉ :'
-            : '[Supabase] Contrepassation refusée :',
-          e,
-        );
-        if (!isRpcMissing(e)) {
-          setTransactions(prev => prev.filter(t => t.id !== reversalId));
-          return { success: false, error: e instanceof Error ? e.message : String(e) };
-        }
-      }
+    let serverRef: string;
+    try {
+      serverRef = await rpcReverseTx(original.pieceReference, reason);
+    } catch (e) {
+      const message = isRpcMissing(e)
+        ? 'Contrepassation indisponible : la RPC erp_reverse_tx doit être déployée.'
+        : e instanceof Error ? e.message : String(e);
+      return { success: false, error: message };
     }
 
-    await setFirestoreDocument('erp_transactions', reversalId, reversalTx);
-
-    logAuditEvent({
-      action: 'ERP_TRANSACTION_REVERSED_COUNTERPASS',
-      resource: 'erp_transactions',
-      resourceId: reversalId,
-      details: `Contrepassation de la transaction ${original.pieceReference} effectuée par ${performedBy}. Motif: ${reason}`
-    });
+    const persistedReversal = {
+      ...reversalTx,
+      id: serverRef,
+      pieceReference: serverRef,
+    };
+    setTransactions(prev => [persistedReversal, ...prev]);
 
     return { success: true };
   };
@@ -738,71 +682,47 @@ export const EnterpriseErpProvider: React.FC<{ children: React.ReactNode }> = ({
     justification?: string;
     closedBy: string;
   }): Promise<DailyCashClosure> => {
-    const today = new Date().toISOString().split('T')[0];
-
-    const relevantTxs = transactions.filter(t => {
-      const isToday = t.date === today;
-      const isAccount = closure.currency === 'USD' ? t.paymentAccount === 'caisse_usd' : t.paymentAccount === 'caisse_cdf';
-      return isToday && isAccount && t.validationStatus === 'valide';
-    });
-
-    const receipts = relevantTxs.filter(t => t.type === 'recette').reduce((acc, t) => acc + (closure.currency === 'USD' ? t.amountUSD : t.amountCDF), 0);
-    const expenses = relevantTxs.filter(t => t.type === 'depense').reduce((acc, t) => acc + (closure.currency === 'USD' ? t.amountUSD : t.amountCDF), 0);
-    
-    const baseBalance = closure.currency === 'USD' ? 12000 : 18000000;
-    const theoretical = baseBalance + receipts - expenses;
-    const discrepancy = closure.physicalCountedBalance - theoretical;
-
-    const newClosure: DailyCashClosure = {
-      id: `clot-${Date.now()}`,
-      date: today,
-      currency: closure.currency,
-      theoreticalBalance: theoretical,
-      physicalCountedBalance: closure.physicalCountedBalance,
-      discrepancy: discrepancy,
-      justification: closure.justification || (discrepancy === 0 ? "Caisse parfaitement conforme et soldée." : "Écart déclaré et soumis à visa comptable."),
-      closedBy: closure.closedBy,
-      pvReference: `PV-CLOT-${closure.currency}-${today.replace(/-/g, '')}-${Math.floor(100 + Math.random() * 900)}`,
-      status: discrepancy === 0 ? 'conforme' : (closure.justification ? 'ecart_justifie' : 'anomalie'),
-      closedAt: new Date().toLocaleString('fr-FR')
-    };
-
-    setCashClosures(prev => [newClosure, ...prev]);
-
-    // Wave 2 — SSOT Supabase d'abord (insert réservé erp.validate par RLS).
-    if (isSupabaseConfigured()) {
-      try {
-        await createPgClosure({
-          date: newClosure.date,
-          currency: newClosure.currency,
-          theoretical: newClosure.theoreticalBalance,
-          counted: newClosure.physicalCountedBalance,
-          discrepancy: newClosure.discrepancy,
-          justification: newClosure.justification,
-          pvReference: newClosure.pvReference,
-          status: newClosure.status,
-        });
-        await logAudit('ERP_CASH_CLOSURE_RECORDED', 'cash_closures', newClosure.id, {
-          pv: newClosure.pvReference,
-        });
-      } catch (e) {
-        setCashClosures(prev => prev.filter(c => c.id !== newClosure.id));
-        console.error('[Supabase Wave 2] Clôture refusée :', e);
-        throw e;
-      }
+    if (!isSupabaseConfigured()) {
+      throw new Error('Clôture financière indisponible : Supabase doit être configuré. Aucune clôture locale ou legacy ne sera créée.');
     }
 
-    setFirestoreDocument('erp_closures', newClosure.id, newClosure)
-      .catch(e => console.warn('[Firebase LEGACY mirror] Closure persist notice:', e));
+    // La RPC calcule les mouvements, l'écart, le statut et la référence côté
+    // serveur ; aucun montant théorique fourni par le navigateur n'est accepté.
+    try {
+      const persistedClosure = await createPgClosure({
+        currency: closure.currency,
+        counted: closure.physicalCountedBalance,
+        justification: closure.justification,
+      });
+      const newClosure = { ...persistedClosure, closedBy: closure.closedBy };
+      setCashClosures(prev => [newClosure, ...prev]);
+      return newClosure;
+    } catch (e) {
+      console.error('[Supabase Wave 2] Clôture refusée :', e);
+      throw e;
+    }
+  };
 
-    logAuditEvent({
-      action: 'ERP_CASH_CLOSURE_RECORDED',
-      resource: 'erp_closures',
-      resourceId: newClosure.id,
-      details: `Clôture caisse ${newClosure.currency} (${newClosure.pvReference}) : Écart ${discrepancy}`
-    });
+  // Visa DAF : la RPC trace l'approbation et l'audit en base ; l'écran relit
+  // Postgres ensuite, jamais il ne décore le statut de la clôture.
+  const validateCashClosure = async (closureId: string): Promise<void> => {
+    if (!isSupabaseConfigured()) {
+      throw new Error('Visa de clôture indisponible : Supabase doit être configuré. Aucun visa local n’est enregistré.');
+    }
+    await rpcValidateClosure(closureId);
+    await loadErpDataSource('cashClosures');
+  };
 
-    return newClosure;
+  // Solde d'ouverture : indispensable pour qu'une clôture puisse devenir conforme.
+  const setOpeningBalance = async (
+    account: string,
+    currency: 'USD' | 'CDF',
+    amount: number,
+  ): Promise<void> => {
+    if (!isSupabaseConfigured()) {
+      throw new Error("Solde d'ouverture indisponible : Supabase doit être configuré. Aucun solde local n’est enregistré.");
+    }
+    await rpcSetOpeningBalance(account, currency, amount);
   };
 
   // TÂCHES & RAPPORTS — Wave 2 : les nouvelles tâches prennent un UUID PG
@@ -967,6 +887,8 @@ export const EnterpriseErpProvider: React.FC<{ children: React.ReactNode }> = ({
         validateTransactionDafOtp,
         reverseTransaction,
         createDailyCashClosure,
+        validateCashClosure,
+        setOpeningBalance,
         tasks,
         fieldReports,
         addTask,
@@ -981,7 +903,10 @@ export const EnterpriseErpProvider: React.FC<{ children: React.ReactNode }> = ({
         sendMultichannelNotice,
         isOnline,
         lastSyncTimestamp,
-        syncOfflineData
+        syncOfflineData,
+        erpDataHealth,
+        reloadErpDataSource,
+        reloadAllErpDataSources
       }}
     >
       {children}

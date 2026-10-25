@@ -54,10 +54,10 @@ export const ErpDashboard: React.FC<ErpDashboardProps> = ({ setActiveTab }) => {
   const netTreasuryUSD = totalRecettesUSD - totalDepensesUSD;
   const netTreasuryCDF = netTreasuryUSD * exchangeRate;
 
-  // Pending double signatures
-  const pendingDoubleSignatures = transactions.filter(
-    t => t.requiresDoubleSignature && t.validationStatus !== 'valide'
-  );
+  // Écritures en attente de visa : clé = statut réellement stocké. Le flag
+  // requiresDoubleSignature n'est qu'un motif ; filtrer dessus sous-comptait les
+  // approbations en attente tant que le seuil n'est pas re-dérivé par le serveur.
+  const pendingApprovals = transactions.filter(t => t.validationStatus !== 'valide');
 
   // Urgent tasks
   const urgentTasks = tasks.filter(t => t.priority === 'urgente' && t.status !== 'termine');
@@ -122,8 +122,8 @@ export const ErpDashboard: React.FC<ErpDashboardProps> = ({ setActiveTab }) => {
         </div>
       </div>
 
-      {/* RÈGLE ANTI-FRAUDE : Bannière d'Alerte Double Signature si dépenses en attente */}
-      {pendingDoubleSignatures.length > 0 && (
+      {/* RÈGLE ANTI-FRAUDE : Bannière d'Alerte si écritures en attente de visa */}
+      {pendingApprovals.length > 0 && (
         <div className="p-5 rounded-2xl bg-amber-500/10 border-2 border-amber-500/40 text-amber-200 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 shadow-lg animate-pulse-slow">
           <div className="flex items-start gap-3">
             <div className="p-2 rounded-xl bg-amber-500/20 text-amber-400 mt-0.5 shrink-0">
@@ -131,13 +131,13 @@ export const ErpDashboard: React.FC<ErpDashboardProps> = ({ setActiveTab }) => {
             </div>
             <div>
               <h4 className="font-bold text-sm text-white flex items-center gap-2">
-                <span>Règle Anti-Fraude : Double Signature Requise</span>
+                <span>Règle Anti-Fraude : visas en attente</span>
                 <span className="px-2 py-0.5 rounded text-[11px] bg-amber-500 text-slate-950 font-black font-mono">
-                  {pendingDoubleSignatures.length} en attente
+                  {pendingApprovals.length} en attente
                 </span>
               </h4>
               <p className="text-xs text-amber-200/90 mt-0.5">
-                Décaissement &gt; 100 USD (ou &gt; 285 000 CDF) soumis à l'approbation Manager + attestation DAF vérifiée serveur.
+                Le seuil de double signature (100 USD / 285 000 CDF) est appliqué par le serveur ; comptage basé sur le statut réellement enregistré en base.
               </p>
             </div>
           </div>

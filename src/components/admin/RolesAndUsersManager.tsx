@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import { useTheme } from '../../context/ThemeContext';
 import { logAudit as writeAuditLog } from '../../services/supabase/auditService';
+import { isPgId } from '../../services/supabase/erpService';
 import { useAuditEvents } from '../../hooks/useAuditEvents';
 import { UserRole } from '../../types';
 import {
@@ -189,6 +190,17 @@ export const RolesAndUsersManager: React.FC = () => {
     void writeAuditLog(action, 'users', undefined, { details });
   };
 
+  const isServerProfile = (u: ManagedUser) => isPgId(u.id);
+
+  // Un profil chargé depuis `profiles` est autorité serveur : le suspendre, le
+  // rétrograder ou le supprimer ici ne modifierait que la copie locale, qui
+  // serait écrasée au prochain chargement — donc un faux succès affiché.
+  const refuseServerProfile = (u: ManagedUser | undefined): boolean => {
+    if (!u || !isServerProfile(u)) return false;
+    showToast('Compte servi par Supabase : rôle et statut se changent dans la base (profiles / roles), pas dans cet écran.');
+    return true;
+  };
+
   const handleCreateOrUpdateUser = (e: React.FormEvent) => {
     e.preventDefault();
     if (!formData.name || !formData.email) return;
@@ -209,8 +221,8 @@ export const RolesAndUsersManager: React.FC = () => {
         return u;
       });
       handleSaveUsers(updated);
-      logAudit('USER_UPDATED', `${formData.name} (${formData.role})`);
-      showToast(`Utilisateur "${formData.name}" mis à jour avec succès.`);
+      logAudit('USER_DIRECTORY_LOCAL_UPDATED', `${formData.name} (${formData.role})`);
+      showToast(`Fiche locale « ${formData.name} » mise à jour — le compte de connexion n'est pas modifié.`);
       setEditingUserId(null);
     } else {
       const newUser: ManagedUser = {
@@ -226,8 +238,10 @@ export const RolesAndUsersManager: React.FC = () => {
       };
       const updated = [...users, newUser];
       handleSaveUsers(updated);
-      logAudit('USER_CREATED', `${newUser.name} (${newUser.role})`);
-      showToast(`Utilisateur "${newUser.name}" créé avec succès.`);
+      // Aucun compte de connexion n'est créé ici : le provisioning Supabase
+      // (auth.users + profiles + roles) exige une voie admin — lot 2, Edge Function.
+      logAudit('USER_DIRECTORY_LOCAL_ADDED', `${newUser.name} (${newUser.role})`);
+      showToast(`Fiche locale ajoutée pour « ${newUser.name} » — aucun compte de connexion créé.`);
     }
 
     setFormData({
@@ -242,6 +256,7 @@ export const RolesAndUsersManager: React.FC = () => {
   };
 
   const handleStartEdit = (user: ManagedUser) => {
+    if (refuseServerProfile(user)) return;
     setEditingUserId(user.id);
     setFormData({
       name: user.name,
@@ -257,6 +272,7 @@ export const RolesAndUsersManager: React.FC = () => {
   const handleToggleStatus = (userId: string) => {
     const target = users.find(u => u.id === userId);
     if (!target) return;
+    if (refuseServerProfile(target)) return;
     if (target.id === currentUser.id) {
       showToast("Impossible de suspendre votre propre session d'administrateur actif.");
       return;
@@ -265,8 +281,8 @@ export const RolesAndUsersManager: React.FC = () => {
     const nextStatus: 'active' | 'suspended' = target.status === 'active' ? 'suspended' : 'active';
     const updated = users.map(u => (u.id === userId ? { ...u, status: nextStatus } : u));
     handleSaveUsers(updated);
-    logAudit('USER_STATUS_TOGGLED', `${target.name} -> ${nextStatus}`);
-    showToast(`Statut de "${target.name}" basculé à "${nextStatus.toUpperCase()}".`);
+    logAudit('USER_DIRECTORY_LOCAL_STATUS', `${target.name} -> ${nextStatus}`);
+    showToast(`Fiche locale « ${target.name} » basculée à « ${nextStatus.toUpperCase()} » — statut Supabase inchangé.`);
   };
 
   const confirmDelete = () => {
@@ -276,11 +292,15 @@ export const RolesAndUsersManager: React.FC = () => {
       setUserToDelete(null);
       return;
     }
+    if (refuseServerProfile(userToDelete)) {
+      setUserToDelete(null);
+      return;
+    }
 
     const updated = users.filter(u => u.id !== userToDelete.id);
     handleSaveUsers(updated);
-    logAudit('USER_DELETED', `${userToDelete.name} (${userToDelete.email})`);
-    showToast(`Compte de "${userToDelete.name}" définitivement supprimé.`);
+    logAudit('USER_DIRECTORY_LOCAL_DELETED', `${userToDelete.name} (${userToDelete.email})`);
+    showToast(`Fiche locale de « ${userToDelete.name} » retirée de cet appareil — le compte de connexion existe toujours.`);
     setUserToDelete(null);
   };
 

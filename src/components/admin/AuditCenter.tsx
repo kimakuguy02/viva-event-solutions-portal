@@ -3,8 +3,8 @@ import { AdminCard, AdminSearch, AdminEmpty, AdminLoading, AdminError } from './
 import { useAuditEvents } from '../../hooks/useAuditEvents';
 import type { AuditResult } from '../../types/platformBuilder';
 
-/* Centre d'audit — consomme l'audit RÉEL (hook multi-source). Aucun événement
-   fabriqué : vide = vide. Prêt pour l'audit serveur (source 'supabase'). */
+/* Centre d'audit — consomme l'audit RÉEL Postgres. Aucun événement fabriqué :
+   vide = vide, et une lecture impossible est affichée comme erreur. */
 
 const RESULT_LABEL: Record<AuditResult, string> = { success: 'Succès', failure: 'Échec', denied: 'Refusé' };
 

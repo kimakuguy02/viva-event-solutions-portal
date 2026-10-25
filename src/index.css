@@ -14,12 +14,29 @@
     --viva-text-muted: #CBD5E1;
     --viva-border: rgba(225, 29, 72, 0.25);
     --viva-border-glow: rgba(225, 29, 72, 0.45);
+    --viva-tertiary: #2563EB;
+    --viva-on-primary: #FFFFFF;
+    --viva-on-accent: #FFFFFF;
+    --viva-font-display: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    --viva-font-body: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+    --viva-radius-card: 24px;
+    --viva-radius-control: 999px;
+    --viva-hero-gradient: linear-gradient(160deg, #FFFFFF 0%, #F7F2FF 55%, #EEF4FF 100%);
+    --viva-accent-gradient: linear-gradient(135deg, #6D28D9 0%, #EC4899 52%, #2563EB 100%);
+    --viva-card-shadow: 0 22px 45px -28px rgba(23, 15, 43, 0.45);
+    --viva-nav-bg: rgba(255, 255, 255, 0.86);
+    --viva-muted-surface: #F7F5FF;
+    --viva-hero-text: #170F2B;
+    --viva-hero-muted: #5B5570;
+    --viva-hero-chip-bg: rgba(109, 40, 217, 0.08);
+    --viva-hero-chip-border: rgba(109, 40, 217, 0.20);
+    --viva-color-scheme: light;
   }
 
   body {
     background-color: var(--viva-bg-main);
     color: var(--viva-text-main);
-    font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+    font-family: var(--viva-font-body);
     overflow-x: hidden;
     min-height: 100vh;
     transition: background-color 0.3s ease, color 0.3s ease;
@@ -92,4 +109,265 @@
 
 .viva-glow-primary {
   box-shadow: 0 0 30px var(--viva-border-glow);
+}
+
+/* ============================================================
+   DESIGN SYSTEM VIVA — consommé par les 6 styles d'affichage.
+   Aucune couleur codée en dur ici : tout passe par les jetons.
+   ============================================================ */
+
+.viva-app {
+  background-color: var(--viva-bg-main);
+  color: var(--viva-text-main);
+  color-scheme: var(--viva-color-scheme);
+}
+
+.viva-heading {
+  font-family: var(--viva-font-display);
+  letter-spacing: -0.02em;
+  color: inherit;
+}
+
+.viva-muted {
+  color: var(--viva-text-muted);
+}
+
+.viva-surface {
+  background-color: var(--viva-bg-surface);
+  border: 1px solid var(--viva-border);
+  border-radius: var(--viva-radius-card);
+}
+
+.viva-card {
+  background-color: var(--viva-bg-surface);
+  border: 1px solid var(--viva-border);
+  border-radius: var(--viva-radius-card);
+  box-shadow: var(--viva-card-shadow);
+}
+
+.viva-card-hover {
+  transition: transform 240ms ease, box-shadow 240ms ease, border-color 240ms ease;
+}
+
+.viva-card-hover:hover {
+  transform: translateY(-4px);
+  border-color: var(--viva-border-glow);
+  box-shadow: 0 30px 60px -32px var(--viva-border-glow), var(--viva-card-shadow);
+}
+
+.viva-nav {
+  background-color: var(--viva-nav-bg);
+  border-bottom: 1px solid var(--viva-border);
+  backdrop-filter: blur(18px);
+}
+
+.viva-hero {
+  background: var(--viva-hero-gradient);
+  color: var(--viva-hero-text);
+}
+
+.viva-hero .viva-muted {
+  color: var(--viva-hero-muted);
+}
+
+.viva-hero-chip {
+  background-color: var(--viva-hero-chip-bg);
+  border: 1px solid var(--viva-hero-chip-border);
+  color: inherit;
+}
+
+.viva-gradient-text {
+  background: var(--viva-accent-gradient);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  color: transparent;
+}
+
+.viva-gradient-surface {
+  background: var(--viva-accent-gradient);
+}
+
+.viva-btn-primary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  border-radius: var(--viva-radius-control);
+  background-color: var(--viva-primary);
+  color: var(--viva-on-primary);
+  font-weight: 700;
+  transition: transform 200ms ease, box-shadow 200ms ease, filter 200ms ease;
+  box-shadow: 0 14px 30px -18px var(--viva-border-glow);
+}
+
+.viva-btn-primary:hover {
+  transform: translateY(-1px);
+  filter: brightness(1.06);
+}
+
+.viva-btn-accent {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  border-radius: var(--viva-radius-control);
+  background-color: var(--viva-accent);
+  color: var(--viva-on-accent);
+  font-weight: 700;
+  transition: transform 200ms ease, filter 200ms ease;
+}
+
+.viva-btn-accent:hover {
+  transform: translateY(-1px);
+  filter: brightness(1.05);
+}
+
+.viva-btn-ghost {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  border-radius: var(--viva-radius-control);
+  background-color: transparent;
+  border: 1px solid var(--viva-border);
+  color: inherit;
+  font-weight: 600;
+  transition: border-color 200ms ease, background-color 200ms ease;
+}
+
+.viva-btn-ghost:hover {
+  border-color: var(--viva-border-glow);
+  background-color: var(--viva-muted-surface);
+}
+
+.viva-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.375rem;
+  border-radius: var(--viva-radius-control);
+  border: 1px solid var(--viva-border);
+  background-color: var(--viva-muted-surface);
+  color: var(--viva-text-main);
+  font-weight: 600;
+  font-size: 0.75rem;
+  padding: 0.375rem 0.75rem;
+  transition: border-color 160ms ease, background-color 160ms ease, color 160ms ease;
+}
+
+.viva-chip-active {
+  background-color: var(--viva-primary);
+  border-color: var(--viva-primary);
+  color: var(--viva-on-primary);
+}
+
+.viva-input {
+  width: 100%;
+  border-radius: var(--viva-radius-control);
+  border: 1px solid var(--viva-border);
+  background-color: var(--viva-bg-surface);
+  color: var(--viva-text-main);
+  padding: 0.625rem 1rem;
+  font-size: 0.875rem;
+  outline: none;
+  transition: border-color 160ms ease, box-shadow 160ms ease;
+}
+
+.viva-input::placeholder {
+  color: var(--viva-text-muted);
+}
+
+.viva-input:focus {
+  border-color: var(--viva-primary);
+  box-shadow: 0 0 0 3px var(--viva-border-glow);
+}
+
+.viva-icon-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--viva-radius-control);
+  background: var(--viva-accent-gradient);
+  color: #FFFFFF;
+}
+
+.viva-divider {
+  border-color: var(--viva-border);
+}
+
+.viva-sidebar {
+  background-color: var(--viva-bg-surface);
+  border-right: 1px solid var(--viva-border);
+}
+
+.viva-sidebar-link {
+  display: flex;
+  align-items: center;
+  gap: 0.625rem;
+  width: 100%;
+  padding: 0.625rem 0.75rem;
+  border-radius: calc(var(--viva-radius-card) / 2);
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: var(--viva-text-muted);
+  border: 1px solid transparent;
+  transition: background-color 160ms ease, color 160ms ease, border-color 160ms ease;
+  cursor: pointer;
+  text-align: left;
+}
+
+.viva-sidebar-link:hover {
+  background-color: var(--viva-muted-surface);
+  color: var(--viva-text-main);
+}
+
+.viva-sidebar-link-active {
+  background-color: var(--viva-primary);
+  border-color: var(--viva-primary);
+  color: var(--viva-on-primary);
+}
+
+/* Viva Moderne : angles doux sur les contrôles, comme la maquette.
+   Les puces de filtre restent en pilule. */
+[data-viva-style="moderne"] .viva-btn-primary,
+[data-viva-style="moderne"] .viva-btn-accent,
+[data-viva-style="moderne"] .viva-btn-ghost {
+  border-radius: 12px;
+}
+
+[data-viva-style="moderne"] .viva-input {
+  border-radius: 12px;
+}
+
+[data-viva-style="moderne"] .viva-card-hover:hover {
+  box-shadow: 0 24px 48px -30px rgba(15, 23, 42, 0.30);
+}
+
+/* Barre latérale anthracite, comme la maquette (tableau de bord et administration). */
+[data-viva-style="moderne"] .viva-sidebar {
+  background-color: #1F2937;
+  border-right-color: #111827;
+}
+
+[data-viva-style="moderne"] .viva-sidebar-link {
+  color: rgba(255, 255, 255, 0.72);
+}
+
+[data-viva-style="moderne"] .viva-sidebar-link:hover {
+  background-color: rgba(255, 255, 255, 0.08);
+  color: #FFFFFF;
+}
+
+/* Respect des préférences d'accessibilité */
+@media (prefers-reduced-motion: reduce) {
+  .viva-card-hover,
+  .viva-btn-primary,
+  .viva-btn-accent {
+    transition: none;
+  }
+  .viva-card-hover:hover,
+  .viva-btn-primary:hover,
+  .viva-btn-accent:hover {
+    transform: none;
+  }
 }

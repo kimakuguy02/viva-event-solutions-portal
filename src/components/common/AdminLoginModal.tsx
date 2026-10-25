@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import { useTheme } from '../../context/ThemeContext';
-import { Shield, Lock, Mail, KeyRound, X, Check, AlertCircle, Clock, ShieldCheck } from 'lucide-react';
+import { Shield, Lock, Mail, X, AlertCircle, Clock, ShieldCheck, KeyRound } from 'lucide-react';
 
 interface AdminLoginModalProps {
   isOpen: boolean;
@@ -10,8 +10,7 @@ interface AdminLoginModalProps {
 
 export const AdminLoginModal: React.FC<AdminLoginModalProps> = ({ isOpen, onClose }) => {
   const { loginWithServer, loginWithGoogle } = useAuth();
-  const { activePalette, themeMode } = useTheme();
-  const isLight = themeMode === 'light';
+  const { activePalette } = useTheme();
 
   const [email, setEmail] = useState('direction.generale@viva-eventsolutions.cd');
   const [password, setPassword] = useState('');
@@ -86,97 +85,113 @@ export const AdminLoginModal: React.FC<AdminLoginModalProps> = ({ isOpen, onClos
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md animate-fadeIn">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-md animate-fadeIn">
       <div
         className="relative max-w-md w-full rounded-3xl border shadow-2xl p-6 sm:p-8 space-y-6 overflow-hidden"
         style={{
           backgroundColor: activePalette.colors.bgSurface,
-          borderColor: activePalette.colors.border
+          borderColor: activePalette.colors.border,
+          borderRadius: activePalette.design.radiusCard,
+          boxShadow: activePalette.design.cardShadow
         }}
       >
-        {/* Top Accent Gradient Line */}
-        <div className="absolute top-0 left-0 right-0 h-1.5 bg-gradient-to-r from-amber-500 via-emerald-500 to-blue-500"></div>
+        {/* Liseré de marque */}
+        <div
+          className="absolute top-0 left-0 right-0 h-1.5"
+          style={{ background: activePalette.design.accentGradient }}
+        ></div>
 
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="p-3 rounded-2xl bg-amber-500/20 text-amber-400 border border-amber-500/30">
+            <div
+              className="p-3 rounded-2xl border"
+              style={{
+                backgroundColor: `${activePalette.colors.accent}1F`,
+                borderColor: `${activePalette.colors.accent}40`,
+                color: activePalette.colors.accent
+              }}
+            >
               <Shield className="w-6 h-6" />
             </div>
             <div>
-              <h3 className="font-serif font-black text-lg text-white">
+              <h3 className="font-black text-lg viva-heading">
                 Console d'Administration
               </h3>
-              <p className="text-xs text-slate-400">
+              <p className="text-xs viva-muted">
                 Authentification Centralisée Serveur
               </p>
             </div>
           </div>
           <button
             onClick={onClose}
-            className="p-2 text-slate-400 hover:text-white rounded-full hover:bg-slate-800/60 transition-colors cursor-pointer"
+            className="p-2 rounded-full transition-colors cursor-pointer viva-muted hover:opacity-70"
+            style={{ backgroundColor: activePalette.colors.bgSubtle }}
+            aria-label="Fermer"
           >
             <X className="w-5 h-5" />
           </button>
         </div>
 
         {isLocked && (
-          <div className="p-4 rounded-2xl bg-rose-500/20 border border-rose-500/40 text-rose-300 text-xs flex items-start gap-3 animate-pulse">
-            <Clock className="w-5 h-5 shrink-0 mt-0.5 text-rose-400" />
+          <div className="p-4 rounded-2xl bg-rose-500/15 border border-rose-500/40 text-rose-500 text-xs flex items-start gap-3 animate-pulse">
+            <Clock className="w-5 h-5 shrink-0 mt-0.5" />
             <div>
               <p className="font-bold">Accès Verrouillé pour des raisons de sécurité</p>
               <p className="mt-1 text-[11px]">
-                3 tentatives consécutives échouées. Réessayez dans <span className="font-mono font-bold text-white">{formatLockTime(lockTimer)}</span>.
+                3 tentatives consécutives échouées. Réessayez dans{' '}
+                <span className="font-mono font-bold">{formatLockTime(lockTimer)}</span>.
               </p>
             </div>
           </div>
         )}
 
         {error && !isLocked && (
-          <div className="p-3 rounded-xl bg-rose-500/20 border border-rose-500/40 text-rose-300 text-xs flex items-center gap-2">
-            <AlertCircle className="w-4 h-4 shrink-0 text-rose-400" />
+          <div className="p-3 rounded-xl bg-rose-500/15 border border-rose-500/40 text-rose-500 text-xs flex items-center gap-2">
+            <AlertCircle className="w-4 h-4 shrink-0" />
             <span>{error}</span>
           </div>
         )}
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="space-y-1.5">
-            <label className="text-xs font-semibold text-slate-300 flex items-center justify-between">
+            <label className="text-xs font-semibold viva-muted flex items-center justify-between">
               <span>Identifiant Officiel (Email)</span>
               <button
                 type="button"
                 onClick={() => handleFillEmail('direction.generale@viva-eventsolutions.cd')}
-                className="text-[10px] text-amber-400 hover:underline cursor-pointer"
+                className="text-[10px] hover:underline cursor-pointer"
+                style={{ color: activePalette.colors.accent }}
               >
                 Remplir DG
               </button>
             </label>
             <div className="relative">
-              <Mail className="w-4 h-4 absolute left-3 top-3 text-slate-500" />
+              <Mail className="w-4 h-4 absolute left-3 top-3" style={{ color: activePalette.colors.textMuted }} />
               <input
                 type="email"
                 required
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 disabled={isLocked || isLoading}
-                className="w-full pl-9 pr-4 py-2.5 rounded-xl bg-slate-900 border border-slate-700/80 text-white placeholder-slate-500 text-sm focus:outline-none focus:border-amber-500 transition-colors disabled:opacity-50"
+                className="viva-input w-full pl-9 pr-4 py-2.5 text-sm disabled:opacity-50"
                 placeholder="nom@viva-eventsolutions.cd"
               />
             </div>
           </div>
 
           <div className="space-y-1.5">
-            <label className="text-xs font-semibold text-slate-300">
+            <label className="text-xs font-semibold viva-muted">
               Mot de passe
             </label>
             <div className="relative">
-              <Lock className="w-4 h-4 absolute left-3 top-3 text-slate-500" />
+              <Lock className="w-4 h-4 absolute left-3 top-3" style={{ color: activePalette.colors.textMuted }} />
               <input
                 type="password"
                 required
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 disabled={isLocked || isLoading}
-                className="w-full pl-9 pr-4 py-2.5 rounded-xl bg-slate-900 border border-slate-700/80 text-white placeholder-slate-500 text-sm focus:outline-none focus:border-amber-500 transition-colors disabled:opacity-50 font-mono"
+                className="viva-input w-full pl-9 pr-4 py-2.5 text-sm font-mono disabled:opacity-50"
                 placeholder="••••••••••••"
               />
             </div>
@@ -185,11 +200,11 @@ export const AdminLoginModal: React.FC<AdminLoginModalProps> = ({ isOpen, onClos
           <button
             type="submit"
             disabled={isLocked || isLoading || !password}
-            className="w-full py-3 rounded-xl bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-slate-950 font-bold text-sm flex items-center justify-center gap-2 cursor-pointer shadow-lg hover:shadow-amber-500/20 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+            className="viva-btn-primary w-full py-3 text-sm flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {isLoading ? (
               <span className="flex items-center gap-2">
-                <span className="w-4 h-4 border-2 border-slate-950 border-t-transparent rounded-full animate-spin"></span>
+                <span className="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin"></span>
                 Vérification Serveur...
               </span>
             ) : (
@@ -202,8 +217,13 @@ export const AdminLoginModal: React.FC<AdminLoginModalProps> = ({ isOpen, onClos
         </form>
 
         <div className="relative flex items-center justify-center my-3">
-          <div className="border-t border-slate-800 w-full"></div>
-          <span className="bg-slate-900 px-3 text-[10px] text-slate-500 uppercase tracking-widest absolute">ou</span>
+          <div className="border-t w-full" style={{ borderColor: activePalette.colors.border }}></div>
+          <span
+            className="px-3 text-[10px] uppercase tracking-widest absolute viva-muted"
+            style={{ backgroundColor: activePalette.colors.bgSurface }}
+          >
+            ou
+          </span>
         </div>
 
         <button
@@ -216,7 +236,11 @@ export const AdminLoginModal: React.FC<AdminLoginModalProps> = ({ isOpen, onClos
             else setError(res.error || "Erreur de connexion Google.");
           }}
           disabled={isLoading}
-          className="w-full py-2.5 px-4 rounded-xl bg-slate-900 hover:bg-slate-800 text-slate-200 border border-slate-700 font-semibold text-xs flex items-center justify-center gap-2.5 cursor-pointer transition-all shadow hover:border-slate-500"
+          className="w-full py-2.5 px-4 rounded-xl border font-semibold text-xs flex items-center justify-center gap-2.5 cursor-pointer transition-all viva-muted hover:opacity-80"
+          style={{
+            backgroundColor: activePalette.colors.bgSubtle,
+            borderColor: activePalette.colors.border
+          }}
         >
           <svg className="w-4 h-4" viewBox="0 0 24 24">
             <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" />
@@ -227,13 +251,15 @@ export const AdminLoginModal: React.FC<AdminLoginModalProps> = ({ isOpen, onClos
           <span>Continuer avec Google (Firebase Auth)</span>
         </button>
 
-        {/* Security badges */}
-        <div className="pt-2 border-t border-slate-800 text-[11px] text-slate-400 flex items-center justify-between">
-          <span className="flex items-center gap-1.5 text-emerald-400">
+        <div
+          className="pt-2 border-t text-[11px] viva-muted flex items-center justify-between"
+          style={{ borderColor: activePalette.colors.border }}
+        >
+          <span className="flex items-center gap-1.5" style={{ color: activePalette.colors.accent }}>
             <ShieldCheck className="w-3.5 h-3.5" />
             Hachage PBKDF2 & Token Signé
           </span>
-          <span className="text-[10px] font-mono text-slate-500">
+          <span className="text-[10px] font-mono">
             Rate Limiter : 3 tentatives
           </span>
         </div>

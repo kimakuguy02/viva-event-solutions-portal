@@ -12,15 +12,7 @@ export const VIVA_COMPANY_INFO = {
   address: "Kinshasa / Gombe, République Démocratique du Congo",
   email: "contact@viva-eventsolutions.cd",
   phone: "+243 963 216 780 / +243 855 929 308",
-  oapiReference: "OAPI / RCCM : CD/KIN/RCCM/24-B-01492 - ID Nat : 01-G4701-N44921",
-  stats: {
-    departmentsCount: 15,
-    partnerCollegesCount: 7,
-    heavyEquipmentParcValue: "$4.8M",
-    certifiedTechnicians: 180,
-    deliveredProjects: 340,
-    clientSatisfactionRate: "99.4%"
-  }
+  oapiReference: "OAPI / RCCM : CD/KIN/RCCM/24-B-01492 - ID Nat : 01-G4701-N44921"
 };
 
 export const STRATEGIC_PILLARS = [

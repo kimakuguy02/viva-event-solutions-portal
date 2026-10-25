@@ -3,7 +3,6 @@ import { useProjectData } from '../../context/ProjectDataContext';
 import { useTheme } from '../../context/ThemeContext';
 import {
   Save,
-  RotateCcw,
   Sparkles,
   Layers,
   FileText,
@@ -18,7 +17,7 @@ import {
 } from 'lucide-react';
 
 export const AdminContentEditor: React.FC = () => {
-  const { platformConfig, updatePlatformConfig, departments, updateDepartment, resetToDefaults } = useProjectData();
+  const { platformConfig, updatePlatformConfig, departments, updateDepartment } = useProjectData();
   const { activePalette, themeMode } = useTheme();
   const isLight = themeMode === 'light';
 
@@ -60,24 +59,6 @@ export const AdminContentEditor: React.FC = () => {
           </p>
         </div>
 
-        <div className="flex items-center gap-3">
-          <button
-            onClick={() => {
-              if (window.confirm("Êtes-vous sûr de vouloir restaurer les textes et configurations d'origine ?")) {
-                resetToDefaults();
-                setConfigDraft(platformConfig);
-              }
-            }}
-            className="px-3.5 py-2 rounded-xl border text-xs font-bold flex items-center gap-1.5 cursor-pointer hover:bg-rose-500/20 hover:text-rose-400 transition-colors"
-            style={{
-              borderColor: activePalette.colors.border,
-              color: isLight ? '#64748B' : '#94A3B8'
-            }}
-          >
-            <RotateCcw className="w-3.5 h-3.5" />
-            <span>Réinitialiser par défaut</span>
-          </button>
-        </div>
       </div>
 
       {/* Navigation Tabs */}

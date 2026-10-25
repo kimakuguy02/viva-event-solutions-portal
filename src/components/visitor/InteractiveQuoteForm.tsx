@@ -173,21 +173,21 @@ export const InteractiveQuoteForm: React.FC<InteractiveQuoteFormProps> = ({
         </div>
 
         <div className="space-y-2">
-          <span className="text-xs font-mono font-bold text-[#4A6CF7] tracking-wider uppercase">
+          <span className="text-xs font-mono font-bold text-[var(--viva-primary)] tracking-wider uppercase">
             Demande de devis enregistrée avec succès
           </span>
           <h3 className="text-2xl font-black text-slate-900">
             Merci {clientName}, votre dossier est transmis au Guichet Unique !
           </h3>
-          <p className="text-sm text-[#6B7280]">
+          <p className="text-sm text-[var(--viva-text-muted)]">
             Votre référence officielle de suivi est :
           </p>
-          <div className="p-3 bg-blue-50/60 rounded-xl border border-blue-200 text-[#4A6CF7] font-mono font-bold text-lg inline-block">
+          <div className="p-3 bg-blue-50/60 rounded-xl border border-blue-200 text-[var(--viva-primary)] font-mono font-bold text-lg inline-block">
             {submittedRef}
           </div>
         </div>
 
-        <div className="p-5 bg-slate-50 rounded-2xl border border-slate-100 text-left text-xs text-[#6B7280] space-y-2">
+        <div className="p-5 bg-slate-50 rounded-2xl border border-slate-100 text-left text-xs text-[var(--viva-text-muted)] space-y-2">
           <p className="font-bold text-slate-900">Prochaines étapes :</p>
           <p>1. Notre pôle Ingénierie & Direction étudie votre cahier des charges sous 24h ouvrées.</p>
           <p>2. Un devis pro-forma détaillé et un rétroplanning chronologique vous seront transmis.</p>
@@ -201,7 +201,7 @@ export const InteractiveQuoteForm: React.FC<InteractiveQuoteFormProps> = ({
               setStep(1);
               if (onClose) onClose();
             }}
-            className="px-6 py-2.5 rounded-full bg-[#4A6CF7] hover:bg-[#3B5CE6] text-white font-semibold text-sm shadow-sm transition-all cursor-pointer"
+            className="px-6 py-2.5 rounded-full bg-[var(--viva-primary)] hover:bg-[var(--viva-primary-dark)] text-white font-semibold text-sm shadow-sm transition-all cursor-pointer"
           >
             Fermer le Guichet
           </button>
@@ -215,14 +215,14 @@ export const InteractiveQuoteForm: React.FC<InteractiveQuoteFormProps> = ({
       {/* Header */}
       <div className="flex items-center justify-between border-b border-slate-100 pb-5 mb-6">
         <div className="flex items-center gap-3">
-          <div className="p-3 rounded-2xl bg-blue-50 text-[#4A6CF7] border border-blue-100">
+          <div className="p-3 rounded-2xl bg-blue-50 text-[var(--viva-primary)] border border-blue-100">
             <Calculator className="w-6 h-6" />
           </div>
           <div>
             <h3 className="text-xl sm:text-2xl font-black text-slate-900">
               Demande de Devis Officiel & Guichet Unique
             </h3>
-            <p className="text-xs text-[#6B7280]">
+            <p className="text-xs text-[var(--viva-text-muted)]">
               Soumission de cahier des charges, chiffrage et transmission directe au Back-Office (USD)
             </p>
           </div>
@@ -230,27 +230,27 @@ export const InteractiveQuoteForm: React.FC<InteractiveQuoteFormProps> = ({
 
         {/* Live dynamic badge */}
         <div className="text-right hidden sm:block">
-          <span className="text-[10px] font-mono text-[#6B7280] uppercase">Estimation Provisoire</span>
-          <div className="text-xl font-black text-[#4A6CF7]">
-            ${estimatedBudgetUSD.toLocaleString()} <span className="text-xs font-normal text-[#6B7280]">USD</span>
+          <span className="text-[10px] font-mono text-[var(--viva-text-muted)] uppercase">Estimation Provisoire</span>
+          <div className="text-xl font-black text-[var(--viva-primary)]">
+            ${estimatedBudgetUSD.toLocaleString()} <span className="text-xs font-normal text-[var(--viva-text-muted)]">USD</span>
           </div>
         </div>
       </div>
 
       {/* Progress Steps */}
       <div className="flex items-center justify-between mb-8 px-2">
-        <div className={`flex items-center gap-2 text-xs font-semibold ${step >= 1 ? 'text-[#4A6CF7]' : 'text-slate-400'}`}>
-          <span className={`w-6 h-6 rounded-full flex items-center justify-center text-xs ${step >= 1 ? 'bg-[#4A6CF7] text-white' : 'bg-slate-100 text-slate-500'}`}>1</span>
+        <div className={`flex items-center gap-2 text-xs font-semibold ${step >= 1 ? 'text-[var(--viva-primary)]' : 'text-slate-400'}`}>
+          <span className={`w-6 h-6 rounded-full flex items-center justify-center text-xs ${step >= 1 ? 'bg-[var(--viva-primary)] text-white' : 'bg-slate-100 text-slate-500'}`}>1</span>
           <span className="hidden sm:inline">Cahier des Charges</span>
         </div>
         <div className="flex-1 h-0.5 bg-slate-100 mx-2"></div>
-        <div className={`flex items-center gap-2 text-xs font-semibold ${step >= 2 ? 'text-[#4A6CF7]' : 'text-slate-400'}`}>
-          <span className={`w-6 h-6 rounded-full flex items-center justify-center text-xs ${step >= 2 ? 'bg-[#4A6CF7] text-white' : 'bg-slate-100 text-slate-500'}`}>2</span>
+        <div className={`flex items-center gap-2 text-xs font-semibold ${step >= 2 ? 'text-[var(--viva-primary)]' : 'text-slate-400'}`}>
+          <span className={`w-6 h-6 rounded-full flex items-center justify-center text-xs ${step >= 2 ? 'bg-[var(--viva-primary)] text-white' : 'bg-slate-100 text-slate-500'}`}>2</span>
           <span className="hidden sm:inline">Pôles & Options</span>
         </div>
         <div className="flex-1 h-0.5 bg-slate-100 mx-2"></div>
-        <div className={`flex items-center gap-2 text-xs font-semibold ${step >= 3 ? 'text-[#4A6CF7]' : 'text-slate-400'}`}>
-          <span className={`w-6 h-6 rounded-full flex items-center justify-center text-xs ${step >= 3 ? 'bg-[#4A6CF7] text-white' : 'bg-slate-100 text-slate-500'}`}>3</span>
+        <div className={`flex items-center gap-2 text-xs font-semibold ${step >= 3 ? 'text-[var(--viva-primary)]' : 'text-slate-400'}`}>
+          <span className={`w-6 h-6 rounded-full flex items-center justify-center text-xs ${step >= 3 ? 'bg-[var(--viva-primary)] text-white' : 'bg-slate-100 text-slate-500'}`}>3</span>
           <span className="hidden sm:inline">Coordonnées & Validation</span>
         </div>
       </div>
@@ -266,7 +266,7 @@ export const InteractiveQuoteForm: React.FC<InteractiveQuoteFormProps> = ({
               <select
                 value={eventType}
                 onChange={e => setEventType(e.target.value as any)}
-                className="w-full px-4 py-2.5 rounded-xl bg-slate-50 border border-slate-200 text-sm text-slate-900 focus:outline-none focus:border-[#4A6CF7]"
+                className="w-full px-4 py-2.5 rounded-xl bg-slate-50 border border-slate-200 text-sm text-slate-900 focus:outline-none focus:border-[var(--viva-primary)]"
               >
                 <option value="institution_publique">Institution publique</option>
                 <option value="organisme_international">Organisme international</option>
@@ -285,7 +285,7 @@ export const InteractiveQuoteForm: React.FC<InteractiveQuoteFormProps> = ({
                 value={eventName}
                 onChange={e => setEventName(e.target.value)}
                 placeholder="Ex. Mariage, Sommet International, Forum Économique"
-                className="w-full px-4 py-2.5 rounded-xl bg-slate-50 border border-slate-200 text-sm text-slate-900 focus:outline-none focus:border-[#4A6CF7]"
+                className="w-full px-4 py-2.5 rounded-xl bg-slate-50 border border-slate-200 text-sm text-slate-900 focus:outline-none focus:border-[var(--viva-primary)]"
                 required
               />
             </div>
@@ -300,7 +300,7 @@ export const InteractiveQuoteForm: React.FC<InteractiveQuoteFormProps> = ({
                 type="date"
                 value={eventDate}
                 onChange={e => setEventDate(e.target.value)}
-                className="w-full px-4 py-2.5 rounded-xl bg-slate-50 border border-slate-200 text-sm text-slate-900 focus:outline-none focus:border-[#4A6CF7]"
+                className="w-full px-4 py-2.5 rounded-xl bg-slate-50 border border-slate-200 text-sm text-slate-900 focus:outline-none focus:border-[var(--viva-primary)]"
               />
             </div>
 
@@ -313,13 +313,13 @@ export const InteractiveQuoteForm: React.FC<InteractiveQuoteFormProps> = ({
                 value={location}
                 onChange={e => setLocation(e.target.value)}
                 placeholder="Ex: Kinshasa / Palais du Peuple"
-                className="w-full px-4 py-2.5 rounded-xl bg-slate-50 border border-slate-200 text-sm text-slate-900 focus:outline-none focus:border-[#4A6CF7]"
+                className="w-full px-4 py-2.5 rounded-xl bg-slate-50 border border-slate-200 text-sm text-slate-900 focus:outline-none focus:border-[var(--viva-primary)]"
               />
             </div>
 
             <div>
               <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-2">
-                Nombre de Participants : <span className="text-[#4A6CF7] font-bold">{estimatedAttendees}</span>
+                Nombre de Participants : <span className="text-[var(--viva-primary)] font-bold">{estimatedAttendees}</span>
               </label>
               <input
                 type="range"
@@ -328,7 +328,7 @@ export const InteractiveQuoteForm: React.FC<InteractiveQuoteFormProps> = ({
                 step="50"
                 value={estimatedAttendees}
                 onChange={e => setEstimatedAttendees(Number(e.target.value))}
-                className="w-full accent-[#4A6CF7] mt-2 cursor-pointer"
+                className="w-full accent-[var(--viva-primary)] mt-2 cursor-pointer"
               />
             </div>
           </div>
@@ -342,7 +342,7 @@ export const InteractiveQuoteForm: React.FC<InteractiveQuoteFormProps> = ({
                 }
                 setStep(2);
               }}
-              className="px-6 py-2.5 rounded-full bg-[#4A6CF7] hover:bg-[#3B5CE6] text-white font-semibold text-sm flex items-center gap-2 shadow-sm transition-all cursor-pointer"
+              className="px-6 py-2.5 rounded-full bg-[var(--viva-primary)] hover:bg-[var(--viva-primary-dark)] text-white font-semibold text-sm flex items-center gap-2 shadow-sm transition-all cursor-pointer"
             >
               <span>Suivant</span>
               <ArrowRight className="w-4 h-4" />
@@ -368,12 +368,12 @@ export const InteractiveQuoteForm: React.FC<InteractiveQuoteFormProps> = ({
                     onClick={() => toggleDept(dept.id)}
                     className={`p-2.5 rounded-xl border text-xs cursor-pointer transition-all flex items-center justify-between ${
                       isSelected
-                        ? 'bg-blue-50 border-blue-200 text-[#4A6CF7] font-semibold'
+                        ? 'bg-blue-50 border-blue-200 text-[var(--viva-primary)] font-semibold'
                         : 'bg-white border-slate-200 text-slate-600 hover:border-slate-300'
                     }`}
                   >
                     <span className="truncate">{dept.number}. {dept.shortName}</span>
-                    {isSelected && <CheckCircle2 className="w-3.5 h-3.5 text-[#4A6CF7] shrink-0 ml-1" />}
+                    {isSelected && <CheckCircle2 className="w-3.5 h-3.5 text-[var(--viva-primary)] shrink-0 ml-1" />}
                   </div>
                 );
               })}
@@ -417,7 +417,7 @@ export const InteractiveQuoteForm: React.FC<InteractiveQuoteFormProps> = ({
                     onChange={e =>
                       setRequirements(prev => ({ ...prev, [opt.key]: e.target.checked }))
                     }
-                    className="accent-[#4A6CF7] w-4 h-4 rounded shrink-0 cursor-pointer"
+                    className="accent-[var(--viva-primary)] w-4 h-4 rounded shrink-0 cursor-pointer"
                   />
                   <span>{opt.label}</span>
                 </label>
@@ -436,7 +436,7 @@ export const InteractiveQuoteForm: React.FC<InteractiveQuoteFormProps> = ({
 
             <button
               onClick={() => setStep(3)}
-              className="px-6 py-2.5 rounded-full bg-[#4A6CF7] hover:bg-[#3B5CE6] text-white font-semibold text-xs sm:text-sm flex items-center gap-2 shadow-sm transition-all cursor-pointer"
+              className="px-6 py-2.5 rounded-full bg-[var(--viva-primary)] hover:bg-[var(--viva-primary-dark)] text-white font-semibold text-xs sm:text-sm flex items-center gap-2 shadow-sm transition-all cursor-pointer"
             >
               <span>Suivant</span>
               <ArrowRight className="w-4 h-4" />
@@ -450,12 +450,12 @@ export const InteractiveQuoteForm: React.FC<InteractiveQuoteFormProps> = ({
         <form onSubmit={handleSubmit} className="space-y-6">
           <div className="p-4 rounded-2xl bg-blue-50/70 border border-blue-100 flex items-center justify-between">
             <div>
-              <span className="text-xs text-[#4A6CF7] font-semibold">Estimation Indicative Globale :</span>
+              <span className="text-xs text-[var(--viva-primary)] font-semibold">Estimation Indicative Globale :</span>
               <div className="text-2xl font-black text-slate-900">
-                ${estimatedBudgetUSD.toLocaleString()} <span className="text-xs font-normal text-[#6B7280]">USD</span>
+                ${estimatedBudgetUSD.toLocaleString()} <span className="text-xs font-normal text-[var(--viva-text-muted)]">USD</span>
               </div>
             </div>
-            <div className="text-right text-xs text-[#6B7280]">
+            <div className="text-right text-xs text-[var(--viva-text-muted)]">
               <span>{selectedDeptIds.length} Pôles sélectionnés</span> • <span>{estimatedAttendees} Invités</span>
             </div>
           </div>
@@ -479,7 +479,7 @@ export const InteractiveQuoteForm: React.FC<InteractiveQuoteFormProps> = ({
                   value={clientName}
                   onChange={e => setClientName(e.target.value)}
                   placeholder="Ex: M. Guy Kimaku"
-                  className="w-full pl-10 pr-4 py-2.5 rounded-xl bg-slate-50 border border-slate-200 text-sm text-slate-900 focus:outline-none focus:border-[#4A6CF7]"
+                  className="w-full pl-10 pr-4 py-2.5 rounded-xl bg-slate-50 border border-slate-200 text-sm text-slate-900 focus:outline-none focus:border-[var(--viva-primary)]"
                   required
                 />
               </div>
@@ -496,7 +496,7 @@ export const InteractiveQuoteForm: React.FC<InteractiveQuoteFormProps> = ({
                   value={clientOrganization}
                   onChange={e => setClientOrganization(e.target.value)}
                   placeholder="Ex: Secrétariat Général ou Ambassade"
-                  className="w-full pl-10 pr-4 py-2.5 rounded-xl bg-slate-50 border border-slate-200 text-sm text-slate-900 focus:outline-none focus:border-[#4A6CF7]"
+                  className="w-full pl-10 pr-4 py-2.5 rounded-xl bg-slate-50 border border-slate-200 text-sm text-slate-900 focus:outline-none focus:border-[var(--viva-primary)]"
                 />
               </div>
             </div>
@@ -514,7 +514,7 @@ export const InteractiveQuoteForm: React.FC<InteractiveQuoteFormProps> = ({
                   value={clientEmail}
                   onChange={e => setClientEmail(e.target.value)}
                   placeholder="contact@organisation.cd"
-                  className="w-full pl-10 pr-4 py-2.5 rounded-xl bg-slate-50 border border-slate-200 text-sm text-slate-900 focus:outline-none focus:border-[#4A6CF7]"
+                  className="w-full pl-10 pr-4 py-2.5 rounded-xl bg-slate-50 border border-slate-200 text-sm text-slate-900 focus:outline-none focus:border-[var(--viva-primary)]"
                   required
                 />
               </div>
@@ -531,7 +531,7 @@ export const InteractiveQuoteForm: React.FC<InteractiveQuoteFormProps> = ({
                   value={clientPhone}
                   onChange={e => setClientPhone(e.target.value)}
                   placeholder="+243 81 000 0000"
-                  className="w-full pl-10 pr-4 py-2.5 rounded-xl bg-slate-50 border border-slate-200 text-sm text-slate-900 focus:outline-none focus:border-[#4A6CF7]"
+                  className="w-full pl-10 pr-4 py-2.5 rounded-xl bg-slate-50 border border-slate-200 text-sm text-slate-900 focus:outline-none focus:border-[var(--viva-primary)]"
                   required
                 />
               </div>
@@ -547,7 +547,7 @@ export const InteractiveQuoteForm: React.FC<InteractiveQuoteFormProps> = ({
               value={customNotes}
               onChange={e => setCustomNotes(e.target.value)}
               placeholder="Exigences protocolaires particulières, raccordement Starlink, régimes alimentaires, escorte..."
-              className="w-full p-3.5 rounded-xl bg-slate-50 border border-slate-200 text-xs text-slate-900 focus:outline-none focus:border-[#4A6CF7]"
+              className="w-full p-3.5 rounded-xl bg-slate-50 border border-slate-200 text-xs text-slate-900 focus:outline-none focus:border-[var(--viva-primary)]"
             ></textarea>
           </div>
 
@@ -563,7 +563,7 @@ export const InteractiveQuoteForm: React.FC<InteractiveQuoteFormProps> = ({
 
             <button
               type="submit"
-              className="px-8 py-3 rounded-full bg-[#4A6CF7] hover:bg-[#3B5CE6] text-white font-semibold text-sm flex items-center gap-2 shadow-sm cursor-pointer transition-all"
+              className="px-8 py-3 rounded-full bg-[var(--viva-primary)] hover:bg-[var(--viva-primary-dark)] text-white font-semibold text-sm flex items-center gap-2 shadow-sm cursor-pointer transition-all"
             >
               <FileText className="w-4 h-4" />
               <span>Demander un devis</span>

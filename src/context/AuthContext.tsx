@@ -478,7 +478,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         const { data, error } = await supabase.auth.signUp({
           email: params.email.trim(),
           password: params.password,
-          options: { data: { full_name: params.name, phone: params.phone ?? '', organization: params.organization ?? '' } },
+          options: {
+            emailRedirectTo: window.location.origin,
+            data: { full_name: params.name, phone: params.phone ?? '', organization: params.organization ?? '' },
+          },
         });
         if (error) throw error;
         if (!data.session) {
@@ -536,7 +539,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const resetPassword = async (email: string): Promise<{ success: boolean; error?: string }> => {
     if (isSupabaseConfigured() && supabase && !schemaMissingRef.current) {
-      const { error } = await supabase.auth.resetPasswordForEmail(email.trim());
+      const { error } = await supabase.auth.resetPasswordForEmail(email.trim(), {
+        redirectTo: window.location.origin,
+      });
       if (!error) {
         showToast('📧 Un lien de réinitialisation vous a été envoyé par e-mail.');
         return { success: true };

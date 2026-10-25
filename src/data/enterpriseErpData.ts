@@ -54,7 +54,7 @@ export const VIVA_ENTERPRISE_ORGANIGRAM: EnterpriseDirection[] = [
     name: "06. Régie Technique, Énergie & Scénographie",
     managerName: "Ing. Serge ILUNGA (Chef d'Équipe Régie)",
     headcount: 12,
-    description: "Sonorisation Line Array, régie LED 4K, distribution électrique 3200 kVA, scénographie 3D et Starlink."
+    description: "Sonorisation Line Array, régie LED 4K, distribution électrique autonome, scénographie 3D et Starlink."
   },
   {
     code: "DIR-07",

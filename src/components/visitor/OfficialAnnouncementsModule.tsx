@@ -249,7 +249,7 @@ export const OfficialAnnouncementsModule: React.FC = () => {
             onClick={() => setActiveTab('recruitment')}
             className={`px-6 py-3 rounded-2xl font-black text-xs uppercase tracking-wider flex items-center gap-2.5 transition-all cursor-pointer ${
               activeTab === 'recruitment'
-                ? 'bg-[#4A6CF7] text-white shadow-lg shadow-blue-600/30 font-black'
+                ? 'bg-[var(--viva-primary)] text-white shadow-lg shadow-[var(--viva-card-shadow)] font-black'
                 : 'bg-slate-900 text-slate-300 hover:bg-slate-800 border border-slate-800'
             }`}
           >
@@ -310,7 +310,7 @@ export const OfficialAnnouncementsModule: React.FC = () => {
                   </div>
 
                   <div>
-                    <span className="text-[10px] font-bold text-[#4A6CF7] block uppercase tracking-wider">
+                    <span className="text-[10px] font-bold text-[var(--viva-primary)] block uppercase tracking-wider">
                       {ad.category}
                     </span>
                     <h3 className="text-lg font-black text-slate-900 tracking-tight leading-snug">
@@ -337,9 +337,9 @@ export const OfficialAnnouncementsModule: React.FC = () => {
                       </div>
                     )}
                     {ad.attachmentName && (
-                      <div className="flex items-center gap-2 text-slate-700 bg-blue-50/50 p-2 rounded-xl border border-blue-100">
-                        <FileText className="w-3.5 h-3.5 text-[#4A6CF7] shrink-0" />
-                        <span className="text-[11px] truncate font-medium text-blue-900">PDF : {ad.attachmentName}</span>
+                      <div className="flex items-center gap-2 text-slate-700 bg-[var(--viva-muted-surface)] p-2 rounded-xl border border-[var(--viva-border)]">
+                        <FileText className="w-3.5 h-3.5 text-[var(--viva-primary)] shrink-0" />
+                        <span className="text-[11px] truncate font-medium text-[var(--viva-text-main)]">PDF : {ad.attachmentName}</span>
                       </div>
                     )}
                   </div>
@@ -641,7 +641,7 @@ export const OfficialAnnouncementsModule: React.FC = () => {
             </div>
 
             <div className="flex items-center gap-2 text-xs font-mono">
-              <span className="px-3 py-1 rounded-full bg-blue-50 border border-blue-100 text-[#4A6CF7] font-bold">
+              <span className="px-3 py-1 rounded-full bg-[var(--viva-muted-surface)] border border-[var(--viva-border)] text-[var(--viva-primary)] font-bold">
                 {jobOffers.reduce((acc, curr) => acc + curr.submissionsCount, 0)} candidatures enregistrées
               </span>
             </div>
@@ -662,7 +662,7 @@ export const OfficialAnnouncementsModule: React.FC = () => {
                 <div className="space-y-3">
                   <div className="flex flex-wrap items-center justify-between gap-3">
                     <div className="flex items-center gap-2">
-                      <span className="px-3 py-1 rounded-lg bg-blue-50 border border-blue-200 text-[#4A6CF7] font-mono font-bold text-xs">
+                      <span className="px-3 py-1 rounded-lg bg-[var(--viva-muted-surface)] border border-[var(--viva-border)] text-[var(--viva-primary)] font-mono font-bold text-xs">
                         Réf. {job.reference}
                       </span>
                       <span className="px-2.5 py-1 rounded-lg bg-slate-100 text-slate-700 font-mono text-xs">
@@ -698,7 +698,7 @@ export const OfficialAnnouncementsModule: React.FC = () => {
                     </div>
                     <div>
                       <span className="text-[10px] uppercase font-bold text-slate-400 block">Nombre de postes</span>
-                      <span className="font-bold text-[#4A6CF7]">{job.vacanciesCount}</span>
+                      <span className="font-bold text-[var(--viva-primary)]">{job.vacanciesCount}</span>
                     </div>
                   </div>
                 </div>
@@ -756,21 +756,21 @@ export const OfficialAnnouncementsModule: React.FC = () => {
                     <span>💼</span> 3. Conditions du Poste
                   </h4>
 
-                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs bg-blue-50/40 p-4 rounded-2xl border border-blue-100">
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs bg-[var(--viva-muted-surface)] p-4 rounded-2xl border border-[var(--viva-border)]">
                     <div>
-                      <span className="text-[10px] uppercase font-bold text-blue-950 block">Rémunération / Salaire</span>
-                      <span className="font-black text-[#4A6CF7] text-sm">{job.salaryRange}</span>
+                      <span className="text-[10px] uppercase font-bold text-[var(--viva-text-main)] block">Rémunération / Salaire</span>
+                      <span className="font-black text-[var(--viva-primary)] text-sm">{job.salaryRange}</span>
                     </div>
                     <div>
-                      <span className="text-[10px] uppercase font-bold text-blue-950 block">Horaires de travail</span>
+                      <span className="text-[10px] uppercase font-bold text-[var(--viva-text-main)] block">Horaires de travail</span>
                       <span className="font-semibold text-slate-800">{job.workingHours}</span>
                     </div>
                     <div>
-                      <span className="text-[10px] uppercase font-bold text-blue-950 block">Début dépôt</span>
+                      <span className="text-[10px] uppercase font-bold text-[var(--viva-text-main)] block">Début dépôt</span>
                       <span className="font-semibold text-slate-800">{job.applicationStartDate}</span>
                     </div>
                     <div>
-                      <span className="text-[10px] uppercase font-bold text-blue-950 block">Clôture dépôt</span>
+                      <span className="text-[10px] uppercase font-bold text-[var(--viva-text-main)] block">Clôture dépôt</span>
                       <span className="font-bold text-rose-600">{job.applicationEndDate}</span>
                     </div>
                   </div>
@@ -788,7 +788,7 @@ export const OfficialAnnouncementsModule: React.FC = () => {
                       setSelectedOffer(job);
                       setShowApplicationModal(true);
                     }}
-                    className="px-6 py-3 rounded-xl bg-[#4A6CF7] hover:bg-[#3A5BD9] text-white font-black text-xs uppercase tracking-wider flex items-center gap-2 shadow-lg shadow-blue-500/20 cursor-pointer transition-all"
+                    className="px-6 py-3 rounded-xl bg-[var(--viva-primary)] hover:bg-[var(--viva-primary-dark)] text-white font-black text-xs uppercase tracking-wider flex items-center gap-2 shadow-lg shadow-[var(--viva-card-shadow)] cursor-pointer transition-all"
                   >
                     <Send className="w-4 h-4" />
                     <span>SOUMETTRE MA CANDIDATURE</span>
@@ -808,7 +808,7 @@ export const OfficialAnnouncementsModule: React.FC = () => {
           <div className="bg-white rounded-3xl border border-slate-200 shadow-2xl max-w-2xl w-full p-6 sm:p-8 space-y-6 my-8">
             <div className="flex items-center justify-between border-b border-slate-100 pb-4">
               <div>
-                <span className="text-[10px] font-mono font-bold uppercase text-[#4A6CF7] bg-blue-50 px-2 py-0.5 rounded-md">
+                <span className="text-[10px] font-mono font-bold uppercase text-[var(--viva-primary)] bg-[var(--viva-muted-surface)] px-2 py-0.5 rounded-md">
                   Réf. {selectedOffer.reference}
                 </span>
                 <h3 className="text-lg font-black text-slate-900 mt-1">
@@ -1012,7 +1012,7 @@ export const OfficialAnnouncementsModule: React.FC = () => {
                       type="checkbox"
                       checked={applicationForm.acceptedTerms}
                       onChange={e => setApplicationForm({ ...applicationForm, acceptedTerms: e.target.checked })}
-                      className="w-4 h-4 rounded-sm border-slate-300 text-[#4A6CF7] focus:ring-blue-500 mt-0.5"
+                      className="w-4 h-4 rounded-sm border-slate-300 text-[var(--viva-primary)] focus:ring-[var(--viva-primary)] mt-0.5"
                     />
                     <span>
                       ☑️ <strong className="text-slate-900">J’accepte les conditions de candidature</strong> et autorise VIVA Event Solutions à traiter mes données dans le cadre de ce recrutement.
@@ -1030,7 +1030,7 @@ export const OfficialAnnouncementsModule: React.FC = () => {
                   </button>
                   <button
                     type="submit"
-                    className="px-6 py-2.5 rounded-xl bg-[#4A6CF7] hover:bg-[#3A5BD9] text-white font-black text-xs uppercase tracking-wider shadow-md shadow-blue-500/20 cursor-pointer transition-all"
+                    className="px-6 py-2.5 rounded-xl bg-[var(--viva-primary)] hover:bg-[var(--viva-primary-dark)] text-white font-black text-xs uppercase tracking-wider shadow-md shadow-[var(--viva-card-shadow)] cursor-pointer transition-all"
                   >
                     SOUMETTRE MA CANDIDATURE
                   </button>

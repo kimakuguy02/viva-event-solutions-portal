@@ -6,7 +6,6 @@ export const OfflineBanner: React.FC = () => {
   const [syncStatus, setSyncStatus] = useState<SyncStatus>(syncService.getStatus());
   const [pendingCount, setPendingCount] = useState<number>(syncService.getPendingCount());
   const [isManualSyncing, setIsManualSyncing] = useState<boolean>(false);
-  const [showStatusDetails, setShowStatusDetails] = useState<boolean>(false);
 
   useEffect(() => {
     const unsubscribe = syncService.subscribe((status, count) => {
@@ -70,38 +69,11 @@ export const OfflineBanner: React.FC = () => {
 
   const currentBadge = getStatusBadge();
 
-  // If online and fully synced with no errors and 0 pending, show discreet status strip or minimal indicator
-  if (syncStatus === 'online' && pendingCount === 0 && !showStatusDetails) {
-    return (
-      <div className="bg-slate-950/80 border-b border-slate-800/80 px-4 py-1 flex items-center justify-between text-[11px] text-slate-400">
-        <div className="flex items-center gap-2">
-          <span className="inline-flex items-center gap-1 font-mono font-medium text-emerald-400">
-            <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
-            En ligne
-          </span>
-          <span className="hidden sm:inline text-slate-600">•</span>
-          <span className="hidden sm:inline text-slate-400">Base Centrale Connectée (Sync Auto)</span>
-        </div>
-
-        <div className="flex items-center gap-2">
-          <button
-            onClick={() => setShowStatusDetails(true)}
-            className="hover:text-amber-400 transition-colors cursor-pointer text-[10px] font-mono underline"
-          >
-            Détails synchronisation
-          </button>
-          <button
-            onClick={handleManualSync}
-            disabled={isManualSyncing}
-            className="px-2 py-0.5 rounded bg-slate-900 hover:bg-slate-800 text-slate-300 hover:text-amber-400 border border-slate-700 text-[10px] flex items-center gap-1 cursor-pointer transition-colors"
-            title="Forcer la synchronisation avec le serveur central"
-          >
-            <RefreshCw className={`w-3 h-3 ${isManualSyncing ? 'animate-spin' : ''}`} />
-            <span>Synchroniser</span>
-          </button>
-        </div>
-      </div>
-    );
+  // En ligne et à jour : aucun bandeau. « synced » sans opération en attente
+  // est l'état normal après le flush périodique — pas une information visiteur.
+  // Le statut technique reste consultable dans l'administration (Audit / Sécurité).
+  if (pendingCount === 0 && (syncStatus === 'online' || syncStatus === 'synced')) {
+    return null;
   }
 
   return (
@@ -135,14 +107,6 @@ export const OfflineBanner: React.FC = () => {
           <RefreshCw className={`w-3.5 h-3.5 ${isManualSyncing ? 'animate-spin' : ''}`} />
           <span>Synchroniser Maintenant</span>
         </button>
-        {showStatusDetails && (
-          <button
-            onClick={() => setShowStatusDetails(false)}
-            className="text-xs opacity-75 hover:opacity-100 ml-1 cursor-pointer"
-          >
-            ✕
-          </button>
-        )}
       </div>
     </div>
   );

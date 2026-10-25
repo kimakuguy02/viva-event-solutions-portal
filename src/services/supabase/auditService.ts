@@ -11,9 +11,12 @@ export async function logAudit(
 ): Promise<void> {
   try {
     const sb = requireSupabase();
-    const { data } = await sb.auth.getUser();
+    // Sans session, audit_logs répond 401 (policy authentifiée). Les parcours
+    // publics sont audités côté serveur par leur RPC, pas par le navigateur.
+    const { data: sessionData } = await sb.auth.getSession();
+    if (!sessionData.session) return;
     await sb.from('audit_logs').insert({
-      actor_user_id: data.user?.id ?? null,
+      actor_user_id: sessionData.session.user.id,
       action,
       resource,
       resource_id: resourceId ?? '',

@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
 import { useProjectData } from '../../context/ProjectDataContext';
 import { useEnterpriseErp } from '../../context/EnterpriseErpContext';
-import type { Project, ProjectMilestone, ProjectDeliverable } from '../../types';
+import { useTheme } from '../../context/ThemeContext';
+import type { Project, ProjectMilestone } from '../../types';
 import { X, Plus, Trash2, Copy, Archive, CheckCircle2 } from 'lucide-react';
 
 /* Dossier projet 360° — dossier métier événementiel : brief, timeline (jalons +
@@ -18,13 +19,13 @@ export const ProjectDetailDrawer: React.FC<{ project: Project; onClose: () => vo
 }) => {
   const { updateProjectDetails, quotes } = useProjectData();
   const { tasks } = useEnterpriseErp();
+  const { activePalette } = useTheme();
   const [err, setErr] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [msTitle, setMsTitle] = useState('');
   const [msDate, setMsDate] = useState('');
   const [msOwner, setMsOwner] = useState('');
   const [memberName, setMemberName] = useState('');
-  const [memberRole, setMemberRole] = useState('');
   const [delName, setDelName] = useState('');
 
   const save = async (patch: Partial<Project>, doneMsg?: string) => {
@@ -60,87 +61,160 @@ export const ProjectDetailDrawer: React.FC<{ project: Project; onClose: () => vo
     setMsTitle(''); setMsDate(''); setMsOwner('');
   };
 
+  const cellStyle = {
+    backgroundColor: activePalette.colors.bgSubtle,
+    borderColor: activePalette.colors.border
+  };
+  const actionButtonStyle = {
+    backgroundColor: activePalette.colors.bgSubtle,
+    borderColor: activePalette.colors.border,
+    color: activePalette.colors.textMain
+  };
+  const sectionTitleClass = 'font-black viva-heading uppercase text-[11px] tracking-wider';
+
   return (
-    <div className="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-sm overflow-y-auto">
+    <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm overflow-y-auto">
       <div className="min-h-screen flex justify-end">
-        <div className="w-full max-w-2xl bg-slate-900 border-l border-slate-800 p-6 sm:p-8 space-y-6">
-          <div className="flex items-start justify-between gap-3 border-b border-slate-800 pb-4">
+        <div
+          className="w-full max-w-2xl border-l p-6 sm:p-8 space-y-6"
+          style={{
+            backgroundColor: activePalette.colors.bgSurface,
+            borderColor: activePalette.colors.border
+          }}
+        >
+          <div
+            className="flex items-start justify-between gap-3 border-b pb-4"
+            style={{ borderColor: activePalette.colors.border }}
+          >
             <div>
-              <span className="text-xs font-mono font-bold text-amber-400">{project.code}</span>
-              <h3 className="text-xl font-black text-white mt-1">{project.title}</h3>
-              <p className="text-xs text-slate-400">Client : {project.client} • {project.location} • {project.startDate} → {project.endDate}</p>
+              <span className="text-xs font-mono font-bold" style={{ color: activePalette.colors.accent }}>
+                {project.code}
+              </span>
+              <h3 className="text-xl font-black viva-heading mt-1">{project.title}</h3>
+              <p className="text-xs viva-muted">
+                Client : {project.client} • {project.location} • {project.startDate} → {project.endDate}
+              </p>
             </div>
-            <button onClick={onClose} className="p-2 rounded-xl bg-slate-800 text-slate-400 hover:text-white cursor-pointer"><X className="w-5 h-5" /></button>
+            <button
+              onClick={onClose}
+              className="p-2 rounded-xl viva-muted hover:opacity-70 cursor-pointer"
+              style={{ backgroundColor: activePalette.colors.bgSubtle }}
+              aria-label="Fermer"
+            >
+              <X className="w-5 h-5" />
+            </button>
           </div>
 
-          {err && <p className="text-xs text-rose-400 font-bold">{err}</p>}
+          {err && <p className="text-xs text-rose-500 font-bold">{err}</p>}
 
           <div className="flex flex-wrap items-center gap-2">
             <select
               value={project.priority ?? 'normale'}
               onChange={e => save({ priority: e.target.value as Project['priority'] })}
               disabled={busy}
-              className="px-3 py-1.5 rounded-xl bg-slate-950 border border-slate-700 text-xs font-bold text-white"
+              className="viva-input px-3 py-1.5 text-xs font-bold cursor-pointer disabled:opacity-50"
             >
               <option value="basse">Priorité basse</option>
               <option value="normale">Priorité normale</option>
               <option value="haute">Priorité haute</option>
               <option value="urgente">Priorité urgente</option>
             </select>
-            <button onClick={() => onDuplicate(project)} className="px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-xs font-bold text-slate-200 flex items-center gap-1.5 cursor-pointer">
+            <button
+              onClick={() => onDuplicate(project)}
+              className="px-3 py-1.5 rounded-xl border text-xs font-bold flex items-center gap-1.5 cursor-pointer hover:opacity-80"
+              style={actionButtonStyle}
+            >
               <Copy className="w-3.5 h-3.5" /> Dupliquer
             </button>
-            <button onClick={() => save({ archived: !project.archived })} className="px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-xs font-bold text-slate-200 flex items-center gap-1.5 cursor-pointer">
+            <button
+              onClick={() => save({ archived: !project.archived })}
+              className="px-3 py-1.5 rounded-xl border text-xs font-bold flex items-center gap-1.5 cursor-pointer hover:opacity-80"
+              style={actionButtonStyle}
+            >
               <Archive className="w-3.5 h-3.5" /> {project.archived ? 'Désarchiver' : 'Archiver'}
             </button>
           </div>
 
           {/* Brief événementiel */}
-          <section className="p-4 rounded-2xl bg-slate-950 border border-slate-800 space-y-1 text-xs">
-            <h4 className="font-black text-white uppercase text-[11px] tracking-wider">Brief événementiel</h4>
-            <p className="text-slate-300">{project.type} — {project.location}</p>
-            <p className="text-slate-400">Budget : <strong className="text-white">${project.budgetUSD.toLocaleString()} USD</strong> • Progression : <strong className="text-amber-400">{project.progressPercent}%</strong></p>
-            <p className="text-slate-400">Régie : {project.leadManager || '—'} • Protocole VIP : {project.vipProtocolRequired ? 'Oui' : 'Non'} • Habilitation : {project.securityClearance}</p>
-            <p className="text-slate-400">Pôles mobilisés : {project.departmentsAssigned.length > 0 ? project.departmentsAssigned.map(d => `D${d}`).join(', ') : '—'}</p>
+          <section className="p-4 rounded-2xl border space-y-1 text-xs" style={cellStyle}>
+            <h4 className={sectionTitleClass}>Brief événementiel</h4>
+            <p style={{ color: activePalette.colors.textMain }}>{project.type} — {project.location}</p>
+            <p className="viva-muted">
+              Budget : <strong style={{ color: activePalette.colors.textMain }}>${project.budgetUSD.toLocaleString()} USD</strong>
+              {' • '}Progression : <strong style={{ color: activePalette.colors.accent }}>{project.progressPercent}%</strong>
+            </p>
+            <p className="viva-muted">
+              Régie : {project.leadManager || '—'} • Protocole VIP : {project.vipProtocolRequired ? 'Oui' : 'Non'} • Habilitation : {project.securityClearance}
+            </p>
+            <p className="viva-muted">
+              Pôles mobilisés : {project.departmentsAssigned.length > 0 ? project.departmentsAssigned.map(d => `D${d}`).join(', ') : '—'}
+            </p>
           </section>
 
           {/* Timeline jalons */}
           <section className="space-y-3">
-            <h4 className="font-black text-white uppercase text-[11px] tracking-wider">Rétroplanning — Jalons ({milestones.length})</h4>
-            {milestones.length === 0 && <p className="text-xs text-slate-500 italic">Aucun jalon défini.</p>}
+            <h4 className={sectionTitleClass}>Rétroplanning — Jalons ({milestones.length})</h4>
+            {milestones.length === 0 && <p className="text-xs viva-muted italic">Aucun jalon défini.</p>}
             <div className="space-y-2">
               {[...milestones].sort((a, b) => (a.date < b.date ? -1 : 1)).map(m => (
-                <div key={m.id} className="p-3 rounded-xl bg-slate-950 border border-slate-800 flex flex-wrap items-center gap-2 text-xs">
-                  <span className="font-bold text-white flex-1 min-w-[10rem]">{m.title}</span>
-                  <span className="font-mono text-slate-400">{m.date}</span>
-                  {m.owner && <span className="text-slate-400">{m.owner}</span>}
-                  <select value={m.status} onChange={e => save({ detailedMilestones: milestones.map(x => (x.id === m.id ? { ...x, status: e.target.value as ProjectMilestone['status'] } : x)) })} className="px-2 py-1 rounded-lg bg-slate-900 border border-slate-800 text-[11px] text-white">
+                <div key={m.id} className="p-3 rounded-xl border flex flex-wrap items-center gap-2 text-xs" style={cellStyle}>
+                  <span className="font-bold flex-1 min-w-[10rem]" style={{ color: activePalette.colors.textMain }}>{m.title}</span>
+                  <span className="font-mono viva-muted">{m.date}</span>
+                  {m.owner && <span className="viva-muted">{m.owner}</span>}
+                  <select
+                    value={m.status}
+                    onChange={e => save({ detailedMilestones: milestones.map(x => (x.id === m.id ? { ...x, status: e.target.value as ProjectMilestone['status'] } : x)) })}
+                    className="viva-input px-2 py-1 text-[11px]"
+                  >
                     {MILESTONE_STATUS.map(s => <option key={s} value={s}>{s}</option>)}
                   </select>
-                  <button onClick={() => save({ detailedMilestones: milestones.filter(x => x.id !== m.id) })} className="p-1.5 text-slate-500 hover:text-rose-400 cursor-pointer"><Trash2 className="w-3.5 h-3.5" /></button>
+                  <button
+                    onClick={() => save({ detailedMilestones: milestones.filter(x => x.id !== m.id) })}
+                    className="p-1.5 viva-muted hover:text-rose-500 cursor-pointer"
+                    aria-label="Supprimer le jalon"
+                  >
+                    <Trash2 className="w-3.5 h-3.5" />
+                  </button>
                 </div>
               ))}
             </div>
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-              <input value={msTitle} onChange={e => setMsTitle(e.target.value)} placeholder="Jalon" className="px-3 py-2 rounded-xl bg-slate-950 border border-slate-800 text-white text-xs sm:col-span-2" />
-              <input type="date" value={msDate} onChange={e => setMsDate(e.target.value)} className="px-3 py-2 rounded-xl bg-slate-950 border border-slate-800 text-white text-xs" />
+              <input
+                value={msTitle}
+                onChange={e => setMsTitle(e.target.value)}
+                placeholder="Jalon"
+                className="viva-input px-3 py-2 text-xs sm:col-span-2"
+              />
+              <input
+                type="date"
+                value={msDate}
+                onChange={e => setMsDate(e.target.value)}
+                className="viva-input px-3 py-2 text-xs"
+              />
               <div className="flex gap-2">
-                <input value={msOwner} onChange={e => setMsOwner(e.target.value)} placeholder="Responsable" className="flex-1 px-3 py-2 rounded-xl bg-slate-950 border border-slate-800 text-white text-xs" />
-                <button onClick={addMilestone} className="px-3 py-2 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-black text-xs cursor-pointer"><Plus className="w-4 h-4" /></button>
+                <input
+                  value={msOwner}
+                  onChange={e => setMsOwner(e.target.value)}
+                  placeholder="Responsable"
+                  className="viva-input flex-1 px-3 py-2 text-xs"
+                />
+                <button onClick={addMilestone} className="viva-btn-primary px-3 py-2 text-xs" aria-label="Ajouter le jalon">
+                  <Plus className="w-4 h-4" />
+                </button>
               </div>
             </div>
           </section>
 
           {/* Tâches liées (réelles) */}
           <section className="space-y-2">
-            <h4 className="font-black text-white uppercase text-[11px] tracking-wider">Tâches liées ({linkedTasks.length})</h4>
+            <h4 className={sectionTitleClass}>Tâches liées ({linkedTasks.length})</h4>
             {linkedTasks.length === 0 ? (
-              <p className="text-xs text-slate-500 italic">Aucune tâche rattachée à ce code projet.</p>
+              <p className="text-xs viva-muted italic">Aucune tâche rattachée à ce code projet.</p>
             ) : (
               linkedTasks.slice(0, 8).map(t => (
-                <div key={t.id} className="p-2.5 rounded-xl bg-slate-950 border border-slate-800 flex items-center justify-between text-xs">
-                  <span className="text-slate-200 font-bold truncate">{t.title}</span>
-                  <span className="font-mono text-slate-400">{t.status.replace(/_/g, ' ')}</span>
+                <div key={t.id} className="p-2.5 rounded-xl border flex items-center justify-between text-xs" style={cellStyle}>
+                  <span className="font-bold truncate" style={{ color: activePalette.colors.textMain }}>{t.title}</span>
+                  <span className="font-mono viva-muted">{t.status.replace(/_/g, ' ')}</span>
                 </div>
               ))
             )}
@@ -148,22 +222,33 @@ export const ProjectDetailDrawer: React.FC<{ project: Project; onClose: () => vo
 
           {/* Équipe */}
           <section className="space-y-2">
-            <h4 className="font-black text-white uppercase text-[11px] tracking-wider">Équipe ({team.length})</h4>
+            <h4 className={sectionTitleClass}>Équipe ({team.length})</h4>
             {team.map((m, i) => (
-              <div key={i} className="p-2.5 rounded-xl bg-slate-950 border border-slate-800 flex items-center justify-between text-xs">
-                <span className="text-slate-200">{m}</span>
-                <button onClick={() => save({ team: team.filter((_, j) => j !== i) })} className="text-slate-500 hover:text-rose-400 cursor-pointer text-[11px]">Retirer</button>
+              <div key={i} className="p-2.5 rounded-xl border flex items-center justify-between text-xs" style={cellStyle}>
+                <span style={{ color: activePalette.colors.textMain }}>{m}</span>
+                <button
+                  onClick={() => save({ team: team.filter((_, j) => j !== i) })}
+                  className="viva-muted hover:text-rose-500 cursor-pointer text-[11px]"
+                >
+                  Retirer
+                </button>
               </div>
             ))}
             <div className="flex gap-2">
-              <input value={memberName} onChange={e => setMemberName(e.target.value)} placeholder="Nom — fonction (ex. A. Mbuyi — Régisseur)" className="flex-1 px-3 py-2 rounded-xl bg-slate-950 border border-slate-800 text-white text-xs" />
+              <input
+                value={memberName}
+                onChange={e => setMemberName(e.target.value)}
+                placeholder="Nom — fonction (ex. A. Mbuyi — Régisseur)"
+                className="viva-input flex-1 px-3 py-2 text-xs"
+              />
               <button
                 onClick={() => {
                   if (!memberName.trim()) return;
                   save({ team: [...team, memberName.trim()] });
                   setMemberName('');
                 }}
-                className="px-3 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-xs font-bold text-slate-200 cursor-pointer"
+                className="px-3 py-2 rounded-xl border text-xs font-bold cursor-pointer hover:opacity-80"
+                style={actionButtonStyle}
               >
                 Ajouter
               </button>
@@ -172,31 +257,45 @@ export const ProjectDetailDrawer: React.FC<{ project: Project; onClose: () => vo
 
           {/* Livrables */}
           <section className="space-y-2">
-            <h4 className="font-black text-white uppercase text-[11px] tracking-wider">Livrables ({deliverables.length})</h4>
+            <h4 className={sectionTitleClass}>Livrables ({deliverables.length})</h4>
             {deliverables.map(d => (
-              <div key={d.id} className="p-2.5 rounded-xl bg-slate-950 border border-slate-800 flex items-center justify-between text-xs">
-                <span className="text-slate-200 font-bold truncate">{d.name}</span>
-                <button onClick={() => save({ detailedDeliverables: deliverables.map(x => (x.id === d.id ? { ...x, status: x.status === 'ready' ? 'pending' : 'ready' } : x)) })} className="flex items-center gap-1 text-[11px] font-bold text-emerald-300 cursor-pointer">
+              <div key={d.id} className="p-2.5 rounded-xl border flex items-center justify-between text-xs" style={cellStyle}>
+                <span className="font-bold truncate" style={{ color: activePalette.colors.textMain }}>{d.name}</span>
+                <button
+                  onClick={() => save({ detailedDeliverables: deliverables.map(x => (x.id === d.id ? { ...x, status: x.status === 'ready' ? 'pending' : 'ready' } : x)) })}
+                  className="flex items-center gap-1 text-[11px] font-bold text-emerald-500 cursor-pointer"
+                >
                   <CheckCircle2 className="w-3.5 h-3.5" /> {d.status === 'ready' ? 'Prêt' : 'En attente'}
                 </button>
               </div>
             ))}
             <div className="flex gap-2">
-              <input value={delName} onChange={e => setDelName(e.target.value)} placeholder="Nouveau livrable" className="flex-1 px-3 py-2 rounded-xl bg-slate-950 border border-slate-800 text-white text-xs" />
-              <button onClick={() => { if (delName.trim()) { save({ detailedDeliverables: [...deliverables, { id: `dlv-${Date.now()}`, name: delName.trim(), status: 'pending' }] }); setDelName(''); } }} className="px-3 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-xs font-bold text-slate-200 cursor-pointer">Ajouter</button>
+              <input
+                value={delName}
+                onChange={e => setDelName(e.target.value)}
+                placeholder="Nouveau livrable"
+                className="viva-input flex-1 px-3 py-2 text-xs"
+              />
+              <button
+                onClick={() => { if (delName.trim()) { save({ detailedDeliverables: [...deliverables, { id: `dlv-${Date.now()}`, name: delName.trim(), status: 'pending' }] }); setDelName(''); } }}
+                className="px-3 py-2 rounded-xl border text-xs font-bold cursor-pointer hover:opacity-80"
+                style={actionButtonStyle}
+              >
+                Ajouter
+              </button>
             </div>
           </section>
 
           {/* Devis liés (réels) */}
           <section className="space-y-2">
-            <h4 className="font-black text-white uppercase text-[11px] tracking-wider">Devis liés ({linkedQuotes.length})</h4>
+            <h4 className={sectionTitleClass}>Devis liés ({linkedQuotes.length})</h4>
             {linkedQuotes.length === 0 ? (
-              <p className="text-xs text-slate-500 italic">Aucun devis rattaché (code projet).</p>
+              <p className="text-xs viva-muted italic">Aucun devis rattaché (code projet).</p>
             ) : (
               linkedQuotes.map(q => (
-                <div key={q.id} className="p-2.5 rounded-xl bg-slate-950 border border-slate-800 flex items-center justify-between text-xs">
-                  <span className="text-slate-200 font-mono">{q.referenceNumber} — {q.eventName}</span>
-                  <span className="text-emerald-400 font-black">${q.estimatedBudgetUSD.toLocaleString()}</span>
+                <div key={q.id} className="p-2.5 rounded-xl border flex items-center justify-between text-xs" style={cellStyle}>
+                  <span className="font-mono" style={{ color: activePalette.colors.textMain }}>{q.referenceNumber} — {q.eventName}</span>
+                  <span className="text-emerald-500 font-black">${q.estimatedBudgetUSD.toLocaleString()}</span>
                 </div>
               ))
             )}

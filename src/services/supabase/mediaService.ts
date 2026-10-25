@@ -50,10 +50,12 @@ export function pgToMedia(p: Record<string, unknown>): MediaItem {
     undefined,
     typeof p.storage_path === 'string' ? p.storage_path : undefined,
   );
+  const metadata = (p.metadata as Record<string, unknown> | null) ?? {};
   return {
     id: String(p.id),
     title: String(p.title ?? ''),
     description: String(p.description ?? ''),
+    caption: (metadata.caption as string) ?? undefined,
     type: (p.media_type as MediaItem['type']) ?? 'photo',
     category: (p.category as MediaItem['category']) ?? 'general',
     url,
@@ -61,11 +63,13 @@ export function pgToMedia(p: Record<string, unknown>): MediaItem {
     storagePath: location.storagePath,
     thumbnailUrl: (p.thumbnail_url as string) ?? undefined,
     youtubeVideoId: (p.youtube_video_id as string) ?? undefined,
+    projectName: (metadata.projectName as string) ?? undefined,
+    realizationDate: (metadata.realizationDate as string) ?? undefined,
     isFeatured: Boolean(p.is_featured ?? false),
     order: Number(p.position ?? 0),
     status: (p.status as MediaItem['status']) ?? 'draft',
     uploadedAt: String(p.created_at ?? ''),
-    uploadedBy: '',
+    uploadedBy: (metadata.uploadedBy as string) ?? '',
   };
 }
 
@@ -94,6 +98,12 @@ export async function saveMedia(m: MediaItem): Promise<void> {
     position: m.order,
     visibility: 'public',
     status: m.status,
+    metadata: {
+      caption: m.caption ?? null,
+      projectName: m.projectName ?? null,
+      realizationDate: m.realizationDate ?? null,
+      uploadedBy: m.uploadedBy,
+    },
   };
   // Appariement par id puis URL publique (stable cross-systèmes).
   let pgId: string | null = null;

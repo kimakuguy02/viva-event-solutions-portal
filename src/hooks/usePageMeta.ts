@@ -10,6 +10,7 @@ const META: Record<string, { title: string; description: string }> = {
     description: 'Conception, production et logistique événementielle de haute précision à Kinshasa et en Afrique Centrale.',
   },
   'welcome-about': { title: 'À propos — VIVA EVENT SOLUTIONS', description: 'Présentation officielle, vision et valeurs de VIVA EVENT SOLUTIONS SARLU.' },
+  events: { title: 'Catalogue des événements — VIVA EVENT SOLUTIONS', description: 'Sommets, galas, forums et conférences produits par VIVA EVENT SOLUTIONS : recherche et filtres par catégorie.' },
   departments: { title: 'Nos 15 pôles — VIVA EVENT SOLUTIONS', description: 'Scénographie, son, LED, énergie, protocole, traduction et plus.' },
   partners: { title: 'Partenaires — VIVA EVENT SOLUTIONS', description: '7 collèges de prestataires certifiés.' },
   equipment: { title: 'Parc matériel — VIVA EVENT SOLUTIONS', description: 'Inventaire technique : son, lumière, LED, énergie.' },

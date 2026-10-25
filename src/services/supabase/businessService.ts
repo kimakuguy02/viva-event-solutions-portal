@@ -102,8 +102,9 @@ export async function fetchQuotes(): Promise<QuoteRequest[]> {
   return ((data ?? []) as Record<string, unknown>[]).map(pgToQuote);
 }
 
+// La référence est mintée côté serveur (submit_quote) : le navigateur ne peut
+// plus choisir un numéro, un statut ou un total arbitraire.
 export async function insertQuote(q: {
-  referenceNumber: string;
   clientName: string;
   clientEmail: string;
   eventName: string;
@@ -111,30 +112,22 @@ export async function insertQuote(q: {
   location?: string;
   attendees?: number;
   budgetUSD?: number;
-}): Promise<void> {
+}): Promise<string> {
   const sb = requireSupabase();
-  // Soumission publique : insert RLS prévu (submitted_by = session ou NULL si anon).
-  let submittedBy: string | null = null;
-  try {
-    const { data } = await sb.auth.getSession();
-    submittedBy = data.session?.user.id ?? null;
-  } catch { /* anon */ }
   const budget = Number(q.budgetUSD) || 0;
-  const { error } = await sb.from('quotes').insert({
-    reference_number: q.referenceNumber,
-    client_name: q.clientName,
-    client_email: q.clientEmail,
-    event_name: q.eventName,
-    event_date: q.eventDate || null,
-    location: q.location || '',
-    attendees: Number(q.attendees) || 0,
-    subtotal_usd: budget,
-    discount_usd: 0,
-    total_usd: budget,
-    status: 'submitted',
-    submitted_by: submittedBy,
+  const { data, error } = await sb.rpc('submit_quote', {
+    p_client_name: q.clientName,
+    p_client_email: q.clientEmail,
+    p_event_name: q.eventName,
+    p_event_date: q.eventDate || null,
+    p_location: q.location || '',
+    p_attendees: Number(q.attendees) || 0,
+    p_budget_usd: budget,
   });
   if (error) throw new Error(`Soumission devis refusée : ${error.message}`);
+  const reference = typeof data === 'string' ? data : '';
+  if (!reference) throw new Error('Soumission devis refusée : référence absente.');
+  return reference;
 }
 
 export async function updateQuoteStatus(referenceNumber: string, status: QuoteRequest['status']): Promise<void> {

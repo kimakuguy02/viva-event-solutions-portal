@@ -190,7 +190,7 @@ export const EventReservationModal: React.FC<EventReservationModalProps> = ({
     <div className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 bg-slate-900/60 backdrop-blur-sm animate-fadeIn overflow-y-auto">
       <div className="relative max-w-3xl w-full rounded-2xl sm:rounded-3xl border border-slate-100 bg-white shadow-2xl overflow-hidden my-auto max-h-[94vh] flex flex-col transition-all">
         {/* Top Accent Strip */}
-        <div className="h-1.5 w-full bg-gradient-to-r from-[#4A6CF7] via-[#8B5CF6] to-[#4A6CF7] shrink-0" />
+        <div className="h-1.5 w-full bg-gradient-to-r from-[var(--viva-primary)] via-[#8B5CF6] to-[var(--viva-primary)] shrink-0" />
 
         {/* Close Button */}
         <button
@@ -204,14 +204,14 @@ export const EventReservationModal: React.FC<EventReservationModalProps> = ({
           <form onSubmit={handleSubmitReservation} className="p-4 sm:p-8 space-y-5 sm:space-y-6 overflow-y-auto">
             {/* Header */}
             <div className="space-y-1.5 pr-8">
-              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-blue-50 text-[#4A6CF7] border border-blue-100 text-xs font-semibold uppercase tracking-wider">
+              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-blue-50 text-[var(--viva-primary)] border border-blue-100 text-xs font-semibold uppercase tracking-wider">
                 <Calendar className="w-3.5 h-3.5" />
                 <span>Anticipation Événementielle & Blocage de Calendrier</span>
               </div>
               <h3 className="text-xl sm:text-2xl font-black text-slate-900">
                 Réservation de Projet Événementiel Avant le Jour J
               </h3>
-              <p className="text-xs text-[#6B7280] leading-relaxed">
+              <p className="text-xs text-[var(--viva-text-muted)] leading-relaxed">
                 Faites-nous parvenir votre projet dès aujourd'hui. L'anticipation garantit la réservation prioritaire de nos parcs de matériels lourds (Line Array, écrans LED, régies 4K) et la mobilisation de nos directeurs de régie.
               </p>
             </div>
@@ -225,7 +225,7 @@ export const EventReservationModal: React.FC<EventReservationModalProps> = ({
 
             {/* Section 1 : Le Projet & la Date */}
             <div className="space-y-4 pt-1">
-              <h4 className="text-xs font-semibold uppercase tracking-wider text-[#4A6CF7] flex items-center gap-2">
+              <h4 className="text-xs font-semibold uppercase tracking-wider text-[var(--viva-primary)] flex items-center gap-2">
                 <Sparkles className="w-3.5 h-3.5" />
                 <span>1. Détails de l'Événement & Calendrier Prévu</span>
               </h4>
@@ -242,7 +242,7 @@ export const EventReservationModal: React.FC<EventReservationModalProps> = ({
                     placeholder="Ex: Sommet Économique RDC 2026 / Lancement Produit / Mariage Prestige"
                     value={eventName}
                     onChange={e => setEventName(e.target.value)}
-                    className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 bg-slate-50 text-xs font-medium text-slate-900 outline-none focus:border-[#4A6CF7] focus:bg-white transition-all"
+                    className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 bg-slate-50 text-xs font-medium text-slate-900 outline-none focus:border-[var(--viva-primary)] focus:bg-white transition-all"
                   />
                 </div>
 
@@ -254,7 +254,7 @@ export const EventReservationModal: React.FC<EventReservationModalProps> = ({
                   <select
                     value={eventType}
                     onChange={e => setEventType(e.target.value as any)}
-                    className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 bg-slate-50 text-xs font-medium text-slate-900 outline-none focus:border-[#4A6CF7] focus:bg-white cursor-pointer"
+                    className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 bg-slate-50 text-xs font-medium text-slate-900 outline-none focus:border-[var(--viva-primary)] focus:bg-white cursor-pointer"
                   >
                     <option value="institutionnel">Sommet Institutionnel / Ministériel</option>
                     <option value="diplomatique">Conférence Diplomatique & Protocolaire</option>
@@ -278,7 +278,7 @@ export const EventReservationModal: React.FC<EventReservationModalProps> = ({
                     value={eventDate}
                     min={new Date().toISOString().split('T')[0]}
                     onChange={e => setEventDate(e.target.value)}
-                    className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 bg-slate-50 text-xs font-mono font-medium text-slate-900 outline-none focus:border-[#4A6CF7] focus:bg-white"
+                    className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 bg-slate-50 text-xs font-mono font-medium text-slate-900 outline-none focus:border-[var(--viva-primary)] focus:bg-white"
                   />
                 </div>
               </div>
@@ -290,7 +290,7 @@ export const EventReservationModal: React.FC<EventReservationModalProps> = ({
                     daysUntilEvent > 30
                       ? 'bg-emerald-50 border-emerald-200 text-emerald-700'
                       : daysUntilEvent > 10
-                      ? 'bg-blue-50 border-blue-200 text-[#4A6CF7]'
+                      ? 'bg-blue-50 border-blue-200 text-[var(--viva-primary)]'
                       : 'bg-amber-50 border-amber-200 text-amber-700'
                   }`}
                 >
@@ -321,7 +321,7 @@ export const EventReservationModal: React.FC<EventReservationModalProps> = ({
                   <select
                     value={durationDays}
                     onChange={e => setDurationDays(e.target.value)}
-                    className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 bg-slate-50 text-xs font-medium text-slate-900 outline-none focus:border-[#4A6CF7] cursor-pointer"
+                    className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 bg-slate-50 text-xs font-medium text-slate-900 outline-none focus:border-[var(--viva-primary)] cursor-pointer"
                   >
                     <option value="1">1 Jour</option>
                     <option value="2">2 Jours</option>
@@ -342,7 +342,7 @@ export const EventReservationModal: React.FC<EventReservationModalProps> = ({
                     placeholder="Ex: Kinshasa - Fleuve Congo Hotel"
                     value={location}
                     onChange={e => setLocation(e.target.value)}
-                    className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 bg-slate-50 text-xs font-medium text-slate-900 outline-none focus:border-[#4A6CF7]"
+                    className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 bg-slate-50 text-xs font-medium text-slate-900 outline-none focus:border-[var(--viva-primary)]"
                   />
                 </div>
 
@@ -350,7 +350,7 @@ export const EventReservationModal: React.FC<EventReservationModalProps> = ({
                 <div>
                   <label className="block text-xs font-semibold uppercase tracking-wider text-slate-700 mb-1 flex items-center justify-between">
                     <span>Participants Estimés</span>
-                    <span className="text-[#4A6CF7] font-bold font-mono text-[11px] normal-case bg-blue-50 px-2 py-0.5 rounded-full border border-blue-100">Ex: 250</span>
+                    <span className="text-[var(--viva-primary)] font-bold font-mono text-[11px] normal-case bg-blue-50 px-2 py-0.5 rounded-full border border-blue-100">Ex: 250</span>
                   </label>
                   <input
                     type="text"
@@ -358,7 +358,7 @@ export const EventReservationModal: React.FC<EventReservationModalProps> = ({
                     placeholder="Ex: 250"
                     value={attendeesInput}
                     onChange={e => setAttendeesInput(e.target.value)}
-                    className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 bg-slate-50 text-xs font-mono font-medium text-slate-900 outline-none focus:border-[#4A6CF7] focus:bg-white transition-colors"
+                    className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 bg-slate-50 text-xs font-mono font-medium text-slate-900 outline-none focus:border-[var(--viva-primary)] focus:bg-white transition-colors"
                   />
                   <p className="text-[10px] text-slate-500 mt-1">Ex: 250 participants (commencez par Ex:)</p>
                 </div>
@@ -368,11 +368,11 @@ export const EventReservationModal: React.FC<EventReservationModalProps> = ({
             {/* Section 2 : Les Pôles à Bloquer */}
             <div className="space-y-3 pt-2">
               <div className="flex items-center justify-between">
-                <h4 className="text-xs font-semibold uppercase tracking-wider text-[#4A6CF7] flex items-center gap-2">
+                <h4 className="text-xs font-semibold uppercase tracking-wider text-[var(--viva-primary)] flex items-center gap-2">
                   <Layers className="w-3.5 h-3.5" />
                   <span>2. Pôles VIVA EVENTS à Mobiliser en Priorité</span>
                 </h4>
-                <span className="text-[11px] text-[#6B7280]">
+                <span className="text-[11px] text-[var(--viva-text-muted)]">
                   {selectedPoles.length} sélectionné(s) sur {departments.length}
                 </span>
               </div>
@@ -388,19 +388,19 @@ export const EventReservationModal: React.FC<EventReservationModalProps> = ({
                       onClick={() => togglePole(dept.id)}
                       className={`p-2.5 rounded-xl border text-left flex items-center gap-2.5 transition-all text-xs cursor-pointer ${
                         isSelected
-                          ? 'bg-blue-50 border-blue-300 text-[#4A6CF7] font-semibold shadow-xs'
+                          ? 'bg-blue-50 border-blue-300 text-[var(--viva-primary)] font-semibold shadow-xs'
                           : 'bg-white border-slate-200 text-slate-600 hover:border-slate-300 hover:bg-slate-50'
                       }`}
                     >
                       <div className={`w-5 h-5 rounded flex items-center justify-center text-[10px] font-bold shrink-0 ${
-                        isSelected ? 'bg-[#4A6CF7] text-white' : 'bg-slate-100 text-slate-500'
+                        isSelected ? 'bg-[var(--viva-primary)] text-white' : 'bg-slate-100 text-slate-500'
                       }`}>
                         {isSelected ? '✓' : (dept.number < 10 ? `0${dept.number}` : dept.number)}
                       </div>
                       <div className="min-w-0 flex-1">
                         <span className="truncate block font-medium">{dept.name}</span>
                         {isAudiovisuelCinema && (
-                          <span className="text-[9px] text-[#4A6CF7] font-bold block">4K / Cinéma / Drones</span>
+                          <span className="text-[9px] text-[var(--viva-primary)] font-bold block">4K / Cinéma / Drones</span>
                         )}
                       </div>
                     </button>
@@ -414,14 +414,14 @@ export const EventReservationModal: React.FC<EventReservationModalProps> = ({
               <div>
                 <label className="block text-xs font-semibold uppercase tracking-wider text-slate-700 mb-1 flex items-center justify-between">
                   <span>Budget Estimatif (USD)</span>
-                  <span className="text-[#4A6CF7] font-bold font-mono text-[11px] normal-case bg-blue-50 px-2 py-0.5 rounded-full border border-blue-100">Ex: 12 000 USD</span>
+                  <span className="text-[var(--viva-primary)] font-bold font-mono text-[11px] normal-case bg-blue-50 px-2 py-0.5 rounded-full border border-blue-100">Ex: 12 000 USD</span>
                 </label>
                 <input
                   type="text"
                   placeholder="Ex: 12 000 USD"
                   value={budgetInput}
                   onChange={e => setBudgetInput(e.target.value)}
-                  className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 bg-slate-50 text-xs font-mono font-medium text-slate-900 outline-none focus:border-[#4A6CF7] focus:bg-white transition-colors"
+                  className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 bg-slate-50 text-xs font-mono font-medium text-slate-900 outline-none focus:border-[var(--viva-primary)] focus:bg-white transition-colors"
                 />
                 <p className="text-[10px] text-slate-500 mt-1">Ex: 12 000 USD (commencez par Ex:)</p>
               </div>
@@ -435,14 +435,14 @@ export const EventReservationModal: React.FC<EventReservationModalProps> = ({
                   placeholder="Ex: Cabines de traduction requises, direct live sur RTNC, groupes synchronisés..."
                   value={customNotes}
                   onChange={e => setCustomNotes(e.target.value)}
-                  className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 bg-slate-50 text-xs font-medium text-slate-900 outline-none focus:border-[#4A6CF7]"
+                  className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 bg-slate-50 text-xs font-medium text-slate-900 outline-none focus:border-[var(--viva-primary)]"
                 />
               </div>
             </div>
 
             {/* Section 4 : Coordonnées de l'Organisateur */}
             <div className="space-y-3 pt-2 border-t border-slate-100">
-              <h4 className="text-xs font-semibold uppercase tracking-wider text-[#4A6CF7] flex items-center gap-2">
+              <h4 className="text-xs font-semibold uppercase tracking-wider text-[var(--viva-primary)] flex items-center gap-2">
                 <Phone className="w-3.5 h-3.5" />
                 <span>3. Coordonnées de l'Organisateur / Client</span>
               </h4>
@@ -456,7 +456,7 @@ export const EventReservationModal: React.FC<EventReservationModalProps> = ({
                     placeholder="Votre Nom"
                     value={organizerName}
                     onChange={e => setOrganizerName(e.target.value)}
-                    className="w-full p-2 rounded-xl border border-slate-200 bg-slate-50 text-xs text-slate-900 outline-none focus:border-[#4A6CF7]"
+                    className="w-full p-2 rounded-xl border border-slate-200 bg-slate-50 text-xs text-slate-900 outline-none focus:border-[var(--viva-primary)]"
                   />
                 </div>
 
@@ -467,7 +467,7 @@ export const EventReservationModal: React.FC<EventReservationModalProps> = ({
                     placeholder="Société / Institution"
                     value={organization}
                     onChange={e => setOrganization(e.target.value)}
-                    className="w-full p-2 rounded-xl border border-slate-200 bg-slate-50 text-xs text-slate-900 outline-none focus:border-[#4A6CF7]"
+                    className="w-full p-2 rounded-xl border border-slate-200 bg-slate-50 text-xs text-slate-900 outline-none focus:border-[var(--viva-primary)]"
                   />
                 </div>
 
@@ -479,7 +479,7 @@ export const EventReservationModal: React.FC<EventReservationModalProps> = ({
                     placeholder="+243 00 000 0000"
                     value={phone}
                     onChange={e => setPhone(e.target.value)}
-                    className="w-full p-2 rounded-xl border border-slate-200 bg-slate-50 text-xs font-mono font-medium text-slate-900 outline-none focus:border-[#4A6CF7]"
+                    className="w-full p-2 rounded-xl border border-slate-200 bg-slate-50 text-xs font-mono font-medium text-slate-900 outline-none focus:border-[var(--viva-primary)]"
                   />
                 </div>
 
@@ -490,7 +490,7 @@ export const EventReservationModal: React.FC<EventReservationModalProps> = ({
                     placeholder="contact@domaine.cd"
                     value={email}
                     onChange={e => setEmail(e.target.value)}
-                    className="w-full p-2 rounded-xl border border-slate-200 bg-slate-50 text-xs text-slate-900 outline-none focus:border-[#4A6CF7]"
+                    className="w-full p-2 rounded-xl border border-slate-200 bg-slate-50 text-xs text-slate-900 outline-none focus:border-[var(--viva-primary)]"
                   />
                 </div>
               </div>
@@ -509,7 +509,7 @@ export const EventReservationModal: React.FC<EventReservationModalProps> = ({
               <button
                 type="submit"
                 disabled={isSubmitting}
-                className="w-full sm:w-auto px-7 py-2.5 rounded-full font-semibold text-xs sm:text-sm shadow-sm flex items-center justify-center gap-2 cursor-pointer transition-all bg-[#4A6CF7] hover:bg-[#3B5CE6] text-white disabled:opacity-50"
+                className="w-full sm:w-auto px-7 py-2.5 rounded-full font-semibold text-xs sm:text-sm shadow-sm flex items-center justify-center gap-2 cursor-pointer transition-all bg-[var(--viva-primary)] hover:bg-[var(--viva-primary-dark)] text-white disabled:opacity-50"
               >
                 <Calendar className="w-4 h-4" />
                 <span>{isSubmitting ? 'Blocage de réservation...' : 'Transmettre & Réserver l\'Événement'}</span>
@@ -524,13 +524,13 @@ export const EventReservationModal: React.FC<EventReservationModalProps> = ({
             </div>
 
             <div className="space-y-2">
-              <span className="text-[10px] font-mono font-bold text-[#4A6CF7] uppercase tracking-widest">
+              <span className="text-[10px] font-mono font-bold text-[var(--viva-primary)] uppercase tracking-widest">
                 Réservation Enregistrée • Réf : {confirmedReservationCode}
               </span>
               <h3 className="text-2xl sm:text-3xl font-black text-slate-900">
                 Projet Transmis avec Succès !
               </h3>
-              <p className="text-sm text-[#6B7280] max-w-lg mx-auto leading-relaxed">
+              <p className="text-sm text-[var(--viva-text-muted)] max-w-lg mx-auto leading-relaxed">
                 Votre projet <strong>« {eventName} »</strong> a été directement transmis à notre Direction Technique et Commerciale. Notre régie vous contactera sous 2 heures sur votre WhatsApp ({phone}) pour valider l'option sur le calendrier.
               </p>
             </div>

@@ -54,6 +54,22 @@ export const SuperAdminDashboard: React.FC<{ onNavigate: (tab: string) => void }
         <CountCard label="Médias / Directions" value={mediaItems.length} detail={`${directionsOrg.length} directions • ${formSubmissions.length} soumissions`} icon={<Radio className="w-5 h-5" />} />
       </div>
 
+      <div className="rounded-3xl bg-slate-950 border border-slate-800 p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div className="min-w-0">
+          <div className="text-[11px] font-bold uppercase tracking-wider text-amber-400">Contenu institutionnel</div>
+          <div className="text-sm font-bold text-white mt-1">Texte de bienvenue du portail</div>
+          <p className="text-[11px] text-slate-400 mt-1">
+            Modifiez le message d'accueil officiel, enregistrez un brouillon puis publiez la version validée.
+          </p>
+        </div>
+        <button
+          onClick={() => onNavigate('site-editor')}
+          className="px-4 py-2.5 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 text-xs font-black whitespace-nowrap cursor-pointer"
+        >
+          Modifier le texte de bienvenue
+        </button>
+      </div>
+
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
         <AdminCard
           title="Activité récente"

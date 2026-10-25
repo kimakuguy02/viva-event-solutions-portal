@@ -1,16 +1,14 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import { useTheme } from '../../context/ThemeContext';
+import heroEventImage from '../../assets/images/corporate_event_stage_1789481825088.jpg';
 import {
-  Building,
-  ShieldCheck,
   Mail,
   Lock,
   User,
   Phone,
   X,
   ArrowRight,
-  Sparkles,
   AlertCircle,
   CheckCircle2,
   LogIn,
@@ -60,7 +58,7 @@ export const ClientAuthModal: React.FC<ClientAuthModalProps> = ({
     }
   }, [isOpen, initialMode]);
 
-  // Lockout timer if too many failed attempts (15 minutes = 900s)
+  // Lockout timer if too many failed attempts (5 minutes)
   useEffect(() => {
     let timer: NodeJS.Timeout;
     if (isLocked && lockTimer > 0) {
@@ -89,16 +87,6 @@ export const ClientAuthModal: React.FC<ClientAuthModalProps> = ({
   const isValidPhone = (val: string) => {
     const cleaned = val.replace(/\s+/g, '');
     return /^\+[1-9][0-9]{7,14}$/.test(cleaned);
-  };
-
-  // Quick Demo Client login helper (données fictives — Phase 1, Bloc 6)
-  const handleQuickDemoClient = () => {
-    setName('Client Démo (fictif)');
-    setEmail('demo@exemple.invalid');
-    setPhone('+243 00 000 0000');
-    setClientType('Entreprise ou établissement');
-    setPassword('client2026!');
-    setIsRegister(false);
   };
 
   const handleCredentialsSubmit = async (e: React.FormEvent) => {
@@ -173,132 +161,234 @@ export const ClientAuthModal: React.FC<ClientAuthModalProps> = ({
     }
   };
 
+  const inputClass = 'viva-input w-full pl-10 pr-4 py-2.5 text-sm';
+  const labelClass = 'block text-xs font-bold viva-muted uppercase mb-1';
+
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/85 backdrop-blur-md animate-fadeIn">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-md animate-fadeIn overflow-y-auto">
       <div
-        className="relative max-w-lg w-full rounded-3xl border shadow-2xl p-6 sm:p-8 space-y-5 overflow-hidden"
+        className="relative max-w-4xl w-full rounded-3xl border shadow-2xl overflow-hidden my-6 grid lg:grid-cols-[0.85fr_1.15fr]"
         style={{
           backgroundColor: activePalette.colors.bgSurface,
-          borderColor: activePalette.colors.border
+          borderColor: activePalette.colors.border,
+          borderRadius: activePalette.design.radiusCard,
+          boxShadow: activePalette.design.cardShadow
         }}
       >
-        <button
-          onClick={onClose}
-          className="absolute top-6 right-6 p-2 rounded-xl bg-slate-800 text-slate-400 hover:text-white transition-colors cursor-pointer"
+        {/* Panneau marque (desktop) */}
+        <div
+          className="relative hidden lg:flex flex-col justify-between p-8 text-white overflow-hidden"
         >
-          <X className="w-5 h-5" />
-        </button>
+          <img
+            src={heroEventImage}
+            alt=""
+            aria-hidden="true"
+            className="absolute inset-0 h-full w-full object-cover"
+          />
+          <div
+            className="absolute inset-0"
+            style={{ background: activePalette.design.accentGradient, opacity: 0.88 }}
+            aria-hidden="true"
+          />
+          <div
+            className="absolute inset-0 opacity-25"
+            style={{ backgroundImage: 'radial-gradient(circle at 20% 10%, #FFFFFF 0%, transparent 45%)' }}
+            aria-hidden="true"
+          />
+          <div className="relative space-y-7">
+            <div className="flex items-center gap-2.5">
+              <span className="w-10 h-10 rounded-2xl bg-white/20 backdrop-blur-sm flex items-center justify-center font-black text-lg">
+                V
+              </span>
+              <div className="leading-tight">
+                <div className="font-black text-sm tracking-wide">VIVA EVENT</div>
+                <div className="text-[10px] tracking-[0.22em] opacity-80">SOLUTIONS SARLU</div>
+              </div>
+            </div>
+
+            <div className="space-y-3">
+              <h3 className="text-3xl font-black leading-tight">
+                Votre événement,<br />notre ingénierie.
+              </h3>
+              <p className="text-sm text-white/80 leading-relaxed">
+                Sommets, galas et forums : 15 pôles intégrés, de la conception à la régie finale.
+              </p>
+            </div>
+
+            <ul className="space-y-3 text-sm">
+              {[
+                'Commandes et devis centralisés',
+                'Suivi de vos événements en temps réel',
+                'Réservation directe du parc technique'
+              ].map(item => (
+                <li key={item} className="flex items-start gap-2.5 text-white/90">
+                  <CheckCircle2 className="w-4 h-4 mt-0.5 shrink-0" />
+                  <span>{item}</span>
+                </li>
+              ))}
+            </ul>
+          </div>
+
+          <div className="relative text-[11px] tracking-wide text-white/70 pt-8 uppercase">
+            Kinshasa • République démocratique du Congo
+          </div>
+        </div>
+
+        {/* Formulaire */}
+        <div className="relative p-6 sm:p-8 space-y-5">
+          <div
+            className="absolute top-0 left-0 right-0 h-1.5 lg:hidden"
+            style={{ background: activePalette.design.accentGradient }}
+          ></div>
+
+          <button
+            onClick={onClose}
+            className="absolute top-6 right-6 p-2 rounded-xl transition-colors cursor-pointer viva-muted hover:opacity-70"
+            style={{ backgroundColor: activePalette.colors.bgSubtle }}
+            aria-label="Fermer"
+          >
+            <X className="w-5 h-5" />
+          </button>
 
         {/* Header Badge */}
         <div className="space-y-1">
-          <div className="flex items-center gap-2">
-            <span className="px-2.5 py-0.5 rounded-full bg-amber-500/20 text-amber-300 font-bold text-xs border border-amber-500/30">
+          <div className="flex flex-wrap items-center gap-2">
+            <span
+              className="px-2.5 py-0.5 rounded-full font-bold text-xs border"
+              style={{
+                backgroundColor: `${activePalette.colors.accent}1A`,
+                borderColor: `${activePalette.colors.accent}40`,
+                color: activePalette.colors.accent
+              }}
+            >
               VIVA EVENT SOLUTIONS SARLU
             </span>
-            <span className="text-[10px] font-mono text-emerald-400 font-bold">
+            <span className="text-[10px] font-mono font-bold" style={{ color: activePalette.colors.tertiary }}>
               • Chiffrement & Espace Sécurisé
             </span>
           </div>
 
-          <h2 className="text-2xl font-black text-white flex items-center gap-2 pt-1">
+          <h2 className="text-2xl font-black viva-heading flex items-center gap-2 pt-1">
             {isRegister ? (
               <>
-                <UserPlus className="w-6 h-6 text-amber-400" />
+                <UserPlus className="w-6 h-6" style={{ color: activePalette.colors.accent }} />
                 <span>Créer un Compte Client</span>
               </>
             ) : (
               <>
-                <LogIn className="w-6 h-6 text-amber-400" />
+                <LogIn className="w-6 h-6" style={{ color: activePalette.colors.accent }} />
                 <span>Connexion Espace Client</span>
               </>
             )}
           </h2>
 
-          <p className="text-xs text-slate-300 leading-relaxed">
+          <p className="text-xs viva-muted leading-relaxed">
             {isRegister
-              ? "Créez votre compte en 1 minute pour commander du matériel lourd (3 200 kVA), réserver nos 15 pôles de services et suivre vos devis."
+              ? "Créez votre compte en 1 minute pour commander du matériel lourd, réserver nos 15 pôles de services et suivre vos devis."
               : "Connectez-vous pour passer vos commandes, suivre vos devis et gérer vos événements en temps réel."}
           </p>
         </div>
 
-        {/* Highlighted Banner for Ordering via Account */}
-        {(
-          <div className="p-3 rounded-2xl bg-gradient-to-r from-amber-500/15 via-amber-500/10 to-indigo-500/10 border border-amber-500/30 flex items-center gap-3">
-            <div className="w-9 h-9 rounded-xl bg-amber-500/20 text-amber-400 flex items-center justify-center shrink-0 border border-amber-500/30">
-              <ShoppingCart className="w-4 h-4" />
-            </div>
-            <div className="text-xs">
-              <span className="font-bold text-white block">Commandes & Réservations en ligne</span>
-              <span className="text-slate-300 text-[11px]">
-                {isRegister
-                  ? "Créer votre compte vous permet de réserver nos équipements sans intermédiaire."
-                  : "Votre compte client centralise tous vos bons de commande et devis officiels."}
-              </span>
-            </div>
+        {/* Rappel : commandes rattachées au compte */}
+        <div
+          className="p-3 rounded-2xl border flex items-center gap-3"
+          style={{
+            background: `linear-gradient(90deg, ${activePalette.colors.accent}14, ${activePalette.colors.tertiary}0F)`,
+            borderColor: `${activePalette.colors.accent}33`
+          }}
+        >
+          <div
+            className="w-9 h-9 rounded-xl flex items-center justify-center shrink-0 border"
+            style={{
+              backgroundColor: `${activePalette.colors.accent}1F`,
+              borderColor: `${activePalette.colors.accent}40`,
+              color: activePalette.colors.accent
+            }}
+          >
+            <ShoppingCart className="w-4 h-4" />
           </div>
-        )}
-
-        {/* Dual Mode Switcher Tabs: Connexion / Login VS Créer un Compte */}
-        {(
-          <div className="grid grid-cols-2 gap-2 p-1.5 rounded-2xl bg-slate-950/80 border border-slate-800">
-            <button
-              type="button"
-              onClick={() => {
-                setIsRegister(false);
-                setError(null);
-              }}
-              className={`py-2.5 px-3 rounded-xl font-black text-xs transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
-                !isRegister
-                  ? 'bg-amber-500 text-slate-950 shadow-md scale-[1.02]'
-                  : 'text-slate-400 hover:text-white hover:bg-slate-900'
-              }`}
-            >
-              <LogIn className="w-3.5 h-3.5" />
-              <span>Se Connecter</span>
-            </button>
-
-            <button
-              type="button"
-              onClick={() => {
-                setIsRegister(true);
-                setError(null);
-              }}
-              className={`py-2.5 px-3 rounded-xl font-black text-xs transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
-                isRegister
-                  ? 'bg-amber-500 text-slate-950 shadow-md scale-[1.02]'
-                  : 'text-slate-400 hover:text-white hover:bg-slate-900'
-              }`}
-            >
-              <UserPlus className="w-3.5 h-3.5" />
-              <span>Créer un Compte</span>
-            </button>
+          <div className="text-xs">
+            <span className="font-bold viva-heading block">Commandes & Réservations en ligne</span>
+            <span className="viva-muted text-[11px]">
+              {isRegister
+                ? "Créer votre compte vous permet de réserver nos équipements sans intermédiaire."
+                : "Votre compte client centralise tous vos bons de commande et devis officiels."}
+            </span>
           </div>
-        )}
+        </div>
+
+        {/* Onglets Connexion / Création */}
+        <div
+          className="grid grid-cols-2 gap-2 p-1.5 rounded-2xl border"
+          style={{
+            backgroundColor: activePalette.colors.bgSubtle,
+            borderColor: activePalette.colors.border
+          }}
+        >
+          <button
+            type="button"
+            onClick={() => {
+              setIsRegister(false);
+              setError(null);
+            }}
+            className="py-2.5 px-3 rounded-xl font-black text-xs transition-all flex items-center justify-center gap-1.5 cursor-pointer"
+            style={{
+              backgroundColor: !isRegister ? activePalette.colors.accent : 'transparent',
+              color: !isRegister ? activePalette.colors.onAccent : activePalette.colors.textMuted
+            }}
+          >
+            <LogIn className="w-3.5 h-3.5" />
+            <span>Se Connecter</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => {
+              setIsRegister(true);
+              setError(null);
+            }}
+            className="py-2.5 px-3 rounded-xl font-black text-xs transition-all flex items-center justify-center gap-1.5 cursor-pointer"
+            style={{
+              backgroundColor: isRegister ? activePalette.colors.accent : 'transparent',
+              color: isRegister ? activePalette.colors.onAccent : activePalette.colors.textMuted
+            }}
+          >
+            <UserPlus className="w-3.5 h-3.5" />
+            <span>Créer un Compte</span>
+          </button>
+        </div>
 
         {error && (
-          <div className="p-3.5 rounded-2xl bg-rose-500/20 border border-rose-500/50 text-rose-300 text-xs font-bold flex items-center gap-2">
+          <div className="p-3.5 rounded-2xl bg-rose-500/15 border border-rose-500/40 text-rose-500 text-xs font-bold flex items-center gap-2">
             <AlertCircle className="w-4 h-4 shrink-0" />
             <span>{error}</span>
           </div>
         )}
 
         {successMsg && (
-          <div className="p-3.5 rounded-2xl bg-amber-500/20 border border-amber-500/40 text-amber-300 text-xs font-bold space-y-1">
+          <div
+            className="p-3.5 rounded-2xl border text-xs font-bold space-y-1"
+            style={{
+              backgroundColor: `${activePalette.colors.accent}1A`,
+              borderColor: `${activePalette.colors.accent}40`,
+              color: activePalette.colors.accent
+            }}
+          >
             <div className="flex items-center gap-2">
-              <CheckCircle2 className="w-4 h-4 shrink-0 text-amber-400" />
+              <CheckCircle2 className="w-4 h-4 shrink-0" />
               <span>{successMsg}</span>
             </div>
           </div>
         )}
 
         {isLocked ? (
-          <div className="p-6 rounded-2xl bg-rose-950/50 border border-rose-500/50 text-center space-y-3">
+          <div className="p-6 rounded-2xl bg-rose-500/10 border border-rose-500/40 text-center space-y-3">
             <AlertCircle className="w-10 h-10 mx-auto text-rose-500 animate-pulse" />
-            <h4 className="font-black text-rose-300 text-base">Accès temporairement verrouillé</h4>
-            <p className="text-xs text-rose-200">
+            <h4 className="font-black text-rose-500 text-base">Accès temporairement verrouillé</h4>
+            <p className="text-xs text-rose-500/90">
               Trop de tentatives erronées. Par mesure de sécurité anti-bruteforce, veuillez patienter avant de réessayer :
             </p>
-            <div className="text-xl font-mono font-black text-amber-400">
+            <div className="text-xl font-mono font-black" style={{ color: activePalette.colors.accent }}>
               {Math.floor(lockTimer / 60)}m {lockTimer % 60}s
             </div>
           </div>
@@ -307,30 +397,26 @@ export const ClientAuthModal: React.FC<ClientAuthModalProps> = ({
             {isRegister && (
               <>
                 <div>
-                  <label className="block text-xs font-bold text-slate-300 uppercase mb-1">
-                    Identité du Client / Nom complet ou Entreprise *
-                  </label>
+                  <label className={labelClass}>Identité du Client / Nom complet ou Entreprise *</label>
                   <div className="relative">
-                    <User className="absolute left-3 top-3.5 w-4 h-4 text-slate-500" />
+                    <User className="absolute left-3 top-3.5 w-4 h-4" style={{ color: activePalette.colors.textMuted }} />
                     <input
                       type="text"
                       required
                       value={name}
                       onChange={e => setName(e.target.value)}
                       placeholder="Ex: Patrick Mukendi (ou Rawbank SARL)"
-                      className="w-full pl-10 pr-4 py-2.5 rounded-xl bg-slate-950 border border-slate-800 text-white text-sm focus:outline-none focus:border-amber-500"
+                      className={inputClass}
                     />
                   </div>
                 </div>
 
                 <div>
-                  <label className="block text-xs font-bold text-slate-300 uppercase mb-1">
-                    Type de Client *
-                  </label>
+                  <label className={labelClass}>Type de Client *</label>
                   <select
                     value={clientType}
                     onChange={e => setClientType(e.target.value as any)}
-                    className="w-full px-4 py-2.5 rounded-xl bg-slate-950 border border-slate-800 text-white text-sm focus:outline-none focus:border-amber-500"
+                    className="viva-input w-full px-4 py-2.5 text-sm cursor-pointer"
                   >
                     <option value="Institution publique">Institution publique</option>
                     <option value="Organisme international">Organisme international</option>
@@ -342,18 +428,16 @@ export const ClientAuthModal: React.FC<ClientAuthModalProps> = ({
                 </div>
 
                 <div>
-                  <label className="block text-xs font-bold text-slate-300 uppercase mb-1">
-                    Numéro de Téléphone International (+243...) *
-                  </label>
+                  <label className={labelClass}>Numéro de Téléphone International (+243...) *</label>
                   <div className="relative">
-                    <Phone className="absolute left-3 top-3.5 w-4 h-4 text-slate-500" />
+                    <Phone className="absolute left-3 top-3.5 w-4 h-4" style={{ color: activePalette.colors.textMuted }} />
                     <input
                       type="text"
                       required
                       value={phone}
                       onChange={e => setPhone(e.target.value)}
                       placeholder="+243 81 000 9988"
-                      className="w-full pl-10 pr-4 py-2.5 rounded-xl bg-slate-950 border border-slate-800 text-white text-sm font-mono focus:outline-none focus:border-amber-500"
+                      className={`${inputClass} font-mono`}
                     />
                   </div>
                 </div>
@@ -361,57 +445,39 @@ export const ClientAuthModal: React.FC<ClientAuthModalProps> = ({
             )}
 
             <div>
-              <label className="block text-xs font-bold text-slate-300 uppercase mb-1">
-                Adresse Email Professionnelle *
-              </label>
+              <label className={labelClass}>Adresse Email Professionnelle *</label>
               <div className="relative">
-                <Mail className="absolute left-3 top-3.5 w-4 h-4 text-slate-500" />
+                <Mail className="absolute left-3 top-3.5 w-4 h-4" style={{ color: activePalette.colors.textMuted }} />
                 <input
                   type="email"
                   required
                   value={email}
                   onChange={e => setEmail(e.target.value)}
                   placeholder="contact@entreprise.cd"
-                  className="w-full pl-10 pr-4 py-2.5 rounded-xl bg-slate-950 border border-slate-800 text-white text-sm focus:outline-none focus:border-amber-500"
+                  className={inputClass}
                 />
               </div>
             </div>
 
             <div>
-              <label className="block text-xs font-bold text-slate-300 uppercase mb-1">
-                Mot de Passe Sécurisé *
-              </label>
+              <label className={labelClass}>Mot de Passe Sécurisé *</label>
               <div className="relative">
-                <Lock className="absolute left-3 top-3.5 w-4 h-4 text-slate-500" />
+                <Lock className="absolute left-3 top-3.5 w-4 h-4" style={{ color: activePalette.colors.textMuted }} />
                 <input
                   type="password"
                   required
                   value={password}
                   onChange={e => setPassword(e.target.value)}
                   placeholder="••••••••••••"
-                  className="w-full pl-10 pr-4 py-2.5 rounded-xl bg-slate-950 border border-slate-800 text-white text-sm focus:outline-none focus:border-amber-500"
+                  className={inputClass}
                 />
               </div>
             </div>
 
-            {/* Quick autofill for immediate testing */}
-            {!isRegister && (
-              <div className="flex items-center justify-between text-xs pt-1">
-                <button
-                  type="button"
-                  onClick={handleQuickDemoClient}
-                  className="text-[11px] text-amber-400 hover:text-amber-300 hover:underline flex items-center gap-1 cursor-pointer"
-                >
-                  <Sparkles className="w-3 h-3" />
-                  <span>Remplir avec un compte de démonstration (fictif)</span>
-                </button>
-              </div>
-            )}
-
             <button
               type="submit"
               disabled={isLoading}
-              className="w-full py-3.5 rounded-xl bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-slate-950 font-black text-xs sm:text-sm uppercase tracking-wider shadow-lg cursor-pointer transition-all mt-2 flex items-center justify-center gap-2"
+              className="viva-btn-accent w-full py-3.5 text-xs sm:text-sm uppercase tracking-wider mt-2 flex items-center justify-center gap-2 disabled:opacity-50"
             >
               <span>
                 {isLoading
@@ -425,22 +491,25 @@ export const ClientAuthModal: React.FC<ClientAuthModalProps> = ({
           </form>
         )}
 
-        {(
-          <div className="text-center pt-2 border-t border-slate-800/80">
-            <button
-              type="button"
-              onClick={() => {
-                setIsRegister(!isRegister);
-                setError(null);
-              }}
-              className="text-xs font-bold text-amber-400 hover:underline cursor-pointer"
-            >
-              {isRegister
-                ? "Déjà un compte client ? Connectez-vous ici"
-                : "Vous êtes visiteur ? Cliquez ici pour créer un compte et passer commande"}
-            </button>
-          </div>
-        )}
+        <div
+          className="text-center pt-2 border-t"
+          style={{ borderColor: activePalette.colors.border }}
+        >
+          <button
+            type="button"
+            onClick={() => {
+              setIsRegister(!isRegister);
+              setError(null);
+            }}
+            className="text-xs font-bold hover:underline cursor-pointer"
+            style={{ color: activePalette.colors.accent }}
+          >
+            {isRegister
+              ? "Déjà un compte client ? Connectez-vous ici"
+              : "Vous êtes visiteur ? Cliquez ici pour créer un compte et passer commande"}
+          </button>
+        </div>
+        </div>
       </div>
     </div>
   );

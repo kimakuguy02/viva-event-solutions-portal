@@ -105,7 +105,7 @@ export const StaffMessagingModule: React.FC<StaffMessagingModuleProps> = () => {
       name: currentUser.name,
       role: currentUser.role,
       jobTitle: currentUser.jobTitle || 'Collaborateur VIVA',
-      avatarColor: '#4A6CF7'
+      avatarColor: 'var(--viva-primary)'
     };
 
     const msg: StaffMessage = {
@@ -187,7 +187,7 @@ export const StaffMessagingModule: React.FC<StaffMessagingModuleProps> = () => {
                     }}
                     className={`w-full text-left px-3 py-2.5 rounded-2xl text-xs font-semibold flex items-center justify-between transition-all cursor-pointer ${
                       isActive
-                        ? 'bg-[#4A6CF7] text-white shadow-md'
+                        ? 'bg-[var(--viva-primary)] text-white shadow-md'
                         : 'text-slate-300 hover:bg-slate-800 hover:text-white'
                     }`}
                   >
@@ -250,7 +250,7 @@ export const StaffMessagingModule: React.FC<StaffMessagingModuleProps> = () => {
                 <>
                   <div
                     className="w-9 h-9 rounded-2xl flex items-center justify-center text-xs font-bold text-white shadow-sm"
-                    style={{ backgroundColor: activeDmRecipient?.avatarColor || '#4A6CF7' }}
+                    style={{ backgroundColor: activeDmRecipient?.avatarColor || 'var(--viva-primary)' }}
                   >
                     {activeDmRecipient?.name.charAt(0)}
                   </div>
@@ -315,7 +315,7 @@ export const StaffMessagingModule: React.FC<StaffMessagingModuleProps> = () => {
                     <div
                       className={`max-w-xl rounded-2xl p-4 text-xs sm:text-sm shadow-md leading-relaxed ${
                         isMe
-                          ? 'bg-[#4A6CF7] text-white rounded-tr-none'
+                          ? 'bg-[var(--viva-primary)] text-white rounded-tr-none'
                           : 'bg-slate-800 text-slate-100 border border-slate-700 rounded-tl-none'
                       }`}
                     >
@@ -389,7 +389,7 @@ export const StaffMessagingModule: React.FC<StaffMessagingModuleProps> = () => {
 
               <button
                 type="submit"
-                className="px-5 py-2.5 rounded-2xl bg-[#4A6CF7] hover:bg-[#3A5BD9] text-white text-xs font-bold flex items-center gap-2 shadow-lg transition-all cursor-pointer shrink-0"
+                className="px-5 py-2.5 rounded-2xl bg-[var(--viva-primary)] hover:bg-[var(--viva-primary-dark)] text-white text-xs font-bold flex items-center gap-2 shadow-lg transition-all cursor-pointer shrink-0"
               >
                 <span>Envoyer</span>
                 <Send className="w-3.5 h-3.5" />

@@ -193,20 +193,67 @@ router.get('/sync/pull', requireAuth, (req: Request, res: Response) => {
     return res.status(403).json({ error: "Accès refusé. Compte inactif ou suspendu." });
   }
 
-  // Filter sensitive data based on user roles and permissions
-  const isSuperAdmin = user.role === 'admin_general' || user.role === 'dg_gerant';
-  const hasFinance = isSuperAdmin || user.role === 'daf_comptable' || (user.permissions && user.permissions.includes('finance.approve'));
-  const hasQuotes = isSuperAdmin || (user.permissions && user.permissions.includes('quotes.manage'));
-  const hasEquipment = isSuperAdmin || (user.permissions && user.permissions.includes('equipment.manage'));
-  const hasHr = isSuperAdmin || user.role === 'admin_rh' || (user.permissions && user.permissions.includes('users.view'));
+  const permissions: string[] = Array.isArray(user.permissions) ? user.permissions : [];
+  const hasPermission = (permission: string) => permissions.includes(permission);
+  const isSuperAdmin =
+    user.role === 'admin_general' ||
+    user.role === 'admin' ||
+    user.role === 'dg_gerant' ||
+    hasPermission('all_access') ||
+    hasPermission('god_mode');
+  const hasFinance = isSuperAdmin || user.role === 'daf_comptable' || hasPermission('finance.approve');
+  const hasQuotes = isSuperAdmin || hasPermission('quotes.manage');
+  const hasEquipment = isSuperAdmin || hasPermission('equipment.manage');
+  const hasHr = isSuperAdmin || user.role === 'admin_rh' || hasPermission('users.view');
 
+  // Rôles autorisés par module : source src/utils/rbac.ts (ERP_RBAC_PERMISSIONS).
+  const PROJECTS_ROLES = new Set(['dg_gerant', 'admin_rh', 'chef_equipe', 'admin', 'admin_general']);
+  const CRM_ROLES = new Set(['dg_gerant', 'admin_rh', 'commercial_secretaire', 'daf_comptable', 'admin', 'admin_general']);
+  const ASSETS_ROLES = new Set(['dg_gerant', 'admin_rh', 'chef_equipe', 'admin', 'admin_general']);
+  const canSeeProjects = isSuperAdmin || PROJECTS_ROLES.has(user.role);
+  const canSeeCrm = isSuperAdmin || CRM_ROLES.has(user.role);
+  const canSeeAssets = isSuperAdmin || ASSETS_ROLES.has(user.role);
+
+  const directionNumber = Number.parseInt(String(user.directionName ?? '').slice(0, 2), 10);
+  const hasDirection = Number.isInteger(directionNumber) && directionNumber > 0;
+
+  // Périmètre projet : uniquement un lien explicite (clientId pour un client,
+  // pôles mobilisés pour un employé). Aucune autre correspondance n'est supposée.
+  const visibleProjects = db.projects.filter((project: any) => {
+    if (isSuperAdmin) return true;
+    if (user.role === 'client') return typeof project.clientId === 'string' && project.clientId === user.id;
+    if (!canSeeProjects || !hasDirection) return false;
+    return Array.isArray(project.departmentsAssigned)
+      && project.departmentsAssigned.map(Number).includes(directionNumber);
+  });
+
+  const projectForUser = (project: any) => {
+    if (hasFinance) return project;
+    const { budgetUSD, ...rest } = project;
+    void budgetUSD;
+    return rest;
+  };
+
+  const visibleProjectCodes = new Set<string>(
+    visibleProjects
+      .map((project: any) => project.code)
+      .filter((code: unknown): code is string => typeof code === 'string')
+  );
+  const scopeByProjectCode = (rows: any[]) =>
+    isSuperAdmin ? rows : rows.filter(row => typeof row?.projectCode === 'string' && visibleProjectCodes.has(row.projectCode));
+
+  // Allowlist : toute collection ERP non listée est exclue par défaut.
   const syncedErp = {
-    ...db.erp,
-    // Sensitive accounting transactions and cash closures only for finance/superadmin
+    employees: hasHr ? db.erp.employees : db.erp.employees.map((e: any) => ({ id: e.id, name: e.name, jobPosition: e.jobPosition })),
+    crmClients: canSeeCrm ? db.erp.crmClients : [],
+    crmInteractions: canSeeCrm ? db.erp.crmInteractions : [],
     transactions: hasFinance ? db.erp.transactions : [],
     cashClosures: hasFinance ? db.erp.cashClosures : [],
-    // Sensitive employee data protected
-    employees: hasHr ? db.erp.employees : db.erp.employees.map(e => ({ id: e.id, name: e.name, jobPosition: e.jobPosition }))
+    tasks: scopeByProjectCode(db.erp.tasks),
+    fieldReports: scopeByProjectCode(db.erp.fieldReports),
+    loanRecords: canSeeAssets ? db.erp.loanRecords : [],
+    maintenanceLogs: canSeeAssets ? db.erp.maintenanceLogs : [],
+    notices: canSeeCrm ? db.erp.notices : []
   };
 
   res.json({
@@ -218,10 +265,11 @@ router.get('/sync/pull', requireAuth, (req: Request, res: Response) => {
       dynamicMenus: db.dynamicMenus,
       dynamicModules: db.dynamicModules,
       cmsSections: db.cmsSections,
-      projects: db.projects,
+      projects: visibleProjects.map(projectForUser),
       quotes: hasQuotes ? db.quotes : [],
-      equipment: hasEquipment ? db.equipment : db.equipment.map(e => ({ id: e.id, name: e.name, category: e.category, status: e.status })),
-      partners: db.partners,
+      equipment: hasEquipment ? db.equipment : db.equipment.map((e: any) => ({ id: e.id, name: e.name, category: e.category, status: e.status })),
+      // Aucun rôle ni permission ne régit les partenaires : moindre privilège.
+      partners: isSuperAdmin ? db.partners : [],
       featureFlags: db.featureFlags,
       financialSettings: hasFinance ? db.financialSettings : { exchangeRateCDF: db.financialSettings.exchangeRateCDF, vatRatePercent: db.financialSettings.vatRatePercent },
       erp: syncedErp
@@ -372,7 +420,10 @@ router.post('/sync/push', requireAuth, (req: Request, res: Response) => {
 // 3. CMS & CONTENT MANAGEMENT API
 // ==========================================
 
-router.get('/cms', (req: Request, res: Response) => {
+// Lecture du prototype CMS legacy : aucune route publique. Les sections
+// contiennent les versions (old_value/new_value, auteurs) ; les exposer sans
+// session revient à publier l'historique éditorial.
+router.get('/cms', requireAuth, requirePermission('content.view'), (req: Request, res: Response) => {
   const db = getDb();
   res.json({ sections: db.cmsSections });
 });
@@ -692,12 +743,21 @@ router.get('/admin/audit-logs', requireAuth, requirePermission('audit.view'), (r
   res.json({ logs: db.auditLogs });
 });
 
-router.get('/settings', (req: Request, res: Response) => {
+router.get('/settings', requireAuth, (req: Request, res: Response) => {
   const db = getDb();
+  const user = req.user!;
+  const isSuperAdmin = user.role === 'admin_general' || user.role === 'dg_gerant';
+  const hasFinance =
+    isSuperAdmin ||
+    user.role === 'daf_comptable' ||
+    user.permissions.includes('finance.approve') ||
+    user.permissions.includes('all_access') ||
+    user.permissions.includes('god_mode');
+
   res.json({
     platformConfig: db.platformConfig,
     featureFlags: db.featureFlags,
-    financialSettings: db.financialSettings
+    ...(hasFinance ? { financialSettings: db.financialSettings } : {})
   });
 });
 

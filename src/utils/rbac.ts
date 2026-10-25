@@ -58,7 +58,7 @@ export const ERP_RBAC_PERMISSIONS: Record<ErpModuleId, {
     name: "Actifs, Stocks & Prêts Matériel",
     authorizedRoles: ['dg_gerant', 'admin_rh', 'chef_equipe', 'admin', 'admin_general'],
     requiredRoleNames: ["Chef d'Équipe Régie", "MALTHUS KILUMBA WA BANZA (DG / Administrateur)"],
-    description: "Traçabilité du parc lourd (3200 kVA, Line Array, LED), bons de prêt contradictoires et maintenance.",
+    description: "Traçabilité du parc lourd (groupes électrogènes, Line Array, LED), bons de prêt contradictoires et maintenance.",
     denialReason: "La gestion des actifs physiques et l'émission des bons de sortie de matériel sont réservées à la régie technique et à la Direction (MALTHUS KILUMBA WA BANZA)."
   },
   'human-resources': {

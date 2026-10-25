@@ -7,10 +7,6 @@ import {
   X,
   UserPlus,
   Building2,
-  Mail,
-  Phone,
-  MapPin,
-  Lock,
   CheckCircle2,
   Sparkles,
   ShieldCheck,
@@ -33,10 +29,8 @@ export const ClientRegistrationModal: React.FC<ClientRegistrationModalProps> = (
   onOpenReservation
 }) => {
   const { signUp } = useAuth();
-  const { activePalette, themeMode } = useTheme();
+  const { activePalette } = useTheme();
   const { addCrmClient } = useEnterpriseErp();
-
-  const isLight = themeMode === 'light';
 
   // Form State
   const [formData, setFormData] = useState({
@@ -149,16 +143,28 @@ export const ClientRegistrationModal: React.FC<ClientRegistrationModalProps> = (
     }
   };
 
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-slate-900/60 backdrop-blur-sm animate-fadeIn overflow-y-auto">
-      <div className="relative max-w-2xl w-full rounded-3xl border border-slate-100 bg-white shadow-2xl overflow-hidden my-6 transition-all">
-        {/* Top Accent Strip */}
-        <div className="h-1.5 w-full bg-gradient-to-r from-[#4A6CF7] via-[#8B5CF6] to-[#4A6CF7]" />
+  const labelClass = 'block text-xs font-semibold uppercase tracking-wider viva-muted mb-1';
+  const inputClass = 'viva-input w-full px-3.5 py-2.5 text-xs font-medium';
 
-        {/* Close Button */}
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/70 backdrop-blur-sm animate-fadeIn overflow-y-auto">
+      <div
+        className="relative max-w-2xl w-full rounded-3xl border shadow-2xl overflow-hidden my-6 transition-all"
+        style={{
+          backgroundColor: activePalette.colors.bgSurface,
+          borderColor: activePalette.colors.border,
+          borderRadius: activePalette.design.radiusCard,
+          boxShadow: activePalette.design.cardShadow
+        }}
+      >
+        {/* Liseré de marque */}
+        <div className="h-1.5 w-full" style={{ background: activePalette.design.accentGradient }} />
+
         <button
           onClick={onClose}
-          className="absolute top-5 right-5 p-2 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-500 hover:text-slate-800 transition-colors cursor-pointer z-10"
+          className="absolute top-5 right-5 p-2 rounded-full transition-colors cursor-pointer z-10 viva-muted hover:opacity-70"
+          style={{ backgroundColor: activePalette.colors.bgSubtle }}
+          aria-label="Fermer"
         >
           <X className="w-5 h-5" />
         </button>
@@ -167,20 +173,27 @@ export const ClientRegistrationModal: React.FC<ClientRegistrationModalProps> = (
           <form onSubmit={handleSubmit} className="p-6 sm:p-8 space-y-6">
             {/* Header */}
             <div className="space-y-1.5 pr-8">
-              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-blue-50 text-[#4A6CF7] border border-blue-100 text-xs font-semibold uppercase tracking-wider">
+              <div
+                className="inline-flex items-center gap-2 px-3 py-1 rounded-full border text-xs font-semibold uppercase tracking-wider"
+                style={{
+                  backgroundColor: `${activePalette.colors.primary}14`,
+                  borderColor: `${activePalette.colors.primary}33`,
+                  color: activePalette.colors.primary
+                }}
+              >
                 <ShieldCheck className="w-3.5 h-3.5" />
                 <span>Portail Institutionnel & Entreprises</span>
               </div>
-              <h3 className="text-xl sm:text-2xl font-black text-slate-900">
+              <h3 className="text-xl sm:text-2xl font-black viva-heading">
                 Création de Compte Client & Identification
               </h3>
-              <p className="text-xs text-[#6B7280]">
+              <p className="text-xs viva-muted">
                 Créez votre profil officiel pour accéder au suivi de vos devis, sécuriser la réservation de vos événements avant le jour J et bénéficier d'une assistance prioritaire.
               </p>
             </div>
 
             {error && (
-              <div className="p-3.5 rounded-xl bg-rose-50 border border-rose-200 text-rose-600 text-xs flex items-center gap-2">
+              <div className="p-3.5 rounded-xl bg-rose-500/15 border border-rose-500/40 text-rose-500 text-xs flex items-center gap-2">
                 <AlertCircle className="w-4 h-4 shrink-0" />
                 <span>{error}</span>
               </div>
@@ -188,49 +201,36 @@ export const ClientRegistrationModal: React.FC<ClientRegistrationModalProps> = (
 
             {/* Form Fields Grid */}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              {/* Full Name */}
               <div>
-                <label className="block text-xs font-semibold uppercase tracking-wider text-slate-700 mb-1">
-                  Nom Complet du Responsable *
-                </label>
-                <div className="relative">
-                  <input
-                    type="text"
-                    required
-                    placeholder="Ex: Dr. Patrick Mukendi"
-                    value={formData.fullName}
-                    onChange={e => setFormData({ ...formData, fullName: e.target.value })}
-                    className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 bg-slate-50 text-xs font-medium text-slate-900 outline-none focus:border-[#4A6CF7] focus:bg-white transition-all"
-                  />
-                </div>
+                <label className={labelClass}>Nom Complet du Responsable *</label>
+                <input
+                  type="text"
+                  required
+                  placeholder="Ex: Dr. Patrick Mukendi"
+                  value={formData.fullName}
+                  onChange={e => setFormData({ ...formData, fullName: e.target.value })}
+                  className={inputClass}
+                />
               </div>
 
-              {/* Organization */}
               <div>
-                <label className="block text-xs font-semibold uppercase tracking-wider text-slate-700 mb-1">
-                  Organisation / Entreprise / Raison Sociale *
-                </label>
-                <div className="relative">
-                  <input
-                    type="text"
-                    required
-                    placeholder="Ex: Rawbank RDC / Ministère du Plan"
-                    value={formData.organization}
-                    onChange={e => setFormData({ ...formData, organization: e.target.value })}
-                    className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 bg-slate-50 text-xs font-medium text-slate-900 outline-none focus:border-[#4A6CF7] focus:bg-white transition-all"
-                  />
-                </div>
+                <label className={labelClass}>Organisation / Entreprise / Raison Sociale *</label>
+                <input
+                  type="text"
+                  required
+                  placeholder="Ex: Rawbank RDC / Ministère du Plan"
+                  value={formData.organization}
+                  onChange={e => setFormData({ ...formData, organization: e.target.value })}
+                  className={inputClass}
+                />
               </div>
 
-              {/* Client Type */}
               <div>
-                <label className="block text-xs font-semibold uppercase tracking-wider text-slate-700 mb-1">
-                  Type d'Organisation *
-                </label>
+                <label className={labelClass}>Type d'Organisation *</label>
                 <select
                   value={formData.clientType}
                   onChange={e => setFormData({ ...formData, clientType: e.target.value as any })}
-                  className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 bg-slate-50 text-xs font-medium text-slate-900 outline-none focus:border-[#4A6CF7] focus:bg-white cursor-pointer"
+                  className={`${inputClass} cursor-pointer`}
                 >
                   <option value="Institution publique">Institution publique / Ministère</option>
                   <option value="Organisme international">Organisme international / Ambassade</option>
@@ -241,91 +241,74 @@ export const ClientRegistrationModal: React.FC<ClientRegistrationModalProps> = (
                 </select>
               </div>
 
-              {/* City / Province */}
               <div>
-                <label className="block text-xs font-semibold uppercase tracking-wider text-slate-700 mb-1">
-                  Ville / Localité d'Opération *
-                </label>
+                <label className={labelClass}>Ville / Localité d'Opération *</label>
                 <input
                   type="text"
                   required
                   placeholder="Ex: Kinshasa - Gombe / Lubumbashi"
                   value={formData.city}
                   onChange={e => setFormData({ ...formData, city: e.target.value })}
-                  className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 bg-slate-50 text-xs font-medium text-slate-900 outline-none focus:border-[#4A6CF7] focus:bg-white"
+                  className={inputClass}
                 />
               </div>
 
-              {/* Email */}
               <div>
-                <label className="block text-xs font-semibold uppercase tracking-wider text-slate-700 mb-1">
-                  Email Professionnel *
-                </label>
+                <label className={labelClass}>Email Professionnel *</label>
                 <input
                   type="email"
                   required
                   placeholder="contact@organisation.cd"
                   value={formData.email}
                   onChange={e => setFormData({ ...formData, email: e.target.value })}
-                  className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 bg-slate-50 text-xs font-medium text-slate-900 outline-none focus:border-[#4A6CF7] focus:bg-white"
+                  className={inputClass}
                 />
               </div>
 
-              {/* WhatsApp Phone */}
               <div>
-                <label className="block text-xs font-semibold uppercase tracking-wider text-slate-700 mb-1">
-                  Téléphone WhatsApp (Communication Directe) *
-                </label>
+                <label className={labelClass}>Téléphone WhatsApp (Communication Directe) *</label>
                 <input
                   type="tel"
                   required
                   placeholder="+243 00 000 0000"
                   value={formData.phone}
                   onChange={e => setFormData({ ...formData, phone: e.target.value })}
-                  className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 bg-slate-50 text-xs font-medium text-slate-900 outline-none focus:border-[#4A6CF7] focus:bg-white"
+                  className={`${inputClass} font-mono`}
                 />
               </div>
 
-              {/* Password */}
               <div>
-                <label className="block text-xs font-semibold uppercase tracking-wider text-slate-700 mb-1">
-                  Mot de Passe de Connexion *
-                </label>
+                <label className={labelClass}>Mot de Passe de Connexion *</label>
                 <input
                   type="password"
                   required
-                  placeholder="Minimum 6 caractères"
+                  placeholder="Minimum 8 caractères"
                   value={formData.password}
                   onChange={e => setFormData({ ...formData, password: e.target.value })}
-                  className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 bg-slate-50 text-xs font-medium text-slate-900 outline-none focus:border-[#4A6CF7] focus:bg-white"
+                  className={inputClass}
                 />
               </div>
 
-              {/* Confirm Password */}
               <div>
-                <label className="block text-xs font-semibold uppercase tracking-wider text-slate-700 mb-1">
-                  Confirmer le Mot de Passe *
-                </label>
+                <label className={labelClass}>Confirmer le Mot de Passe *</label>
                 <input
                   type="password"
                   required
                   placeholder="Répétez le mot de passe"
                   value={formData.confirmPassword}
                   onChange={e => setFormData({ ...formData, confirmPassword: e.target.value })}
-                  className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 bg-slate-50 text-xs font-medium text-slate-900 outline-none focus:border-[#4A6CF7] focus:bg-white"
+                  className={inputClass}
                 />
               </div>
             </div>
 
             {/* Primary Event Interest */}
             <div>
-              <label className="block text-xs font-semibold uppercase tracking-wider text-slate-700 mb-1">
-                Domaine d'Intérêt Prioritaire chez VIVA EVENTS
-              </label>
+              <label className={labelClass}>Domaine d'Intérêt Prioritaire chez VIVA EVENTS</label>
               <select
                 value={formData.primaryInterest}
                 onChange={e => setFormData({ ...formData, primaryInterest: e.target.value })}
-                className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 bg-slate-50 text-xs font-medium text-slate-900 outline-none focus:border-[#4A6CF7] focus:bg-white cursor-pointer"
+                className={`${inputClass} cursor-pointer`}
               >
                 <option value="Sommets, Conférences & Événements Institutionnels">Sommets, Conférences & Événements Institutionnels</option>
                 <option value="Location Matériel Lourd (Sonorisation Line Array, Écrans LED 4K, Énergie kVA)">Location Matériel Lourd (Son Line Array, Écrans LED, Énergie kVA)</option>
@@ -339,10 +322,16 @@ export const ClientRegistrationModal: React.FC<ClientRegistrationModalProps> = (
             </div>
 
             {/* Legal / Data Guarantee Note */}
-            <div className="p-4 rounded-2xl border border-blue-100 bg-blue-50/60 text-xs flex items-start gap-3 text-[#6B7280]">
-              <Sparkles className="w-4 h-4 text-[#4A6CF7] shrink-0 mt-0.5" />
+            <div
+              className="p-4 rounded-2xl border text-xs flex items-start gap-3 viva-muted"
+              style={{
+                backgroundColor: activePalette.colors.bgSubtle,
+                borderColor: activePalette.colors.border
+              }}
+            >
+              <Sparkles className="w-4 h-4 shrink-0 mt-0.5" style={{ color: activePalette.colors.accent }} />
               <p className="leading-relaxed">
-                Vos données sont strictement sécurisées selon le droit commercial OHADA en RDC et la politique de confidentialité de <strong className="text-slate-900">VIVA EVENT SOLUTIONS SARLU</strong>. Votre compte client est immédiatement opérationnel pour planifier vos projets.
+                Vos données sont strictement sécurisées selon le droit commercial OHADA en RDC et la politique de confidentialité de <strong style={{ color: activePalette.colors.textMain }}>VIVA EVENT SOLUTIONS SARLU</strong>. Votre compte client est immédiatement opérationnel pour planifier vos projets.
               </p>
             </div>
 
@@ -351,7 +340,8 @@ export const ClientRegistrationModal: React.FC<ClientRegistrationModalProps> = (
               <button
                 type="button"
                 onClick={onClose}
-                className="w-full sm:w-auto px-5 py-2.5 rounded-full border border-slate-200 text-xs font-semibold hover:bg-slate-50 text-slate-600 transition-colors cursor-pointer"
+                className="w-full sm:w-auto px-5 py-2.5 rounded-full border text-xs font-semibold transition-colors cursor-pointer viva-muted hover:opacity-70"
+                style={{ borderColor: activePalette.colors.border }}
               >
                 Annuler
               </button>
@@ -359,7 +349,7 @@ export const ClientRegistrationModal: React.FC<ClientRegistrationModalProps> = (
               <button
                 type="submit"
                 disabled={isSubmitting}
-                className="w-full sm:w-auto px-7 py-2.5 rounded-full font-semibold text-xs sm:text-sm shadow-sm flex items-center justify-center gap-2 cursor-pointer transition-all bg-[#4A6CF7] hover:bg-[#3B5CE6] text-white disabled:opacity-50"
+                className="viva-btn-primary w-full sm:w-auto px-7 py-2.5 text-xs sm:text-sm flex items-center justify-center gap-2 disabled:opacity-50"
               >
                 <UserPlus className="w-4 h-4" />
                 <span>{isSubmitting ? 'Création en cours...' : 'Créer Mon Compte Client & M\'Identifier'}</span>
@@ -369,19 +359,22 @@ export const ClientRegistrationModal: React.FC<ClientRegistrationModalProps> = (
         ) : (
           /* Registration Success Screen */
           <div className="p-8 sm:p-10 text-center space-y-6">
-            <div className="w-20 h-20 rounded-full bg-emerald-50 text-emerald-600 border border-emerald-100 flex items-center justify-center mx-auto shadow-sm">
+            <div className="w-20 h-20 rounded-full flex items-center justify-center mx-auto border bg-emerald-500/10 border-emerald-500/30 text-emerald-500">
               <CheckCircle2 className="w-10 h-10" />
             </div>
 
             <div className="space-y-2">
-              <span className="text-[10px] font-mono font-bold text-[#4A6CF7] uppercase tracking-widest">
+              <span
+                className="text-[10px] font-mono font-bold uppercase tracking-widest"
+                style={{ color: activePalette.colors.primary }}
+              >
                 Compte Validé • Code : {generatedClientCode}
               </span>
-              <h3 className="text-2xl sm:text-3xl font-black text-slate-900">
+              <h3 className="text-2xl sm:text-3xl font-black viva-heading">
                 Félicitations {formData.fullName} !
               </h3>
-              <p className="text-sm text-[#6B7280] max-w-lg mx-auto leading-relaxed">
-                Votre compte client pour <strong className="text-slate-900">{formData.organization}</strong> est désormais activé. Vous êtes officiellement identifié au sein de la régie VIVA EVENT SOLUTIONS.
+              <p className="text-sm viva-muted max-w-lg mx-auto leading-relaxed">
+                Votre compte client pour <strong style={{ color: activePalette.colors.textMain }}>{formData.organization}</strong> est désormais activé. Vous êtes officiellement identifié au sein de la régie VIVA EVENT SOLUTIONS.
               </p>
             </div>
 
@@ -392,28 +385,36 @@ export const ClientRegistrationModal: React.FC<ClientRegistrationModalProps> = (
                   onClose();
                   onOpenReservation?.();
                 }}
-                className="p-4 rounded-2xl border border-blue-200 text-left space-y-2 transition-all hover:shadow-md cursor-pointer bg-blue-50/50 group"
+                className="p-4 rounded-2xl border text-left space-y-2 transition-all hover:opacity-90 cursor-pointer group"
+                style={{
+                  backgroundColor: `${activePalette.colors.primary}14`,
+                  borderColor: `${activePalette.colors.primary}40`
+                }}
               >
                 <div className="flex items-center justify-between">
-                  <Calendar className="w-6 h-6 text-[#4A6CF7]" />
-                  <ArrowRight className="w-4 h-4 text-[#4A6CF7] transition-transform group-hover:translate-x-1" />
+                  <Calendar className="w-6 h-6" style={{ color: activePalette.colors.primary }} />
+                  <ArrowRight className="w-4 h-4 transition-transform group-hover:translate-x-1" style={{ color: activePalette.colors.primary }} />
                 </div>
-                <div className="font-bold text-xs text-slate-900 uppercase">Réserver un Événement</div>
-                <p className="text-[11px] text-[#6B7280]">
+                <div className="font-bold text-xs viva-heading uppercase">Réserver un Événement</div>
+                <p className="text-[11px] viva-muted">
                   Transmettez votre projet bien avant le jour J pour réserver vos dates et matériels.
                 </p>
               </button>
 
               <button
                 onClick={onClose}
-                className="p-4 rounded-2xl border border-slate-200 text-left space-y-2 transition-all hover:shadow-md cursor-pointer bg-white group"
+                className="p-4 rounded-2xl border text-left space-y-2 transition-all hover:opacity-90 cursor-pointer group"
+                style={{
+                  backgroundColor: activePalette.colors.bgSubtle,
+                  borderColor: activePalette.colors.border
+                }}
               >
                 <div className="flex items-center justify-between">
-                  <Building2 className="w-6 h-6 text-slate-700" />
-                  <ArrowRight className="w-4 h-4 text-slate-700 transition-transform group-hover:translate-x-1" />
+                  <Building2 className="w-6 h-6 viva-muted" />
+                  <ArrowRight className="w-4 h-4 transition-transform group-hover:translate-x-1 viva-muted" />
                 </div>
-                <div className="font-bold text-xs text-slate-900 uppercase">Accéder au Portail Client</div>
-                <p className="text-[11px] text-[#6B7280]">
+                <div className="font-bold text-xs viva-heading uppercase">Accéder au Portail Client</div>
+                <p className="text-[11px] viva-muted">
                   Consultez votre espace, suivez vos devis et échangez avec vos chargés de projets.
                 </p>
               </button>

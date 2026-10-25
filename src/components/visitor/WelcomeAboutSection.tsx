@@ -27,7 +27,8 @@ export const WelcomeAboutSection: React.FC<WelcomeAboutSectionProps> = ({
 
   const welcomeTitle = getCmsValue('home.welcome.title', 'title', 'Bienvenue chez VIVA EVENT SOLUTIONS');
   const welcomeSubtitle = getCmsValue('home.welcome.title', 'subtitle', 'PORTAIL OFFICIEL DE VIVA EVENT SOLUTIONS');
-  const welcomeText = getCmsValue('home.welcome.title', 'content', platformConfig.welcomeMessage);
+  const welcomeText = getCmsValue('home.welcome.title', 'content', platformConfig.welcomeMessage)
+    .split('notre établissement').join('notre société');
   const welcomePrimaryBtn = getCmsValue('home.welcome.title', 'primaryButtonText', 'NOS 15 PÔLES DE SERVICES');
 
   return (
@@ -38,11 +39,11 @@ export const WelcomeAboutSection: React.FC<WelcomeAboutSectionProps> = ({
           <div className="p-6 sm:p-10 lg:p-12 relative z-10 space-y-6">
             <div className="flex flex-wrap items-center justify-between gap-4 border-b border-slate-100 pb-6">
               <div className="flex items-center gap-3.5">
-                <div className="w-12 h-12 rounded-2xl flex items-center justify-center bg-blue-50 text-[#4A6CF7] border border-blue-100">
+                <div className="w-12 h-12 rounded-2xl flex items-center justify-center bg-[var(--viva-muted-surface)] text-[var(--viva-primary)] border border-[var(--viva-border)]">
                   <Sparkles className="w-6 h-6" />
                 </div>
                 <div>
-                  <span className="text-[11px] font-bold uppercase tracking-wider text-[#4A6CF7]">
+                  <span className="text-[11px] font-bold uppercase tracking-wider text-[var(--viva-primary)]">
                     {welcomeSubtitle}
                   </span>
                   <h2 className="text-xl sm:text-2xl font-black text-slate-900">
@@ -53,7 +54,7 @@ export const WelcomeAboutSection: React.FC<WelcomeAboutSectionProps> = ({
 
               <button
                 onClick={onExplore15Poles}
-                className="px-5 py-2.5 rounded-full font-semibold text-xs text-white bg-[#4A6CF7] hover:bg-[#3B5CE6] flex items-center gap-2 shadow-sm transition-all cursor-pointer"
+                className="px-5 py-2.5 rounded-full font-semibold text-xs text-white bg-[var(--viva-primary)] hover:bg-[var(--viva-primary-dark)] flex items-center gap-2 shadow-sm transition-all cursor-pointer"
               >
                 <span>{welcomePrimaryBtn}</span>
                 <ArrowRight className="w-4 h-4" />
@@ -88,7 +89,7 @@ export const WelcomeAboutSection: React.FC<WelcomeAboutSectionProps> = ({
       <EditableSectionWrapper cmsKey="about.whoWeAre.description" sectionName="Présentation Qui Sommes-Nous">
         <section className="space-y-8">
           <div className="text-center max-w-3xl mx-auto space-y-3">
-            <span className="text-xs font-bold uppercase tracking-wider px-3.5 py-1.5 rounded-full bg-blue-50 text-[#4A6CF7]">
+            <span className="text-xs font-bold uppercase tracking-wider px-3.5 py-1.5 rounded-full bg-[var(--viva-muted-surface)] text-[var(--viva-primary)]">
               VIVA EVENT SOLUTIONS • KINSHASA-RDC
             </span>
             <h2 className="text-2xl sm:text-4xl font-black tracking-tight text-slate-900">
@@ -103,7 +104,7 @@ export const WelcomeAboutSection: React.FC<WelcomeAboutSectionProps> = ({
           {/* Main Description */}
           <div className="lg:col-span-7 rounded-3xl p-6 sm:p-8 border border-slate-100 bg-white space-y-6 shadow-sm">
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-xl bg-blue-50 text-[#4A6CF7] flex items-center justify-center">
+              <div className="w-10 h-10 rounded-xl bg-[var(--viva-muted-surface)] text-[var(--viva-primary)] flex items-center justify-center">
                 <Building2 className="w-5 h-5" />
               </div>
               <h3 className="text-lg sm:text-xl font-bold text-slate-900">
@@ -111,7 +112,7 @@ export const WelcomeAboutSection: React.FC<WelcomeAboutSectionProps> = ({
               </h3>
             </div>
 
-            <div className="text-sm leading-relaxed space-y-4 text-[#6B7280]">
+            <div className="text-sm leading-relaxed space-y-4 text-[var(--viva-text-muted)]">
               {platformConfig.whoWeAreText
                 .split('\n')
                 .filter(p => p.trim() && !p.includes('Une Architecture Unique & Intégrée'))
@@ -121,9 +122,9 @@ export const WelcomeAboutSection: React.FC<WelcomeAboutSectionProps> = ({
                     return (
                       <div
                         key={idx}
-                        className="p-4 sm:p-5 rounded-2xl bg-blue-50/60 border border-blue-100 text-slate-800 space-y-2 mt-4"
+                        className="p-4 sm:p-5 rounded-2xl bg-[var(--viva-muted-surface)] border border-[var(--viva-border)] text-slate-800 space-y-2 mt-4"
                       >
-                        <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-[#4A6CF7]">
+                        <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-[var(--viva-primary)]">
                           <Workflow className="w-4 h-4" />
                           <span>Exemple Concret d'Intégration Globale</span>
                         </div>
@@ -152,7 +153,7 @@ export const WelcomeAboutSection: React.FC<WelcomeAboutSectionProps> = ({
                     key={cIdx}
                     className="px-3.5 py-1.5 rounded-full text-xs font-medium border border-slate-200 bg-slate-50 text-slate-700 flex items-center gap-1.5"
                   >
-                    <CheckCircle2 className="w-3.5 h-3.5 text-[#4A6CF7] shrink-0" />
+                    <CheckCircle2 className="w-3.5 h-3.5 text-[var(--viva-primary)] shrink-0" />
                     <span>{client}</span>
                   </span>
                 ))}
@@ -179,17 +180,17 @@ export const WelcomeAboutSection: React.FC<WelcomeAboutSectionProps> = ({
                   const desc = parts[1];
                   return (
                     <div key={pIdx} className="flex items-start gap-2.5 text-xs sm:text-sm">
-                      <span className="w-4 h-4 rounded-full flex items-center justify-center shrink-0 mt-0.5 bg-blue-50 text-[#4A6CF7]">
+                      <span className="w-4 h-4 rounded-full flex items-center justify-center shrink-0 mt-0.5 bg-[var(--viva-muted-surface)] text-[var(--viva-primary)]">
                         <Check className="w-3 h-3 font-bold" />
                       </span>
                       <div className="text-slate-700">
                         {desc ? (
                           <>
                             <strong className="text-slate-900 font-semibold">{title} : </strong>
-                            <span className="text-[#6B7280]">{desc}</span>
+                            <span className="text-[var(--viva-text-muted)]">{desc}</span>
                           </>
                         ) : (
-                          <span className="text-[#6B7280]">{point}</span>
+                          <span className="text-[var(--viva-text-muted)]">{point}</span>
                         )}
                       </div>
                     </div>
@@ -199,22 +200,22 @@ export const WelcomeAboutSection: React.FC<WelcomeAboutSectionProps> = ({
             </div>
 
             {/* Quick Action Button for 15 Poles */}
-            <div className="p-6 sm:p-8 rounded-3xl border border-blue-100 bg-gradient-to-br from-blue-50/70 via-white to-purple-50/50 shadow-sm flex flex-col justify-between gap-4">
+            <div className="p-6 sm:p-8 rounded-3xl border border-[var(--viva-border)] bg-[var(--viva-muted-surface)] shadow-sm flex flex-col justify-between gap-4">
               <div>
-                <span className="text-[11px] font-mono font-bold uppercase tracking-wider text-[#4A6CF7]">
+                <span className="text-[11px] font-mono font-bold uppercase tracking-wider text-[var(--viva-primary)]">
                   Écosystème 360°
                 </span>
                 <h4 className="text-lg font-bold text-slate-900 mt-1">
                   Découvrez nos 15 Pôles d'Ingénierie
                 </h4>
-                <p className="text-xs text-[#6B7280] mt-1.5 leading-relaxed">
+                <p className="text-xs text-[var(--viva-text-muted)] mt-1.5 leading-relaxed">
                   Chaque pôle possède sa justification technique, ses équipements et ses cas d'usage concrets.
                 </p>
               </div>
 
               <button
                 onClick={onExplore15Poles}
-                className="w-full py-3 px-4 rounded-full font-semibold text-xs text-white bg-[#4A6CF7] hover:bg-[#3B5CE6] flex items-center justify-center gap-2 shadow-sm transition-all cursor-pointer"
+                className="w-full py-3 px-4 rounded-full font-semibold text-xs text-white bg-[var(--viva-primary)] hover:bg-[var(--viva-primary-dark)] flex items-center justify-center gap-2 shadow-sm transition-all cursor-pointer"
               >
                 <span>ACCÉDER AUX 15 PÔLES</span>
                 <ArrowRight className="w-4 h-4" />
@@ -243,7 +244,7 @@ export const WelcomeAboutSection: React.FC<WelcomeAboutSectionProps> = ({
               className="p-6 rounded-3xl border border-slate-100 bg-white hover:border-slate-200 transition-all shadow-sm hover:shadow-md space-y-2.5"
             >
               <div className="flex items-center justify-between">
-                <span className="text-xs font-mono font-bold px-2.5 py-1 rounded-md bg-blue-50 text-[#4A6CF7]">
+                <span className="text-xs font-mono font-bold px-2.5 py-1 rounded-md bg-[var(--viva-muted-surface)] text-[var(--viva-primary)]">
                   {val.number}
                 </span>
                 <span className="w-2 h-2 rounded-full bg-[#8B5CF6]"></span>
@@ -251,7 +252,7 @@ export const WelcomeAboutSection: React.FC<WelcomeAboutSectionProps> = ({
               <h4 className="text-base font-bold text-slate-900">
                 {val.title}
               </h4>
-              <p className="text-xs sm:text-sm leading-relaxed text-[#6B7280]">
+              <p className="text-xs sm:text-sm leading-relaxed text-[var(--viva-text-muted)]">
                 {val.text}
               </p>
             </div>
@@ -263,14 +264,14 @@ export const WelcomeAboutSection: React.FC<WelcomeAboutSectionProps> = ({
       <section className="p-6 sm:p-10 rounded-3xl border border-slate-100 bg-white shadow-sm space-y-8">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-100 pb-6">
           <div>
-            <span className="text-xs font-bold uppercase tracking-wider text-[#4A6CF7]">
+            <span className="text-xs font-bold uppercase tracking-wider text-[var(--viva-primary)]">
               Méthodologie Éprouvée
             </span>
             <h3 className="text-xl sm:text-2xl font-black mt-1 text-slate-900">
               Le Cycle d'une Mission VIVA en 9 Étapes
             </h3>
           </div>
-          <div className="flex items-center gap-2 text-xs font-semibold text-[#4A6CF7]">
+          <div className="flex items-center gap-2 text-xs font-semibold text-[var(--viva-primary)]">
             <Workflow className="w-4 h-4" />
             <span>Processus Maîtrisé de Bout en Bout</span>
           </div>
@@ -282,10 +283,10 @@ export const WelcomeAboutSection: React.FC<WelcomeAboutSectionProps> = ({
               key={sIdx}
               className="p-5 rounded-2xl border border-slate-100 bg-slate-50/60 space-y-2"
             >
-              <span className="text-xs font-bold font-mono text-[#4A6CF7] block">
+              <span className="text-xs font-bold font-mono text-[var(--viva-primary)] block">
                 {step.title}
               </span>
-              <p className="text-xs sm:text-sm leading-relaxed text-[#6B7280]">
+              <p className="text-xs sm:text-sm leading-relaxed text-[var(--viva-text-muted)]">
                 {step.text}
               </p>
             </div>
@@ -314,7 +315,7 @@ export const WelcomeAboutSection: React.FC<WelcomeAboutSectionProps> = ({
                 </span>
                 <div>
                   <strong className="text-slate-900 font-semibold">{prob.title} : </strong>
-                  <span className="text-[#6B7280]">{prob.desc}</span>
+                  <span className="text-[var(--viva-text-muted)]">{prob.desc}</span>
                 </div>
               </div>
             ))}
@@ -325,7 +326,7 @@ export const WelcomeAboutSection: React.FC<WelcomeAboutSectionProps> = ({
         <div className="p-6 sm:p-8 rounded-3xl border border-slate-100 bg-white space-y-6 shadow-sm flex flex-col justify-between">
           <div>
             <div className="flex items-center gap-2.5 mb-4">
-              <div className="w-10 h-10 rounded-xl bg-blue-50 text-[#4A6CF7] flex items-center justify-center">
+              <div className="w-10 h-10 rounded-xl bg-[var(--viva-muted-surface)] text-[var(--viva-primary)] flex items-center justify-center">
                 <Lightbulb className="w-5 h-5" />
               </div>
               <h3 className="text-lg font-bold text-slate-900">
@@ -333,14 +334,14 @@ export const WelcomeAboutSection: React.FC<WelcomeAboutSectionProps> = ({
               </h3>
             </div>
 
-            <p className="text-xs sm:text-sm text-[#6B7280] mb-5">
+            <p className="text-xs sm:text-sm text-[var(--viva-text-muted)] mb-5">
               VIVA EVENTS SOLUTIONS apporte une réponse globale intégrant la totalité des expertises en RDC :
             </p>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 text-xs">
               {platformConfig.marketResponsePoints.slice(0, 16).map((resp, rIdx) => (
                 <div key={rIdx} className="flex items-center gap-2 text-slate-700">
-                  <CheckCircle2 className="w-3.5 h-3.5 text-[#4A6CF7] shrink-0" />
+                  <CheckCircle2 className="w-3.5 h-3.5 text-[var(--viva-primary)] shrink-0" />
                   <span className="truncate">{resp}</span>
                 </div>
               ))}
@@ -350,7 +351,7 @@ export const WelcomeAboutSection: React.FC<WelcomeAboutSectionProps> = ({
           <div className="pt-6 border-t border-slate-100 mt-4">
             <button
               onClick={onOpenQuote}
-              className="w-full py-3 rounded-full font-semibold text-xs uppercase tracking-wider text-white bg-[#4A6CF7] hover:bg-[#3B5CE6] flex items-center justify-center gap-2 shadow-sm transition-all cursor-pointer"
+              className="w-full py-3 rounded-full font-semibold text-xs uppercase tracking-wider text-white bg-[var(--viva-primary)] hover:bg-[var(--viva-primary-dark)] flex items-center justify-center gap-2 shadow-sm transition-all cursor-pointer"
             >
               <span>Demander un devis avec nos Experts</span>
               <ArrowRight className="w-4 h-4" />

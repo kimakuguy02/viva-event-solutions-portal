@@ -32,7 +32,7 @@ interface CmsAdvancedEditorProps {
 
 export const CmsAdvancedEditor: React.FC<CmsAdvancedEditorProps> = ({ cmsSections, onUpdateCmsSections }) => {
   const { currentUser } = useAuth();
-  const { platformConfig, updatePlatformConfig, departments, updateDepartment, resetToDefaults } = useProjectData();
+  const { platformConfig, updatePlatformConfig, departments, updateDepartment } = useProjectData();
   const { activePalette, themeMode } = useTheme();
   const isLight = themeMode === 'light';
 
@@ -218,20 +218,6 @@ export const CmsAdvancedEditor: React.FC<CmsAdvancedEditorProps> = ({ cmsSection
             Modifiez en temps réel les textes institutionnels, le message officiel de bienvenue de VIVA EVENT SOLUTIONS, les 15 pôles et les valeurs d'entreprise.
           </p>
         </div>
-
-        <button
-          onClick={() => {
-            if (window.confirm("Restaurer les contenus par défaut ?")) {
-              resetToDefaults();
-              showToast("Contenus par défaut restaurés.");
-            }
-          }}
-          className="px-4 py-2.5 rounded-xl border text-xs font-bold text-slate-400 hover:text-white hover:bg-slate-800 flex items-center gap-1.5 cursor-pointer whitespace-nowrap"
-          style={{ borderColor: activePalette.colors.border }}
-        >
-          <RotateCcw className="w-3.5 h-3.5" />
-          <span>Restaurer Contenus d'Origine</span>
-        </button>
       </div>
 
       {/* Navigation Sub-Tabs */}

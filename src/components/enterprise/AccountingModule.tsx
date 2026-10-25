@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import { useEnterpriseErp } from '../../context/EnterpriseErpContext';
 import { AccountingTransaction, PaymentAccount } from '../../types/erp';
+import { isPgId } from '../../services/supabase/erpService';
 import {
   DollarSign,
   TrendingUp,
@@ -32,7 +33,9 @@ export const AccountingModule: React.FC = () => {
     addTransaction,
     approveTransactionManager,
     validateTransactionDaf,
-    createDailyCashClosure
+    createDailyCashClosure,
+    validateCashClosure,
+    setOpeningBalance
   } = useEnterpriseErp();
 
   // Active tab inside module: 'journal' | 'clotures' | 'comptes'
@@ -51,7 +54,7 @@ export const AccountingModule: React.FC = () => {
   const [txPaymentAccount, setTxPaymentAccount] = useState<PaymentAccount>('banque_rawbank_usd');
   const [txBeneficiary, setTxBeneficiary] = useState('');
 
-  // Modal Double Signature / OTP
+  // Modal Double Signature / Attestation DAF
   const [selectedTxForOtp, setSelectedTxForOtp] = useState<AccountingTransaction | null>(null);
   const [dafNote, setDafNote] = useState('');
   const [otpError, setOtpError] = useState('');
@@ -60,9 +63,10 @@ export const AccountingModule: React.FC = () => {
   // Modal Daily Closure
   const [isClosureModalOpen, setIsClosureModalOpen] = useState(false);
   const [closureCurrency, setClosureCurrency] = useState<'USD' | 'CDF'>('USD');
-  const [physicalCountedInput, setPhysicalCountedInput] = useState<number>(12000);
+  const [physicalCountedInput, setPhysicalCountedInput] = useState<number>(0);
   const [closureJustification, setClosureJustification] = useState('');
   const [closureSuccessMessage, setClosureSuccessMessage] = useState<string | null>(null);
+  const [actionError, setActionError] = useState<string | null>(null);
 
   // Totals
   const totalRecettesUSD = transactions
@@ -76,10 +80,54 @@ export const AccountingModule: React.FC = () => {
   const netBalanceUSD = totalRecettesUSD - totalDepensesUSD;
   const netBalanceCDF = netBalanceUSD * exchangeRate;
 
-  // Pending double signatures
-  const pendingDoubleSignatures = transactions.filter(
-    t => t.requiresDoubleSignature && t.validationStatus !== 'valide'
-  );
+  // Écritures en attente : la file du journal est pilotée par le statut renvoyé
+  // par Postgres (colonne « Statut & Double Signature »), jamais par le flag de
+  // seuil calculé par le navigateur.
+
+  const [closureVisaBusy, setClosureVisaBusy] = useState<string | null>(null);
+  const [closureVisaError, setClosureVisaError] = useState<string | null>(null);
+  const [openingDraft, setOpeningDraft] = useState<{ account: string; currency: 'USD' | 'CDF'; amount: string }>({
+    account: 'caisse_usd',
+    currency: 'USD',
+    amount: ''
+  });
+  const [openingBusy, setOpeningBusy] = useState(false);
+  const [openingError, setOpeningError] = useState<string | null>(null);
+  const [openingOk, setOpeningOk] = useState<string | null>(null);
+
+  const canValidateClosure = isDaf || isDg;
+
+  const handleClosureVisa = async (closureId: string) => {
+    setClosureVisaError(null);
+    setClosureVisaBusy(closureId);
+    try {
+      await validateCashClosure(closureId);
+    } catch (err) {
+      setClosureVisaError(`Visa refusé : ${err instanceof Error ? err.message : String(err)}.`);
+    } finally {
+      setClosureVisaBusy(null);
+    }
+  };
+
+  const handleOpeningBalance = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const amount = Number(openingDraft.amount);
+    if (!Number.isFinite(amount) || amount < 0) {
+      setOpeningError('Montant d’ouverture invalide (nombre ≥ 0 requis).');
+      return;
+    }
+    setOpeningError(null);
+    setOpeningOk(null);
+    setOpeningBusy(true);
+    try {
+      await setOpeningBalance(openingDraft.account, openingDraft.currency, amount);
+      setOpeningOk(`Solde d'ouverture enregistré : ${amount.toLocaleString()} ${openingDraft.currency} sur ${openingDraft.account}.`);
+    } catch (err) {
+      setOpeningError(`Refus serveur : ${err instanceof Error ? err.message : String(err)}.`);
+    } finally {
+      setOpeningBusy(false);
+    }
+  };
 
   const handleOpenNewTx = (type: 'recette' | 'depense') => {
     setTxType(type);
@@ -170,6 +218,12 @@ export const AccountingModule: React.FC = () => {
 
   return (
     <div className="space-y-8 pb-16">
+      {actionError && (
+        <p role="alert" className="rounded-xl border border-rose-500/40 bg-rose-950/40 px-4 py-3 text-sm text-rose-200">
+          {actionError}
+        </p>
+      )}
+
       {/* Header Banner */}
       <div className="p-6 sm:p-8 rounded-3xl bg-slate-900 border border-slate-800 shadow-xl flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
         <div className="space-y-1.5">
@@ -257,7 +311,7 @@ export const AccountingModule: React.FC = () => {
             <h4 className="font-bold text-sm text-white">Règle Anti-Fraude de Double Signature Équilibrée</h4>
             <p className="text-slate-400 leading-relaxed max-w-3xl">
               • <strong>Dépense &le; 100 USD (ou &le; 285 000 CDF)</strong> : Décaissement opérationnel direct avec reçu d'appoint.<br />
-              • <strong>Décaissement &gt; 100 USD (ou &gt; 285 000 CDF)</strong> : Exige la validation du Manager (DG / Administrateur MALTHUS KILUMBA WA BANZA) <em>PLUS</em> la saisie du code OTP sécurisé émis vers le COMPTABLE.
+              • <strong>Décaissement &gt; 100 USD (ou &gt; 285 000 CDF)</strong> : Exige les visas distincts du Manager et du DAF, vérifiés côté serveur. Aucun code OTP n’est actuellement émis.
             </p>
           </div>
         </div>
@@ -399,9 +453,12 @@ export const AccountingModule: React.FC = () => {
                         <td className="p-4 text-right space-x-1 whitespace-nowrap">
                           {tx.validationStatus === 'en_attente_manager' && (isDg || isAdminRh) && (
                             <button
-                              onClick={() => approveTransactionManager(tx.id, currentUser.name).catch(err =>
-                                console.error('[Wave 2] Visa manager refusé :', err)
-                              )}
+                              onClick={() => {
+                                setActionError(null);
+                                approveTransactionManager(tx.id, currentUser.name).catch(err =>
+                                  setActionError(`Visa manager refusé : ${err instanceof Error ? err.message : String(err)}`)
+                                );
+                              }}
                               className="px-2.5 py-1 rounded bg-amber-500 hover:bg-amber-400 text-slate-950 text-[10px] font-bold cursor-pointer"
                               title="Valider en tant que Manager"
                             >
@@ -457,8 +514,60 @@ export const AccountingModule: React.FC = () => {
                 </span>
               ))}
             </div>
-            <p className="text-[10px] text-slate-500 mt-2">Écarts non justifiés = anomalie à viser par le DAF. Clôtures validées : immuables (R4-23).</p>
+            <p className="text-[10px] text-slate-500 mt-2">Le solde théorique = solde d'ouverture + mouvements validés cumulés (RPC 027). Sans solde d'ouverture, l'écart reste non conforme. Une clôture visée devient immuable (R4-23).</p>
+            {canValidateClosure && (
+              <form onSubmit={handleOpeningBalance} className="mt-3 flex flex-wrap items-end gap-2">
+                <label className="space-y-1">
+                  <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Compte</span>
+                  <select
+                    value={openingDraft.account}
+                    onChange={e => {
+                      const account = e.target.value;
+                      setOpeningDraft(d => ({ account, currency: account.endsWith('_cdf') ? 'CDF' : 'USD', amount: d.amount }));
+                    }}
+                    className="rounded-xl bg-slate-950 border border-slate-800 px-2.5 py-1.5 text-xs text-white"
+                  >
+                    <option value="caisse_usd">Caisse USD</option>
+                    <option value="caisse_cdf">Caisse CDF</option>
+                    <option value="banque_rawbank_usd">Rawbank USD</option>
+                    <option value="banque_equity_usd">EquityBCDC USD</option>
+                    <option value="mpesa_cdf">M-Pesa CDF</option>
+                    <option value="airtel_money_usd">Airtel Money USD</option>
+                  </select>
+                </label>
+                <label className="space-y-1">
+                  <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Solde d'ouverture ({openingDraft.currency})</span>
+                  <input
+                    type="number"
+                    min={0}
+                    step="0.01"
+                    value={openingDraft.amount}
+                    onChange={e => setOpeningDraft(d => ({ ...d, amount: e.target.value }))}
+                    placeholder="Ex. 1500"
+                    className="w-36 rounded-xl bg-slate-950 border border-slate-800 px-2.5 py-1.5 text-xs font-mono text-white"
+                  />
+                </label>
+                <button
+                  type="submit"
+                  disabled={openingBusy}
+                  className="px-3 py-1.5 rounded-xl bg-slate-700 hover:bg-slate-600 disabled:opacity-50 text-[11px] font-bold text-white cursor-pointer"
+                >
+                  {openingBusy ? 'Envoi…' : 'Enregistrer le solde'}
+                </button>
+              </form>
+            )}
+            {openingError && <p role="alert" className="text-[11px] text-rose-300 mt-2">{openingError}</p>}
+            {openingOk && <p className="text-[11px] text-emerald-300 mt-2">{openingOk}</p>}
+            {!canValidateClosure && (
+              <p className="text-[10px] text-slate-600 mt-2">Le solde d'ouverture est réservé aux comptes tenant la permission erp.validate (DAF / direction).</p>
+            )}
           </div>
+
+          {closureVisaError && (
+            <p role="alert" className="rounded-xl border border-rose-500/40 bg-rose-950/40 px-4 py-3 text-sm text-rose-200">
+              {closureVisaError}
+            </p>
+          )}
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {cashClosures.map(clot => (
@@ -468,7 +577,13 @@ export const AccountingModule: React.FC = () => {
                     <Receipt className="w-4 h-4 text-amber-400" />
                     <span className="font-mono font-bold text-sm text-white">{clot.pvReference}</span>
                   </div>
-                  <span className="px-2 py-0.5 rounded text-[10px] font-bold uppercase bg-emerald-500/20 text-emerald-300">
+                  <span className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase ${
+                    clot.status === 'conforme'
+                      ? 'bg-emerald-500/20 text-emerald-300'
+                      : clot.status === 'ecart_justifie'
+                        ? 'bg-amber-500/20 text-amber-300'
+                        : 'bg-red-500/20 text-red-300'
+                  }`}>
                     {clot.status.toUpperCase()}
                   </span>
                 </div>
@@ -501,6 +616,27 @@ export const AccountingModule: React.FC = () => {
                   <p className="text-slate-300 italic">{clot.justification}</p>
                   <p className="text-[10px] text-slate-500 pt-1">Signé par {clot.closedBy} le {clot.closedAt}</p>
                 </div>
+
+                {clot.validatedBy ? (
+                  <p className="flex items-center gap-1.5 text-[11px] font-bold text-emerald-300">
+                    <FileCheck2 className="w-3.5 h-3.5" />
+                    Visa DAF enregistré le {new Date(clot.validatedAt ?? '').toLocaleString('fr-FR')} — clôture immuable
+                  </p>
+                ) : (
+                  <div className="flex items-center justify-between gap-3">
+                    <span className="text-[10px] text-slate-500">Aucun visa DAF enregistré.</span>
+                    {canValidateClosure && isPgId(clot.id) && (
+                      <button
+                        onClick={() => handleClosureVisa(clot.id)}
+                        disabled={closureVisaBusy === clot.id}
+                        className="px-3 py-1.5 rounded-xl bg-purple-600 hover:bg-purple-500 disabled:opacity-50 text-[11px] font-bold text-white cursor-pointer inline-flex items-center gap-1.5"
+                      >
+                        <ShieldCheck className="w-3.5 h-3.5" />
+                        {closureVisaBusy === clot.id ? 'Visa en cours…' : 'Faire viser la clôture'}
+                      </button>
+                    )}
+                  </div>
+                )}
               </div>
             ))}
           </div>
@@ -700,7 +836,7 @@ export const AccountingModule: React.FC = () => {
                 <div className="p-3 rounded-xl bg-amber-500/10 border border-amber-500/30 text-amber-200 text-xs flex items-center gap-2">
                   <KeyRound className="w-4 h-4 shrink-0 text-amber-400" />
                   <span>
-                    <strong>Attention :</strong> Dépense supérieure à $100 USD. Cette écriture nécessitera la validation du Manager + le code OTP du DAF.
+                    <strong>Attention :</strong> Dépense supérieure à $100 USD. Cette écriture nécessitera le visa du Manager puis l’attestation nominative du DAF. Le canal OTP n’est pas connecté.
                   </span>
                 </div>
               )}
@@ -725,7 +861,7 @@ export const AccountingModule: React.FC = () => {
         </div>
       )}
 
-      {/* ==================== MODAL DOUBLE SIGNATURE & OTP DAF ==================== */}
+      {/* ==================== MODAL DOUBLE SIGNATURE & ATTESTATION DAF ==================== */}
       {selectedTxForOtp && (
         <div className="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-4">
           <div className="bg-slate-900 border-2 border-purple-500/50 rounded-3xl p-6 sm:p-8 max-w-md w-full shadow-2xl space-y-6">

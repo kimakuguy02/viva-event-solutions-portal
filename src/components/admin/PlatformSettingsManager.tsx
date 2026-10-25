@@ -20,7 +20,6 @@ import {
   ToggleLeft,
   ToggleRight,
   Save,
-  RotateCcw,
   CheckCircle2,
   Building2,
   Globe,
@@ -34,7 +33,7 @@ import {
 } from 'lucide-react';
 
 export const PlatformSettingsManager: React.FC = () => {
-  const { platformConfig, updatePlatformConfig, resetToDefaults } = useProjectData();
+  const { platformConfig, updatePlatformConfig } = useProjectData();
   const { activePalette, setPalette, themeMode, toggleThemeMode } = useTheme();
   // P5 Wave 1 : l'ancien `setExchangeRate` du contexte n'existait pas (appel mort,
   // désormais supprimé). Le taux ERP reste la constante du contexte jusqu'à la vague ERP.
@@ -247,20 +246,6 @@ export const PlatformSettingsManager: React.FC = () => {
             Pilotez l'ensemble des règles de gestion de VIVA EVENT SOLUTIONS : coordonnées d'entreprise, paramètres graphiques, taux de change SYSCOHADA, et commutateurs de fonctionnalités.
           </p>
         </div>
-
-        <button
-          onClick={() => {
-            if (window.confirm("Restaurer les paramètres d'origine par défaut ?")) {
-              resetToDefaults();
-              showToast("Paramètres d'origine restaurés avec succès.");
-            }
-          }}
-          className="px-4 py-2 rounded-xl border text-xs font-bold text-slate-400 hover:text-white hover:bg-slate-800 flex items-center gap-1.5 cursor-pointer whitespace-nowrap"
-          style={{ borderColor: activePalette.colors.border }}
-        >
-          <RotateCcw className="w-3.5 h-3.5" />
-          <span>Restaurer par défaut</span>
-        </button>
       </div>
 
       {/* Tabs Sub-Navigation */}
@@ -569,7 +554,7 @@ export const PlatformSettingsManager: React.FC = () => {
 
           <div className="space-y-3">
             {[
-              { key: 'quotesEnabled', title: 'Guichet Devis & Simulateur Pro-Forma', desc: 'Permet aux prospects et clients de concevoir et soumettre leurs cahiers des charges 24/7.' },
+              { key: 'quotesEnabled', title: 'Guichet Devis & Pro-Forma', desc: 'Permet aux prospects et clients de concevoir et soumettre leurs cahiers des charges 24/7.' },
               { key: 'liveHubEnabled', title: 'Hub Événements Live & Retransmission', desc: 'Diffusion multicaméra en direct, lecteur streaming vidéo et interactivité.' },
               { key: 'ticketingEnabled', title: 'Billetterie Électronique & Réservation', desc: 'Système d\'émission de billets avec QR code sécurisé et contrôle d\'accès.' },
               { key: 'votingEnabled', title: 'Sondages & Vote Interactif en Direct', desc: 'Permet aux participants de voter en temps réel durant les plénières et sommets.' },

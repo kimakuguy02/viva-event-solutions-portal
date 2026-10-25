@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { DEMO_PUBLIC_EVENTS } from '../../data/publicEvents';
 import { 
   Ticket, 
   Calendar, 
@@ -41,35 +42,18 @@ interface EventInfo {
   organizer: string;
 }
 
-const OFFICIAL_EVENTS: EventInfo[] = [
-  {
-    id: 'evt-01',
-    name: 'Sommet Économique & Technologique RDC 2026',
-    subtitle: 'Grandes Tendances de l’Ingénierie & Numérique en Afrique Centrale',
-    date: '28 Octobre 2026',
-    time: '09:00 - 18:00',
-    location: 'Hôtel Pullman Grand Karavia / Fleuve Congo Hotel, Kinshasa',
-    organizer: 'VIVA EVENT SOLUTIONS & Partenaires'
-  },
-  {
-    id: 'evt-02',
-    name: 'Gala Prestige & Concert Symphonique VIVA',
-    subtitle: 'Célébration des 15 Pôles d’Excellence & Prestation Live',
-    date: '15 Novembre 2026',
-    time: '18:30 - 23:30',
-    location: 'Salle de Congrès Internationale, Gombe, Kinshasa',
-    organizer: 'VIVA ENTERTAINMENT'
-  },
-  {
-    id: 'evt-03',
-    name: 'Forum des Investisseurs & B2B Matchmaking',
-    subtitle: 'Opportunités d’Affaires et Infrastructures Modernes',
-    date: '02 Décembre 2026',
-    time: '08:30 - 17:00',
-    location: 'Centre Financier de Kinshasa (CFK)',
-    organizer: 'VIVA GROUPE RDC'
-  }
-];
+// En production, aucune vente n'est ouverte tant qu'un événement n'est pas
+// publié avec ses catégories de billets. Le jeu de démonstration reste
+// réservé au développement local.
+const OFFICIAL_EVENTS: EventInfo[] = (import.meta.env.DEV ? DEMO_PUBLIC_EVENTS : []).map(event => ({
+  id: event.id,
+  name: event.title,
+  subtitle: event.subtitle,
+  date: event.dateLabel,
+  time: event.time,
+  location: event.location,
+  organizer: event.organizer
+}));
 
 const TICKET_CATEGORIES: TicketCategory[] = [
   {
@@ -114,9 +98,52 @@ const TICKET_CATEGORIES: TicketCategory[] = [
   }
 ];
 
+function TicketingHeader({ onOpenPolicy }: { onOpenPolicy?: () => void }) {
+  return (
+    <div className="rounded-3xl bg-slate-950 p-8 sm:p-10 text-white shadow-2xl relative overflow-hidden border border-slate-800 space-y-6">
+      <div className="absolute top-0 right-0 w-96 h-96 bg-[var(--viva-primary)]/15 rounded-full blur-3xl pointer-events-none"></div>
+
+      <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-white/10 backdrop-blur-md border border-white/20 text-xs font-mono font-bold text-white tracking-wider uppercase">
+        <span className="w-2 h-2 rounded-full bg-[var(--viva-primary)] animate-pulse"></span>
+        Guichet Officiel de Billetterie Événementielle VIVA
+      </div>
+
+      <div className="space-y-3 max-w-3xl">
+        <h1 className="text-3xl sm:text-4xl font-black tracking-tight text-white">
+          Réservation en Ligne & Billetterie Sécurisée
+        </h1>
+        <p className="text-sm sm:text-base text-slate-300 leading-relaxed font-normal">
+          Sélectionnez votre événement, choisissez votre catégorie de billet (Standard, Premium, VIP, VVIP) et soumettez votre demande de réservation.
+        </p>
+      </div>
+
+      <div className="pt-4 border-t border-white/10 flex flex-wrap items-center gap-6 text-xs text-slate-300 font-medium">
+        <div className="flex items-center gap-2">
+          <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
+          <span>Paiement Mobile Money & Carte</span>
+        </div>
+        <div className="flex items-center gap-2">
+          <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
+          <span>E-Billet avec QR Code</span>
+        </div>
+        {onOpenPolicy && (
+          <button
+            type="button"
+            onClick={onOpenPolicy}
+            className="flex items-center gap-1.5 text-amber-400 hover:text-amber-300 transition-colors underline cursor-pointer"
+          >
+            <AlertCircle className="w-4 h-4 shrink-0" />
+            <span>Conditions & Politique d'Annulation</span>
+          </button>
+        )}
+      </div>
+    </div>
+  );
+}
+
 export const OnlineTicketingModule: React.FC = () => {
   // Selected Event & Category
-  const [selectedEvent, setSelectedEvent] = useState<EventInfo>(OFFICIAL_EVENTS[0]);
+  const [selectedEvent, setSelectedEvent] = useState<EventInfo | null>(OFFICIAL_EVENTS[0] ?? null);
   const [selectedCategory, setSelectedCategory] = useState<TicketCategory>(TICKET_CATEGORIES[0]);
   const [currencyMode, setCurrencyMode] = useState<'USD' | 'CDF'>('USD');
   const [quantity, setQuantity] = useState<number>(1);
@@ -164,45 +191,27 @@ export const OnlineTicketingModule: React.FC = () => {
     setQuantity(1);
   };
 
-  return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-8">
-      {/* Official Ticketing Header Banner Matching User Request */}
-      <div className="rounded-3xl bg-slate-950 p-8 sm:p-10 text-white shadow-2xl relative overflow-hidden border border-slate-800 space-y-6">
-        <div className="absolute top-0 right-0 w-96 h-96 bg-[#4A6CF7]/15 rounded-full blur-3xl pointer-events-none"></div>
-
-        <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-white/10 backdrop-blur-md border border-white/20 text-xs font-mono font-bold text-white tracking-wider uppercase">
-          <span className="w-2 h-2 rounded-full bg-[#4A6CF7] animate-pulse"></span>
-          Guichet Officiel de Billetterie Événementielle VIVA
-        </div>
-
-        <div className="space-y-3 max-w-3xl">
-          <h1 className="text-3xl sm:text-4xl font-black tracking-tight text-white">
-            Réservation en Ligne & Billetterie Sécurisée
-          </h1>
-          <p className="text-sm sm:text-base text-slate-300 leading-relaxed font-normal">
-            Sélectionnez votre événement, choisissez votre catégorie de billet (Standard, Premium, VIP, VVIP) et réservez instantanément avec confirmation garantie.
+  if (!selectedEvent) {
+    return (
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-8">
+        <TicketingHeader />
+        <div className="rounded-3xl border border-slate-800 bg-slate-950 p-10 text-center space-y-3">
+          <Ticket className="w-8 h-8 mx-auto text-slate-500" />
+          <h2 className="text-lg font-black text-white">Aucune billetterie ouverte pour le moment</h2>
+          <p className="text-xs text-slate-400 max-w-md mx-auto leading-relaxed">
+            La vente en ligne s'ouvre dès qu'un événement est publié avec ses catégories de billets.
+            Vous pouvez déjà demander un devis ou une réservation privative.
           </p>
         </div>
-
-        <div className="pt-4 border-t border-white/10 flex flex-wrap items-center gap-6 text-xs text-slate-300 font-medium">
-          <div className="flex items-center gap-2">
-            <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
-            <span>Paiement Mobile Money & Carte</span>
-          </div>
-          <div className="flex items-center gap-2">
-            <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
-            <span>E-Billet avec QR Code</span>
-          </div>
-          <button
-            type="button"
-            onClick={() => setShowCancellationModal(true)}
-            className="flex items-center gap-1.5 text-amber-400 hover:text-amber-300 transition-colors underline cursor-pointer"
-          >
-            <AlertCircle className="w-4 h-4 shrink-0" />
-            <span>Conditions & Politique d'Annulation</span>
-          </button>
-        </div>
       </div>
+    );
+  }
+
+  const currentEvent = selectedEvent;
+
+  return (
+    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-8">
+      <TicketingHeader onOpenPolicy={() => setShowCancellationModal(true)} />
 
       {!isConfirmed ? (
         <form onSubmit={handleCheckout} className="grid grid-cols-1 lg:grid-cols-3 gap-8">
@@ -212,7 +221,7 @@ export const OnlineTicketingModule: React.FC = () => {
             <div className="rounded-3xl bg-white border border-slate-200 p-6 sm:p-8 shadow-xl space-y-6">
               <div className="flex items-center justify-between border-b border-slate-100 pb-4">
                 <div className="flex items-center gap-3">
-                  <div className="w-8 h-8 rounded-xl bg-blue-50 text-[#4A6CF7] flex items-center justify-center font-bold text-sm">1</div>
+                  <div className="w-8 h-8 rounded-xl bg-blue-50 text-[var(--viva-primary)] flex items-center justify-center font-bold text-sm">1</div>
                   <h3 className="text-base font-bold text-slate-900">Catégorie de Billet & Quantité</h3>
                 </div>
 
@@ -222,7 +231,7 @@ export const OnlineTicketingModule: React.FC = () => {
                     type="button"
                     onClick={() => setCurrencyMode('USD')}
                     className={`px-3 py-1.5 rounded-lg transition-all cursor-pointer ${
-                      currencyMode === 'USD' ? 'bg-[#4A6CF7] text-white shadow-xs' : 'text-slate-600 hover:text-slate-900'
+                      currencyMode === 'USD' ? 'bg-[var(--viva-primary)] text-white shadow-xs' : 'text-slate-600 hover:text-slate-900'
                     }`}
                   >
                     USD ($)
@@ -231,7 +240,7 @@ export const OnlineTicketingModule: React.FC = () => {
                     type="button"
                     onClick={() => setCurrencyMode('CDF')}
                     className={`px-3 py-1.5 rounded-lg transition-all cursor-pointer ${
-                      currencyMode === 'CDF' ? 'bg-[#4A6CF7] text-white shadow-xs' : 'text-slate-600 hover:text-slate-900'
+                      currencyMode === 'CDF' ? 'bg-[var(--viva-primary)] text-white shadow-xs' : 'text-slate-600 hover:text-slate-900'
                     }`}
                   >
                     CDF (FC)
@@ -249,7 +258,7 @@ export const OnlineTicketingModule: React.FC = () => {
                       onClick={() => setSelectedCategory(cat)}
                       className={`p-5 rounded-2xl border-2 transition-all cursor-pointer flex flex-col justify-between space-y-4 ${
                         isSelected
-                          ? 'border-[#4A6CF7] bg-blue-50/40 shadow-md ring-2 ring-[#4A6CF7]/20'
+                          ? 'border-[var(--viva-primary)] bg-blue-50/40 shadow-md ring-2 ring-[var(--viva-primary)]/20'
                           : 'border-slate-200 hover:border-slate-300 bg-white'
                       }`}
                     >
@@ -266,13 +275,13 @@ export const OnlineTicketingModule: React.FC = () => {
                       <div className="pt-4 border-t border-slate-100 flex items-center justify-between">
                         <div>
                           <span className="text-[10px] uppercase font-semibold text-slate-400 block">Prix</span>
-                          <span className="text-base font-black text-[#4A6CF7]">
+                          <span className="text-base font-black text-[var(--viva-primary)]">
                             {price.toLocaleString()} {currencyMode === 'USD' ? '$' : 'FC'}
                           </span>
                         </div>
 
                         <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center shrink-0 ${
-                          isSelected ? 'border-[#4A6CF7] bg-[#4A6CF7] text-white' : 'border-slate-300'
+                          isSelected ? 'border-[var(--viva-primary)] bg-[var(--viva-primary)] text-white' : 'border-slate-300'
                         }`}>
                           {isSelected && <div className="w-1.5 h-1.5 rounded-full bg-white" />}
                         </div>
@@ -312,7 +321,7 @@ export const OnlineTicketingModule: React.FC = () => {
             <div className="rounded-3xl bg-white border border-slate-200 p-6 sm:p-8 shadow-xl space-y-6">
               <div className="flex items-center justify-between border-b border-slate-100 pb-4">
                 <div className="flex items-center gap-3">
-                  <div className="w-8 h-8 rounded-xl bg-blue-50 text-[#4A6CF7] flex items-center justify-center font-bold text-sm">2</div>
+                  <div className="w-8 h-8 rounded-xl bg-blue-50 text-[var(--viva-primary)] flex items-center justify-center font-bold text-sm">2</div>
                   <h3 className="text-base font-bold text-slate-900">Sélectionnez l'Événement</h3>
                 </div>
                 <span className="text-xs text-slate-500">{OFFICIAL_EVENTS.length} événements programmés</span>
@@ -320,14 +329,14 @@ export const OnlineTicketingModule: React.FC = () => {
 
               <div className="grid grid-cols-1 gap-4">
                 {OFFICIAL_EVENTS.map(evt => {
-                  const isSelected = selectedEvent.id === evt.id;
+                  const isSelected = currentEvent.id === evt.id;
                   return (
                     <div
                       key={evt.id}
                       onClick={() => setSelectedEvent(evt)}
                       className={`p-5 rounded-2xl border-2 transition-all cursor-pointer flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 ${
                         isSelected
-                          ? 'border-[#4A6CF7] bg-blue-50/40 shadow-md'
+                          ? 'border-[var(--viva-primary)] bg-blue-50/40 shadow-md'
                           : 'border-slate-200 hover:border-slate-300 bg-white'
                       }`}
                     >
@@ -338,14 +347,14 @@ export const OnlineTicketingModule: React.FC = () => {
                         <h4 className="text-base font-bold text-slate-900">{evt.name}</h4>
                         <p className="text-xs text-slate-500">{evt.subtitle}</p>
                         <div className="flex flex-wrap items-center gap-4 pt-2 text-xs text-slate-600 font-medium">
-                          <span className="flex items-center gap-1.5"><Calendar className="w-3.5 h-3.5 text-[#4A6CF7]" /> {evt.date}</span>
-                          <span className="flex items-center gap-1.5"><Clock className="w-3.5 h-3.5 text-[#4A6CF7]" /> {evt.time}</span>
-                          <span className="flex items-center gap-1.5"><MapPin className="w-3.5 h-3.5 text-[#4A6CF7]" /> {evt.location}</span>
+                          <span className="flex items-center gap-1.5"><Calendar className="w-3.5 h-3.5 text-[var(--viva-primary)]" /> {evt.date}</span>
+                          <span className="flex items-center gap-1.5"><Clock className="w-3.5 h-3.5 text-[var(--viva-primary)]" /> {evt.time}</span>
+                          <span className="flex items-center gap-1.5"><MapPin className="w-3.5 h-3.5 text-[var(--viva-primary)]" /> {evt.location}</span>
                         </div>
                       </div>
 
                       <div className={`w-6 h-6 rounded-full border-2 flex items-center justify-center shrink-0 ${
-                        isSelected ? 'border-[#4A6CF7] bg-[#4A6CF7] text-white' : 'border-slate-300'
+                        isSelected ? 'border-[var(--viva-primary)] bg-[var(--viva-primary)] text-white' : 'border-slate-300'
                       }`}>
                         {isSelected && <div className="w-2 h-2 rounded-full bg-white" />}
                       </div>
@@ -358,7 +367,7 @@ export const OnlineTicketingModule: React.FC = () => {
             {/* Step 3: Client Information */}
             <div className="rounded-3xl bg-white border border-slate-200 p-6 sm:p-8 shadow-xl space-y-6">
               <div className="flex items-center gap-3 border-b border-slate-100 pb-4">
-                <div className="w-8 h-8 rounded-xl bg-blue-50 text-[#4A6CF7] flex items-center justify-center font-bold text-sm">3</div>
+                <div className="w-8 h-8 rounded-xl bg-blue-50 text-[var(--viva-primary)] flex items-center justify-center font-bold text-sm">3</div>
                 <h3 className="text-base font-bold text-slate-900">Informations du Client / Acheteur</h3>
               </div>
 
@@ -381,7 +390,7 @@ export const OnlineTicketingModule: React.FC = () => {
                       placeholder="Ex: Malthus Kilumba"
                       value={clientName}
                       onChange={e => setClientName(e.target.value)}
-                      className="w-full pl-10 pr-4 py-3 rounded-2xl bg-slate-50 border border-slate-200 text-xs font-medium text-slate-900 focus:outline-none focus:border-[#4A6CF7]"
+                      className="w-full pl-10 pr-4 py-3 rounded-2xl bg-slate-50 border border-slate-200 text-xs font-medium text-slate-900 focus:outline-none focus:border-[var(--viva-primary)]"
                     />
                   </div>
                 </div>
@@ -397,7 +406,7 @@ export const OnlineTicketingModule: React.FC = () => {
                       placeholder="+243 81 000 0000"
                       value={clientPhone}
                       onChange={e => setClientPhone(e.target.value)}
-                      className="w-full pl-10 pr-4 py-3 rounded-2xl bg-slate-50 border border-slate-200 text-xs font-medium text-slate-900 focus:outline-none focus:border-[#4A6CF7]"
+                      className="w-full pl-10 pr-4 py-3 rounded-2xl bg-slate-50 border border-slate-200 text-xs font-medium text-slate-900 focus:outline-none focus:border-[var(--viva-primary)]"
                     />
                   </div>
                 </div>
@@ -413,7 +422,7 @@ export const OnlineTicketingModule: React.FC = () => {
                       placeholder="client@domaine.cd"
                       value={clientEmail}
                       onChange={e => setClientEmail(e.target.value)}
-                      className="w-full pl-10 pr-4 py-3 rounded-2xl bg-slate-50 border border-slate-200 text-xs font-medium text-slate-900 focus:outline-none focus:border-[#4A6CF7]"
+                      className="w-full pl-10 pr-4 py-3 rounded-2xl bg-slate-50 border border-slate-200 text-xs font-medium text-slate-900 focus:outline-none focus:border-[var(--viva-primary)]"
                     />
                   </div>
                 </div>
@@ -423,7 +432,7 @@ export const OnlineTicketingModule: React.FC = () => {
             {/* Step 4: Payment Method */}
             <div className="rounded-3xl bg-white border border-slate-200 p-6 sm:p-8 shadow-xl space-y-6">
               <div className="flex items-center gap-3 border-b border-slate-100 pb-4">
-                <div className="w-8 h-8 rounded-xl bg-blue-50 text-[#4A6CF7] flex items-center justify-center font-bold text-sm">4</div>
+                <div className="w-8 h-8 rounded-xl bg-blue-50 text-[var(--viva-primary)] flex items-center justify-center font-bold text-sm">4</div>
                 <h3 className="text-base font-bold text-slate-900">Mode de Paiement & Règlement</h3>
               </div>
 
@@ -431,10 +440,10 @@ export const OnlineTicketingModule: React.FC = () => {
                 <div
                   onClick={() => setPaymentMethod('mobile_money')}
                   className={`p-4 rounded-2xl border-2 transition-all cursor-pointer flex flex-col items-center text-center space-y-2 ${
-                    paymentMethod === 'mobile_money' ? 'border-[#4A6CF7] bg-blue-50/50 shadow-md' : 'border-slate-200 bg-white'
+                    paymentMethod === 'mobile_money' ? 'border-[var(--viva-primary)] bg-blue-50/50 shadow-md' : 'border-slate-200 bg-white'
                   }`}
                 >
-                  <Smartphone className="w-6 h-6 text-[#4A6CF7]" />
+                  <Smartphone className="w-6 h-6 text-[var(--viva-primary)]" />
                   <span className="text-xs font-bold text-slate-900">Mobile Money</span>
                   <span className="text-[10px] text-slate-500">M-Pesa, Orange, Airtel</span>
                 </div>
@@ -442,10 +451,10 @@ export const OnlineTicketingModule: React.FC = () => {
                 <div
                   onClick={() => setPaymentMethod('card')}
                   className={`p-4 rounded-2xl border-2 transition-all cursor-pointer flex flex-col items-center text-center space-y-2 ${
-                    paymentMethod === 'card' ? 'border-[#4A6CF7] bg-blue-50/50 shadow-md' : 'border-slate-200 bg-white'
+                    paymentMethod === 'card' ? 'border-[var(--viva-primary)] bg-blue-50/50 shadow-md' : 'border-slate-200 bg-white'
                   }`}
                 >
-                  <CreditCard className="w-6 h-6 text-[#4A6CF7]" />
+                  <CreditCard className="w-6 h-6 text-[var(--viva-primary)]" />
                   <span className="text-xs font-bold text-slate-900">Carte Bancaire</span>
                   <span className="text-[10px] text-slate-500">Visa / Mastercard</span>
                 </div>
@@ -453,10 +462,10 @@ export const OnlineTicketingModule: React.FC = () => {
                 <div
                   onClick={() => setPaymentMethod('bank_transfer')}
                   className={`p-4 rounded-2xl border-2 transition-all cursor-pointer flex flex-col items-center text-center space-y-2 ${
-                    paymentMethod === 'bank_transfer' ? 'border-[#4A6CF7] bg-blue-50/50 shadow-md' : 'border-slate-200 bg-white'
+                    paymentMethod === 'bank_transfer' ? 'border-[var(--viva-primary)] bg-blue-50/50 shadow-md' : 'border-slate-200 bg-white'
                   }`}
                 >
-                  <Building2 className="w-6 h-6 text-[#4A6CF7]" />
+                  <Building2 className="w-6 h-6 text-[var(--viva-primary)]" />
                   <span className="text-xs font-bold text-slate-900">Virement Bancaire</span>
                   <span className="text-[10px] text-slate-500">RAWBANK / EquityBCDC</span>
                 </div>
@@ -464,10 +473,10 @@ export const OnlineTicketingModule: React.FC = () => {
                 <div
                   onClick={() => setPaymentMethod('cash')}
                   className={`p-4 rounded-2xl border-2 transition-all cursor-pointer flex flex-col items-center text-center space-y-2 ${
-                    paymentMethod === 'cash' ? 'border-[#4A6CF7] bg-blue-50/50 shadow-md' : 'border-slate-200 bg-white'
+                    paymentMethod === 'cash' ? 'border-[var(--viva-primary)] bg-blue-50/50 shadow-md' : 'border-slate-200 bg-white'
                   }`}
                 >
-                  <DollarSign className="w-6 h-6 text-[#4A6CF7]" />
+                  <DollarSign className="w-6 h-6 text-[var(--viva-primary)]" />
                   <span className="text-xs font-bold text-slate-900">Paiement au Guichet</span>
                   <span className="text-[10px] text-slate-500">Bureau VIVA Kinshasa</span>
                 </div>
@@ -520,8 +529,8 @@ export const OnlineTicketingModule: React.FC = () => {
               <div className="space-y-4 text-xs">
                 <div className="space-y-1">
                   <span className="text-slate-400 uppercase text-[10px] font-semibold">Événement</span>
-                  <p className="font-bold text-slate-900">{selectedEvent.name}</p>
-                  <p className="text-slate-500">{selectedEvent.date} • {selectedEvent.location}</p>
+                  <p className="font-bold text-slate-900">{currentEvent.name}</p>
+                  <p className="text-slate-500">{currentEvent.date} • {currentEvent.location}</p>
                 </div>
 
                 <div className="pt-3 border-t border-slate-100 flex justify-between items-center">
@@ -541,13 +550,13 @@ export const OnlineTicketingModule: React.FC = () => {
 
                 <div className="pt-4 border-t-2 border-dashed border-slate-200 flex justify-between items-center">
                   <span className="text-sm font-bold text-slate-900">Total à Régler :</span>
-                  <span className="text-lg font-black text-[#4A6CF7]">{totalAmount.toLocaleString()} {currencySymbol}</span>
+                  <span className="text-lg font-black text-[var(--viva-primary)]">{totalAmount.toLocaleString()} {currencySymbol}</span>
                 </div>
               </div>
 
               <button
                 type="submit"
-                className="w-full py-4 rounded-2xl bg-[#4A6CF7] hover:bg-[#3A5BD9] text-white text-sm font-bold shadow-xl transition-all cursor-pointer flex items-center justify-center gap-2"
+                className="w-full py-4 rounded-2xl bg-[var(--viva-primary)] hover:bg-[var(--viva-primary-dark)] text-white text-sm font-bold shadow-xl transition-all cursor-pointer flex items-center justify-center gap-2"
               >
                 <span>Confirmer et Payer</span>
                 <ArrowRight className="w-4 h-4" />
@@ -583,7 +592,7 @@ export const OnlineTicketingModule: React.FC = () => {
             <div className="flex justify-between items-start border-b border-white/10 pb-4">
               <div>
                 <span className="text-[10px] font-mono tracking-widest text-amber-400 uppercase">E-Billet Officiel VIVA</span>
-                <h4 className="text-lg font-black">{selectedEvent.name}</h4>
+                <h4 className="text-lg font-black">{currentEvent.name}</h4>
               </div>
               <div className="bg-white/10 px-3 py-1 rounded-xl text-xs font-mono font-bold text-white border border-white/20">
                 {orderReference}
@@ -605,7 +614,7 @@ export const OnlineTicketingModule: React.FC = () => {
               </div>
               <div>
                 <span className="text-white/60 block">Date & Lieu</span>
-                <strong className="text-white">{selectedEvent.date}</strong>
+                <strong className="text-white">{currentEvent.date}</strong>
               </div>
             </div>
 
@@ -631,7 +640,7 @@ export const OnlineTicketingModule: React.FC = () => {
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
             <button
               onClick={() => alert("Téléchargement du e-billet PDF en cours...")}
-              className="px-6 py-3.5 rounded-2xl bg-[#4A6CF7] hover:bg-[#3A5BD9] text-white text-xs font-bold flex items-center justify-center gap-2 shadow-lg transition-all cursor-pointer"
+              className="px-6 py-3.5 rounded-2xl bg-[var(--viva-primary)] hover:bg-[var(--viva-primary-dark)] text-white text-xs font-bold flex items-center justify-center gap-2 shadow-lg transition-all cursor-pointer"
             >
               <Download className="w-4 h-4" />
               <span>Télécharger mon e-Billet (PDF)</span>

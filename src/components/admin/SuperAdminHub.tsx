@@ -241,7 +241,7 @@ export const SuperAdminHub: React.FC<SuperAdminHubProps> = ({
         </aside>
 
         <main className="lg:col-span-9 space-y-6">
-          {activeSubTab === 'overview' && <SuperAdminDashboard onNavigate={onNavigateTab ?? navigate} />}
+          {activeSubTab === 'overview' && <SuperAdminDashboard onNavigate={navigate} />}
 
           {activeSubTab === 'site-editor' && <GlobalSiteEditor />}
 

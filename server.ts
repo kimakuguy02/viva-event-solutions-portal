@@ -3,6 +3,7 @@ dotenv.config();
 
 import express, { Request, Response, NextFunction } from "express";
 import path from "path";
+import fs from "fs";
 import { createServer as createViteServer } from "vite";
 import apiRouter from "./server/api";
 import { getDb, appendAuditLog } from "./server/db";
@@ -12,8 +13,14 @@ const PORT = Number(process.env.PORT) || 3000;
 
 app.use(express.json({ limit: '1mb' }));
 
+// Le mode est explicite et multiplateforme : npm sous Windows exécute les
+// scripts via cmd, où « NODE_ENV=production node ... » échoue. `npm run dev`
+// passe --dev ; sinon la présence du build compilé fait foi.
+const isDevServer = process.argv.includes("--dev") || process.env.NODE_ENV === "development";
+const hasBuild = fs.existsSync(path.join(process.cwd(), "dist", "index.html"));
+
 // Security Headers (CSP compatible YouTube/Supabase/Firebase/Google — voir docs/SECURITY_ARCHITECTURE.md)
-const isProduction = process.env.NODE_ENV === "production";
+const isProduction = !isDevServer && (process.env.NODE_ENV === "production" || hasBuild);
 
 app.use((req, res, next) => {
   res.setHeader("X-Content-Type-Options", "nosniff");
@@ -57,7 +64,7 @@ async function startServer() {
   // Initialize persistent DB on start
   getDb();
 
-  if (process.env.NODE_ENV !== "production") {
+  if (isDevServer || !hasBuild) {
     const vite = await createViteServer({
       server: { middlewareMode: true },
       appType: "spa",

@@ -59,6 +59,8 @@ export const CrmModule: React.FC = () => {
   const [interSummary, setInterSummary] = useState('');
   const [interNextAction, setInterNextAction] = useState('');
   const [interNextDate, setInterNextDate] = useState('');
+  const [interError, setInterError] = useState<string | null>(null);
+  const [interBusy, setInterBusy] = useState(false);
 
   // Send Message Form
   const [msgChannel, setMsgChannel] = useState<'sms' | 'email' | 'notification_push'>('sms');
@@ -89,7 +91,7 @@ export const CrmModule: React.FC = () => {
     ? [
         ...crmInteractions.filter(i => i.clientId === selectedClient.id).map(i => ({
           id: i.id, date: i.date, kind: 'interaction' as const,
-          title: `${i.type.replace(/_/g, ' ')} — ${i.authorName}`, detail: i.summary,
+          title: `${i.type.replace(/_/g, ' ')} — ${i.authorName || (i.authorProfileId === currentUser.id ? currentUser.name : '—')}`, detail: i.summary,
           extra: i.nextAction ? `Suivi : ${i.nextAction}${i.nextFollowUpDate ? ` (${i.nextFollowUpDate})` : ''}` : undefined,
         })),
         ...quotes.filter(q => q.clientEmail.toLowerCase() === selectedClient.email.toLowerCase()).map(q => ({
@@ -143,24 +145,33 @@ export const CrmModule: React.FC = () => {
     setClientNotes('');
   };
 
-  const handleCreateInteraction = (e: React.FormEvent) => {
+  const handleCreateInteraction = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!selectedClient || !interSummary) return;
+    if (!selectedClient || !interSummary.trim()) return;
 
-    addCrmInteraction({
-      clientId: selectedClient.id,
-      clientName: selectedClient.name,
-      date: new Date().toLocaleString('fr-FR', { dateStyle: 'short', timeStyle: 'short' }),
-      type: interType,
-      authorName: currentUser.name,
-      summary: interSummary,
-      nextAction: interNextAction,
-      nextFollowUpDate: interNextDate
-    });
+    setInterError(null);
+    setInterBusy(true);
+    try {
+      await addCrmInteraction({
+        clientId: selectedClient.id,
+        clientName: selectedClient.name,
+        date: new Date().toLocaleString('fr-FR', { dateStyle: 'short', timeStyle: 'short' }),
+        type: interType,
+        authorName: currentUser.name,
+        summary: interSummary,
+        nextAction: interNextAction,
+        nextFollowUpDate: interNextDate
+      });
 
-    setIsNewInteractionOpen(false);
-    setInterSummary('');
-    setInterNextAction('');
+      setIsNewInteractionOpen(false);
+      setInterSummary('');
+      setInterNextAction('');
+      setInterNextDate('');
+    } catch (err) {
+      setInterError(err instanceof Error ? err.message : String(err));
+    } finally {
+      setInterBusy(false);
+    }
   };
 
   const handleSendMessage = (e: React.FormEvent) => {
@@ -400,7 +411,7 @@ export const CrmModule: React.FC = () => {
                   </button>
 
                   <button
-                    onClick={() => setIsNewInteractionOpen(true)}
+                    onClick={() => { setInterError(null); setIsNewInteractionOpen(true); }}
                     className="px-3.5 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 font-bold text-xs flex items-center gap-1.5 cursor-pointer border border-slate-700"
                   >
                     <Plus className="w-3.5 h-3.5 text-amber-400" />
@@ -469,7 +480,9 @@ export const CrmModule: React.FC = () => {
                             {inter.nextFollowUpDate && <span>Échéance : {inter.nextFollowUpDate}</span>}
                           </div>
                         )}
-                        <p className="text-[10px] text-slate-500">Enregistré par {inter.authorName}</p>
+                        <p className="text-[10px] text-slate-500">
+                          Enregistré par {inter.authorName || (inter.authorProfileId === currentUser.id ? currentUser.name : '—')}
+                        </p>
                       </div>
                     ))}
                   </div>
@@ -705,6 +718,11 @@ export const CrmModule: React.FC = () => {
             </div>
 
             <form onSubmit={handleCreateInteraction} className="space-y-4 text-xs">
+              {interError && (
+                <p className="p-3 rounded-xl bg-rose-500/10 border border-rose-500/40 text-rose-300 font-bold leading-relaxed">
+                  {interError}
+                </p>
+              )}
               <div>
                 <label className="text-slate-300 font-bold block mb-1">Type d'Échange</label>
                 <select
@@ -764,9 +782,10 @@ export const CrmModule: React.FC = () => {
                 </button>
                 <button
                   type="submit"
-                  className="px-5 py-2 rounded-xl bg-purple-600 hover:bg-purple-500 text-white font-bold cursor-pointer"
+                  disabled={interBusy}
+                  className="px-5 py-2 rounded-xl bg-purple-600 hover:bg-purple-500 text-white font-bold cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
                 >
-                  Enregistrer
+                  {interBusy ? 'Enregistrement…' : 'Enregistrer'}
                 </button>
               </div>
             </form>

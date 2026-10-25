@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import { useTheme } from '../../context/ThemeContext';
 import { logAudit } from '../../services/supabase/auditService';
+import { isPgId } from '../../services/supabase/erpService';
 import { UserRole } from '../../types';
 import {
   Shield,
@@ -100,6 +101,16 @@ export const RolesManagerModal: React.FC<RolesManagerModalProps> = ({ isOpen, on
     void logAudit(action, 'roles', undefined, { details });
   };
 
+  // Les lignes venues de `profiles` (id = uuid) sont autorité serveur : cet écran
+  // ne lit qu'une copie locale dans le localStorage et n'a aucun effet sur elles.
+  const isServerProfile = (u: ManagedUser | undefined) => !!u && isPgId(u.id);
+  const refuseServerProfile = (u: ManagedUser | undefined): boolean => {
+    if (!isServerProfile(u)) return false;
+    setNotice('⛔ Compte servi par Supabase : rôle et statut se changent dans la base (profiles / roles), pas ici.');
+    setTimeout(() => setNotice(null), 5000);
+    return true;
+  };
+
   const handleSaveUsers = (updated: ManagedUser[]) => {
     setUsers(updated);
     localStorage.setItem('viva_managed_users', JSON.stringify(updated));
@@ -123,19 +134,20 @@ export const RolesManagerModal: React.FC<RolesManagerModalProps> = ({ isOpen, on
 
     const updated = [...users, newUser];
     handleSaveUsers(updated);
-    logAuditAction('USER_CREATED_GOD_MODE', `${newName} (${newRole})`);
+    logAuditAction('USER_DIRECTORY_LOCAL_ADDED', `${newName} (${newRole})`);
 
     setNewName('');
     setNewEmail('');
     setNewPhone('+243 ');
     setActiveTab('users');
-    setNotice(`✅ Utilisateur "${newName}" créé avec succès.`);
-    setTimeout(() => setNotice(null), 4000);
+    setNotice(`⚠️ Fiche locale ajoutée pour "${newName}" — aucun compte de connexion Supabase n'a été créé.`);
+    setTimeout(() => setNotice(null), 5000);
   };
 
   const handleToggleStatus = (userId: string) => {
     const target = users.find(u => u.id === userId);
     if (!target) return;
+    if (refuseServerProfile(target)) return;
     if (target.id === currentUser.id) {
       alert("Impossible de suspendre votre propre compte Administrateur Général.");
       return;
@@ -160,6 +172,7 @@ export const RolesManagerModal: React.FC<RolesManagerModalProps> = ({ isOpen, on
       alert("Impossible de supprimer le compte Administrateur Général principal.");
       return;
     }
+    if (refuseServerProfile(target)) return;
 
     if (confirm(`Confirmez-vous la suppression définitive du compte de "${target.name}" ?`)) {
       const updated = users.filter(u => u.id !== userId);

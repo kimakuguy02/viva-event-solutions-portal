@@ -5,7 +5,7 @@ export const DEFAULT_PLATFORM_CONFIG: PlatformContentConfig = {
   heroSubtitle: "De la conception intellectuelle à la mise en œuvre technique, logistique, numérique et sécuritaire. Un guichet unique global (one-stop-shop) pour sublimer vos sommets d'État, conventions et grands événements.",
   heroTagline: "CRÉER • ORGANISER • PRODUIRE • CONNECTER • IMPACTER",
   heroImageUrl: "https://images.unsplash.com/photo-1511578314322-379afb476865?auto=format&fit=crop&w=1600&q=80",
-  welcomeMessage: "Madame, Monsieur,\n\nNous vous souhaitons chaleureusement la bienvenue sur le portail officiel de VIVA EVENT SOLUTIONS.\n\nNous vous remercions de l'intérêt que vous portiez à notre établissement et sommes heureux de vous ouvrir les portes de notre univers, de notre savoir-faire et de nos différentes solutions.\n\nVIVA EVENT SOLUTIONS accompagne les institutions, entreprises, organisations, acteurs culturels, producteurs, artistes et particuliers dans la conception et la réalisation de projets événementiels et de projets associés.\n\nNotre approche repose sur une conviction simple : un projet complexe mérite une vision globale, une organisation structurée et une coordination maîtrisée.\n\nNous vous invitons à découvrir nos expertises, nos solutions, notre approche artistique et créative ainsi que les différentes possibilités de collaboration que nous proposons.",
+  welcomeMessage: "Madame, Monsieur,\n\nNous vous souhaitons chaleureusement la bienvenue sur le portail officiel de VIVA EVENT SOLUTIONS.\n\nNous vous remercions de l'intérêt que vous portiez à notre société et sommes heureux de vous ouvrir les portes de notre univers, de notre savoir-faire et de nos différentes solutions.\n\nVIVA EVENT SOLUTIONS accompagne les institutions, entreprises, organisations, acteurs culturels, producteurs, artistes et particuliers dans la conception et la réalisation de projets événementiels et de projets associés.\n\nNotre approche repose sur une conviction simple : un projet complexe mérite une vision globale, une organisation structurée et une coordination maîtrisée.\n\nNous vous invitons à découvrir nos expertises, nos solutions, notre approche artistique et créative ainsi que les différentes possibilités de collaboration que nous proposons.",
   whoWeAreText: "Une Architecture Unique & Intégrée, au service de projets complexes.\n\nVIVA EVENT SOLUTIONS est une société basée à Kinshasa-RDC, qui se positionne à l'intersection de plusieurs domaines : Événementiel, communication, numérique, production audiovisuelle, logistique, technologie, services aux entreprises et services aux institutions.\n\nElle vise notamment les institutions publiques, organismes internationaux, ONG, entreprises privées, organisations professionnelles, acteurs culturels, producteurs, artistes et particuliers.\n\nPrenons une conférence internationale de trois jours : au lieu de demander au client de chercher séparément 15 ou 20 prestataires (lieu, scénographie, son, écrans, captation vidéo, diffusion live, interprétation, accueil, sécurité, transports, hébergements, traiteur, signalétique), VIVA EVENT SOLUTIONS construit une architecture unique et intégrée autour du projet.",
   whyChooseUsPoints: [
     "Un interlocuteur unique : Centralisation complète de la coordination.",
@@ -319,7 +319,7 @@ export const POLES_15_OFFICIAL_DATA: Department[] = [
     meaningText: "Ce pôle fournit l'infrastructure technique. Il comprend : sonorisation forte puissance, éclairage de scène et architectural, écrans LED haute luminosité, structures aluminium, scènes motorisées, régies vidéo, groupes électrogènes insonorisés, chapiteaux modulaires et équipements de confort thermique.",
     whyThisPoleText: "Attention : ce pôle ne signifie pas seulement 'Louer du matériel'. Il comprend l'ingénierie globale : Préparation → transport → installation → configuration → exploitation par des ingénieurs certifiés → démontage sécurisé. Pour un concert : Scène + son + lumière + LED + énergie + régie + techniciens doivent fonctionner comme un seul système.",
     globalIdeaText: "L'épine dorsale technologique et énergétique de tout grand événement sans jamais aucune coupure de courant.",
-    concreteExampleText: "Fourniture simultanée de 3 200 kVA d'énergie continue avec groupes synchronisés, 250 m² d'écrans LED 4K et un système Line Array L-Acoustics K2 pour un festival international.",
+    concreteExampleText: "Fourniture simultanée d'énergie continue avec groupes synchronisés, écrans LED 4K et système Line Array pour un festival international.",
     expectedResultText: "Fiabilité technique à 100%, acoustique parfaite, visibilité éclatante plein jour et continuité électrique garantie.",
     subPillars: [
       {
@@ -334,7 +334,7 @@ export const POLES_15_OFFICIAL_DATA: Department[] = [
       }
     ],
     keyEquipment: ["Line Array 48 têtes + 24 Subs", "Écrans LED Outdoor 250 m²", "Groupes électrogènes insonorisés 500kVA x4", "Chapiteaux aluminium 40m de portée"],
-    metrics: { label: "Puissance énergétique disponible", value: "3 200 kVA" },
+    metrics: { label: "Distribution énergétique", value: "Groupes synchronisés" },
     imageUrl: "https://images.unsplash.com/photo-1501386761578-eac5c94b800a?auto=format&fit=crop&w=800&q=80"
   },
   {

@@ -203,7 +203,7 @@ export const AccountCenterModule: React.FC<{ onNavigateTab?: (tabId: string) => 
 
                 <button
                   type="submit"
-                  className="px-6 py-3 rounded-2xl bg-[#4A6CF7] hover:bg-[#3A5BD9] text-white text-xs font-bold flex items-center gap-2 shadow-lg transition-all cursor-pointer"
+                  className="px-6 py-3 rounded-2xl bg-[var(--viva-primary)] hover:bg-[var(--viva-primary-dark)] text-white text-xs font-bold flex items-center gap-2 shadow-lg transition-all cursor-pointer"
                 >
                   <Save className="w-4 h-4" />
                   <span>Enregistrer les modifications</span>

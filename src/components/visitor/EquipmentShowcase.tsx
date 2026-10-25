@@ -11,12 +11,12 @@ export const EquipmentShowcase: React.FC<EquipmentShowcaseProps> = ({ onOpenQuot
 
   const getCategoryIcon = (category: string) => {
     switch (category) {
-      case 'audio': return <Volume2 className="w-5 h-5 text-[#4A6CF7]" />;
+      case 'audio': return <Volume2 className="w-5 h-5 text-[var(--viva-primary)]" />;
       case 'led_screens': return <Tv className="w-5 h-5 text-[#8B5CF6]" />;
-      case 'power_generators': return <Zap className="w-5 h-5 text-[#4A6CF7]" />;
-      case 'tents': return <Building className="w-5 h-5 text-[#4A6CF7]" />;
+      case 'power_generators': return <Zap className="w-5 h-5 text-[var(--viva-primary)]" />;
+      case 'tents': return <Building className="w-5 h-5 text-[var(--viva-primary)]" />;
       case 'broadcast': return <Radio className="w-5 h-5 text-[#8B5CF6]" />;
-      default: return <Truck className="w-5 h-5 text-[#4A6CF7]" />;
+      default: return <Truck className="w-5 h-5 text-[var(--viva-primary)]" />;
     }
   };
 
@@ -25,13 +25,13 @@ export const EquipmentShowcase: React.FC<EquipmentShowcaseProps> = ({ onOpenQuot
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* Section Header */}
         <div className="text-center max-w-3xl mx-auto mb-16 space-y-3">
-          <span className="text-xs font-bold uppercase tracking-wider text-[#4A6CF7] bg-blue-50 px-3.5 py-1.5 rounded-full inline-block">
+          <span className="text-xs font-bold uppercase tracking-wider text-[var(--viva-primary)] bg-blue-50 px-3.5 py-1.5 rounded-full inline-block">
             Autonomie Logistique & Intégration Verticale
           </span>
           <h2 className="text-2xl sm:text-4xl font-extrabold text-slate-900 tracking-tight">
             Parc Matériel Technique & Scénique Lourd
           </h2>
-          <p className="text-sm sm:text-base text-[#6B7280] leading-relaxed">
+          <p className="text-sm sm:text-base text-[var(--viva-text-muted)] leading-relaxed">
             Le plus grand parc d'équipements de pointe en propre en RDC pour s'affranchir des aléas de sous-traitance et garantir une souveraineté technique totale.
           </p>
         </div>
@@ -53,18 +53,18 @@ export const EquipmentShowcase: React.FC<EquipmentShowcaseProps> = ({ onOpenQuot
                   </span>
                 </div>
 
-                <span className="text-[10px] font-mono font-bold text-[#4A6CF7] bg-blue-50/60 px-2 py-0.5 rounded-md">
+                <span className="text-[10px] font-mono font-bold text-[var(--viva-primary)] bg-blue-50/60 px-2 py-0.5 rounded-md">
                   RÉF : {item.code}
                 </span>
-                <h3 className="text-lg font-bold text-slate-900 mt-2 group-hover:text-[#4A6CF7] transition-colors">
+                <h3 className="text-lg font-bold text-slate-900 mt-2 group-hover:text-[var(--viva-primary)] transition-colors">
                   {item.name}
                 </h3>
 
-                <p className="text-xs sm:text-sm text-[#6B7280] mt-3 leading-relaxed">
+                <p className="text-xs sm:text-sm text-[var(--viva-text-muted)] mt-3 leading-relaxed">
                   {item.specs}
                 </p>
 
-                <div className="mt-5 pt-4 border-t border-slate-100 space-y-2 text-xs text-[#6B7280]">
+                <div className="mt-5 pt-4 border-t border-slate-100 space-y-2 text-xs text-[var(--viva-text-muted)]">
                   {item.powerRatingKW && (
                     <div className="flex items-center justify-between">
                       <span>Puissance requise :</span>
@@ -80,15 +80,15 @@ export const EquipmentShowcase: React.FC<EquipmentShowcaseProps> = ({ onOpenQuot
 
               <div className="pt-5 mt-6 border-t border-slate-100 flex items-center justify-between">
                 <div>
-                  <span className="text-[11px] text-[#6B7280] block font-medium">Tarif Journalier</span>
+                  <span className="text-[11px] text-[var(--viva-text-muted)] block font-medium">Tarif Journalier</span>
                   <div className="text-xl font-extrabold text-slate-900">
-                    ${item.dailyRateUSD.toLocaleString()} <span className="text-xs text-[#6B7280] font-normal">USD/j</span>
+                    ${item.dailyRateUSD.toLocaleString()} <span className="text-xs text-[var(--viva-text-muted)] font-normal">USD/j</span>
                   </div>
                 </div>
 
                 <button
                   onClick={onOpenQuoteWithEquipment}
-                  className="px-4 py-2.5 rounded-full bg-[#4A6CF7] hover:bg-[#3B5CE6] text-white text-xs font-semibold shadow-sm transition-all flex items-center gap-1.5 cursor-pointer"
+                  className="px-4 py-2.5 rounded-full bg-[var(--viva-primary)] hover:bg-[var(--viva-primary-dark)] text-white text-xs font-semibold shadow-sm transition-all flex items-center gap-1.5 cursor-pointer"
                 >
                   <span>Réserver</span>
                   <ArrowRight className="w-3.5 h-3.5" />

@@ -684,7 +684,7 @@ export const GlobalSiteEditor: React.FC = () => {
           <div className="w-full max-w-3xl rounded-3xl bg-white text-slate-900 shadow-2xl p-6 sm:p-8 space-y-6 max-h-[90vh] overflow-y-auto">
             <div className="flex items-center justify-between pb-4 border-b border-slate-100">
               <div className="flex items-center gap-2">
-                <span className="px-2.5 py-1 rounded-full bg-blue-50 text-[#4A6CF7] text-xs font-bold uppercase">
+                <span className="px-2.5 py-1 rounded-full bg-blue-50 text-[var(--viva-primary)] text-xs font-bold uppercase">
                   Aperçu Réel Avant Publication
                 </span>
               </div>
@@ -698,7 +698,7 @@ export const GlobalSiteEditor: React.FC = () => {
 
             {/* In-situ Render of the Welcome Card */}
             <div className="p-6 rounded-3xl bg-slate-50 border border-slate-200 space-y-4">
-              <span className="text-[11px] font-bold uppercase tracking-wider text-[#4A6CF7]">
+              <span className="text-[11px] font-bold uppercase tracking-wider text-[var(--viva-primary)]">
                 {welcomeForm.subtitle || "PORTAIL OFFICIEL DE VIVA EVENT SOLUTIONS"}
               </span>
               <h3 className="text-2xl font-black text-slate-900">
@@ -709,7 +709,7 @@ export const GlobalSiteEditor: React.FC = () => {
               </div>
               <div className="flex flex-wrap items-center gap-3 pt-3">
                 {welcomeForm.primaryButtonText && (
-                  <button className="px-5 py-2.5 rounded-full font-bold text-xs text-white bg-[#4A6CF7] shadow">
+                  <button className="px-5 py-2.5 rounded-full font-bold text-xs text-white bg-[var(--viva-primary)] shadow">
                     {welcomeForm.primaryButtonText}
                   </button>
                 )}
@@ -770,7 +770,7 @@ export const GlobalSiteEditor: React.FC = () => {
               {(genericForm.primaryButtonText || genericForm.secondaryButtonText) && (
                 <div className="flex items-center gap-3 pt-3">
                   {genericForm.primaryButtonText && (
-                    <span className="px-4 py-2 rounded-full text-xs font-bold bg-[#4A6CF7] text-white">
+                    <span className="px-4 py-2 rounded-full text-xs font-bold bg-[var(--viva-primary)] text-white">
                       {genericForm.primaryButtonText}
                     </span>
                   )}

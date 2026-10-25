@@ -135,7 +135,7 @@ export const VisualEditOverlayModal: React.FC = () => {
                 {(form.primaryButtonText || form.secondaryButtonText) && (
                   <div className="flex items-center gap-2 pt-2">
                     {form.primaryButtonText && (
-                      <span className="px-3.5 py-1.5 rounded-full text-xs font-bold bg-[#4A6CF7] text-white">
+                      <span className="px-3.5 py-1.5 rounded-full text-xs font-bold bg-[var(--viva-primary)] text-white">
                         {form.primaryButtonText}
                       </span>
                     )}

@@ -74,9 +74,9 @@ export const SecurityCenter: React.FC = () => {
       </AdminCard>
 
       <AdminCard title="Paramètres de sécurité" subtitle="État déclaratif — valeurs effectives côté serveur à valider.">        <dl className="text-xs space-y-2">
-          <div className="flex justify-between"><dt className="text-slate-400 flex items-center gap-1.5"><ShieldCheck className="w-3.5 h-3.5 text-emerald-400" /> RLS + trigger anti-escalade</dt><dd className="text-slate-500">Distant (migrations 001→011)</dd></div>
-          <div className="flex justify-between"><dt className="text-slate-400 flex items-center gap-1.5"><LogOut className="w-3.5 h-3.5 text-slate-500" /> Expiration d'inactivité</dt><dd className="text-white font-mono">30 min (appliquée)</dd></div>
-          <div className="flex justify-between"><dt className="text-slate-400">Verrouillage anti-bruteforce</dt><dd className="text-white font-mono">5 essais / 5 min (modal client)</dd></div>
+          <div className="flex justify-between"><dt className="text-slate-400 flex items-center gap-1.5"><ShieldCheck className="w-3.5 h-3.5 text-emerald-400" /> RLS + trigger anti-escalade</dt><dd className="text-slate-500">001→021 appliquées (016→021 vérifiées) · 024→027 en attente</dd></div>
+          <div className="flex justify-between"><dt className="text-slate-400 flex items-center gap-1.5"><LogOut className="w-3.5 h-3.5 text-slate-500" /> Expiration d'inactivité</dt><dd className="text-white font-mono">30 min (session navigateur)</dd></div>
+          <div className="flex justify-between"><dt className="text-slate-400">Verrouillage anti-bruteforce</dt><dd className="text-white font-mono">3 essais / 15 min (admin, navigateur)</dd></div>
         </dl>
       </AdminCard>
 
@@ -84,14 +84,16 @@ export const SecurityCenter: React.FC = () => {
         <div className="space-y-2">
           {([
             { id: 'SEC-06', label: 'Secrets versionnés (.env, hashes JSON, clés Firebase)', severity: 'CRITIQUE', status: 'PENDING' },
-            { id: 'SEC-04', label: 'Endpoint /api/sync/push sans autorisation', severity: 'CRITIQUE', status: 'PENDING' },
+            { id: 'SEC-04', label: '/api/sync/push : authentification exigée, contrôle de rôle non appliqué', severity: 'CRITIQUE', status: 'MITIGATED' },
+            { id: 'SEC-15', label: '/cms en lecture publique : authentification + content.view appliqués', severity: 'ÉLEVÉ', status: 'MITIGATED' },
             { id: 'SEC-05', label: 'XSS stockée possible (CMS sans sanitize, pas de CSP)', severity: 'CRITIQUE', status: 'PENDING' },
             { id: 'R3-1', label: 'Acteur audit forgeable avant trigger 010', severity: 'ÉLEVÉ', status: 'MITIGATED' },
             { id: 'R3-4', label: 'Insert transaction avec statut arbitraire', severity: 'ÉLEVÉ', status: 'MITIGATED' },
             { id: 'SEC-11', label: 'PBKDF2 10k + salt partagé bootstrap', severity: 'ÉLEVÉ', status: 'PENDING' },
-            { id: 'SEC-13', label: 'PII de démonstration dans le code', severity: 'ÉLEVÉ', status: 'PENDING' },
+            { id: 'SEC-13', label: 'PII / fiches de démonstration dans le code (confinées au build dev)', severity: 'MOYEN', status: 'MITIGATED' },
             { id: 'P0', label: 'Reset destructif (neutralisé : armement + SUPER_ADMIN)', severity: 'MOYEN', status: 'MITIGATED' },
-            { id: 'OTP-DAF', label: 'OTP DAF simulé côté client', severity: 'ÉLEVÉ', status: 'PENDING' },
+            { id: 'OTP-DAF', label: 'OTP DAF simulé retiré ; canal SMS/email réel non connecté', severity: 'MOYEN', status: 'MITIGATED' },
+            { id: 'SEC-14', label: 'Session peut retomber sur l\'autorité legacy (bannière affichée)', severity: 'ÉLEVÉ', status: 'PENDING' },
           ] as const).map(r => (
             <div key={r.id} className="p-3 rounded-xl bg-slate-950 border border-slate-800 flex flex-wrap items-center gap-2 text-xs">
               <span className="font-mono font-bold text-slate-400">{r.id}</span>

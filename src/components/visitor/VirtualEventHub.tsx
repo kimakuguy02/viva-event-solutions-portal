@@ -44,14 +44,14 @@ export const VirtualEventHub: React.FC = () => {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* Section Header */}
         <div className="text-center max-w-3xl mx-auto mb-12 space-y-3">
-          <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-blue-50 text-[#4A6CF7] text-xs font-bold uppercase tracking-wider">
-            <span className="w-2 h-2 rounded-full bg-[#4A6CF7] animate-ping"></span>
+          <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-blue-50 text-[var(--viva-primary)] text-xs font-bold uppercase tracking-wider">
+            <span className="w-2 h-2 rounded-full bg-[var(--viva-primary)] animate-ping"></span>
             <span>Module d'Engagement Virtuel & Événements Hybrides</span>
           </div>
           <h2 className="text-2xl sm:text-4xl font-extrabold text-slate-900 tracking-tight">
             Plateforme Digitale & Régie 4K Interactive
           </h2>
-          <p className="text-sm sm:text-base text-[#6B7280] leading-relaxed">
+          <p className="text-sm sm:text-base text-[var(--viva-text-muted)] leading-relaxed">
             Démocratisation de l'Event Tech : retransmission HD/4K multi-flux, questions-réponses modérées en direct, sondages interactifs et billetterie à QR Code chiffré.
           </p>
         </div>
@@ -62,8 +62,8 @@ export const VirtualEventHub: React.FC = () => {
             onClick={() => setActiveTab('stream')}
             className={`px-5 py-2.5 rounded-full text-xs sm:text-sm font-semibold transition-all flex items-center gap-2 cursor-pointer ${
               activeTab === 'stream'
-                ? 'bg-[#4A6CF7] text-white shadow-sm'
-                : 'bg-white text-[#6B7280] hover:text-slate-900 border border-slate-200 hover:bg-slate-50'
+                ? 'bg-[var(--viva-primary)] text-white shadow-sm'
+                : 'bg-white text-[var(--viva-text-muted)] hover:text-slate-900 border border-slate-200 hover:bg-slate-50'
             }`}
           >
             <Tv className="w-4 h-4" />
@@ -74,8 +74,8 @@ export const VirtualEventHub: React.FC = () => {
             onClick={() => setActiveTab('qa')}
             className={`px-5 py-2.5 rounded-full text-xs sm:text-sm font-semibold transition-all flex items-center gap-2 cursor-pointer ${
               activeTab === 'qa'
-                ? 'bg-[#4A6CF7] text-white shadow-sm'
-                : 'bg-white text-[#6B7280] hover:text-slate-900 border border-slate-200 hover:bg-slate-50'
+                ? 'bg-[var(--viva-primary)] text-white shadow-sm'
+                : 'bg-white text-[var(--viva-text-muted)] hover:text-slate-900 border border-slate-200 hover:bg-slate-50'
             }`}
           >
             <MessageSquare className="w-4 h-4" />
@@ -87,7 +87,7 @@ export const VirtualEventHub: React.FC = () => {
             className={`px-5 py-2.5 rounded-full text-xs sm:text-sm font-semibold transition-all flex items-center gap-2 cursor-pointer ${
               activeTab === 'poll'
                 ? 'bg-[#8B5CF6] text-white shadow-sm'
-                : 'bg-white text-[#6B7280] hover:text-slate-900 border border-slate-200 hover:bg-slate-50'
+                : 'bg-white text-[var(--viva-text-muted)] hover:text-slate-900 border border-slate-200 hover:bg-slate-50'
             }`}
           >
             <BarChart3 className="w-4 h-4" />
@@ -98,8 +98,8 @@ export const VirtualEventHub: React.FC = () => {
             onClick={() => setActiveTab('badge')}
             className={`px-5 py-2.5 rounded-full text-xs sm:text-sm font-semibold transition-all flex items-center gap-2 cursor-pointer ${
               activeTab === 'badge'
-                ? 'bg-[#4A6CF7] text-white shadow-sm'
-                : 'bg-white text-[#6B7280] hover:text-slate-900 border border-slate-200 hover:bg-slate-50'
+                ? 'bg-[var(--viva-primary)] text-white shadow-sm'
+                : 'bg-white text-[var(--viva-text-muted)] hover:text-slate-900 border border-slate-200 hover:bg-slate-50'
             }`}
           >
             <QrCode className="w-4 h-4" />
@@ -144,12 +144,12 @@ export const VirtualEventHub: React.FC = () => {
                   <div className="flex items-center gap-3">
                     <button
                       onClick={() => setIsPlaying(!isPlaying)}
-                      className="p-2 rounded-full bg-[#4A6CF7] text-white hover:bg-[#3B5CE6] font-bold cursor-pointer"
+                      className="p-2 rounded-full bg-[var(--viva-primary)] text-white hover:bg-[var(--viva-primary-dark)] font-bold cursor-pointer"
                     >
                       <Play className="w-4 h-4 fill-white" />
                     </button>
                     <div className="flex items-center gap-1.5 text-xs text-slate-200">
-                      <Volume2 className="w-4 h-4 text-[#4A6CF7]" />
+                      <Volume2 className="w-4 h-4 text-[var(--viva-primary)]" />
                       <span className="hidden sm:inline">Traduction :</span>
                     </div>
                     <div className="flex items-center gap-1">
@@ -159,7 +159,7 @@ export const VirtualEventHub: React.FC = () => {
                           onClick={() => setSelectedLanguage(lang)}
                           className={`px-2.5 py-1 rounded-lg text-xs font-semibold transition-colors cursor-pointer ${
                             selectedLanguage === lang
-                              ? 'bg-[#4A6CF7] text-white'
+                              ? 'bg-[var(--viva-primary)] text-white'
                               : 'bg-white/10 text-slate-300 hover:text-white'
                           }`}
                         >
@@ -182,7 +182,7 @@ export const VirtualEventHub: React.FC = () => {
             {/* Right column : Session schedule */}
             <div className="lg:col-span-4 bg-white border border-slate-100 rounded-3xl p-6 space-y-4 shadow-sm">
               <h4 className="text-xs font-bold text-slate-900 uppercase tracking-wider flex items-center gap-2">
-                <Users className="w-4 h-4 text-[#4A6CF7]" />
+                <Users className="w-4 h-4 text-[var(--viva-primary)]" />
                 <span>Programme de la Journée</span>
               </h4>
 
@@ -197,7 +197,7 @@ export const VirtualEventHub: React.FC = () => {
                     }`}
                   >
                     <div className="flex items-center justify-between text-xs mb-1.5">
-                      <span className="font-mono text-[#4A6CF7] font-bold">{session.time}</span>
+                      <span className="font-mono text-[var(--viva-primary)] font-bold">{session.time}</span>
                       {session.isLive && (
                         <span className="px-2 py-0.5 rounded-full bg-rose-600 text-white font-semibold text-[10px] uppercase">
                           En direct
@@ -205,7 +205,7 @@ export const VirtualEventHub: React.FC = () => {
                       )}
                     </div>
                     <h5 className="font-bold text-sm text-slate-900 line-clamp-2">{session.title}</h5>
-                    <p className="text-xs text-[#6B7280] mt-1">{session.speaker}</p>
+                    <p className="text-xs text-[var(--viva-text-muted)] mt-1">{session.speaker}</p>
                     <div className="flex items-center justify-between text-[11px] text-slate-400 mt-3 pt-2 border-t border-slate-200/60">
                       <span>Piste : {session.track}</span>
                       <span>{session.registeredCount} / {session.capacity} inscrits</span>
@@ -223,10 +223,10 @@ export const VirtualEventHub: React.FC = () => {
             {/* Ask form */}
             <div className="lg:col-span-5 bg-white border border-slate-100 rounded-3xl p-6 space-y-4 shadow-sm">
               <h4 className="text-xs font-bold text-slate-900 uppercase tracking-wider flex items-center gap-2">
-                <MessageSquare className="w-4 h-4 text-[#4A6CF7]" />
+                <MessageSquare className="w-4 h-4 text-[var(--viva-primary)]" />
                 <span>Poser une Question au Panel</span>
               </h4>
-              <p className="text-xs text-[#6B7280]">
+              <p className="text-xs text-[var(--viva-text-muted)]">
                 Vos questions sont transmises en temps réel à la régie et au modérateur du sommet.
               </p>
 
@@ -238,7 +238,7 @@ export const VirtualEventHub: React.FC = () => {
                     value={newAuthor}
                     onChange={e => setNewAuthor(e.target.value)}
                     placeholder="Ex: Jean-Luc Tshisekedi"
-                    className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 border border-slate-200 text-xs text-slate-900 focus:outline-none focus:border-[#4A6CF7]"
+                    className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 border border-slate-200 text-xs text-slate-900 focus:outline-none focus:border-[var(--viva-primary)]"
                   />
                 </div>
                 <div>
@@ -248,7 +248,7 @@ export const VirtualEventHub: React.FC = () => {
                     value={newAffiliation}
                     onChange={e => setNewAffiliation(e.target.value)}
                     placeholder="Ex: Fédération des Entreprises"
-                    className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 border border-slate-200 text-xs text-slate-900 focus:outline-none focus:border-[#4A6CF7]"
+                    className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 border border-slate-200 text-xs text-slate-900 focus:outline-none focus:border-[var(--viva-primary)]"
                   />
                 </div>
                 <div>
@@ -258,13 +258,13 @@ export const VirtualEventHub: React.FC = () => {
                     value={newContent}
                     onChange={e => setNewContent(e.target.value)}
                     placeholder="Saisissez votre question claire et concise..."
-                    className="w-full p-3.5 rounded-xl bg-slate-50 border border-slate-200 text-xs text-slate-900 focus:outline-none focus:border-[#4A6CF7]"
+                    className="w-full p-3.5 rounded-xl bg-slate-50 border border-slate-200 text-xs text-slate-900 focus:outline-none focus:border-[var(--viva-primary)]"
                     required
                   ></textarea>
                 </div>
                 <button
                   type="submit"
-                  className="w-full py-2.5 rounded-full bg-[#4A6CF7] hover:bg-[#3B5CE6] text-white font-semibold text-xs flex items-center justify-center gap-2 shadow-sm transition-all cursor-pointer"
+                  className="w-full py-2.5 rounded-full bg-[var(--viva-primary)] hover:bg-[var(--viva-primary-dark)] text-white font-semibold text-xs flex items-center justify-center gap-2 shadow-sm transition-all cursor-pointer"
                 >
                   <Send className="w-3.5 h-3.5" />
                   <span>Envoyer à la Modération</span>
@@ -283,7 +283,7 @@ export const VirtualEventHub: React.FC = () => {
                     <div className="flex items-start justify-between gap-3">
                       <div>
                         <span className="text-xs font-bold text-slate-900">{q.author}</span>
-                        <span className="text-[11px] text-[#6B7280] ml-2">({q.affiliation}) • {q.timestamp}</span>
+                        <span className="text-[11px] text-[var(--viva-text-muted)] ml-2">({q.affiliation}) • {q.timestamp}</span>
                       </div>
                       {q.isAnswered && (
                         <span className="px-2.5 py-0.5 rounded-full bg-emerald-50 text-emerald-600 border border-emerald-100 text-[10px] font-semibold">
@@ -295,12 +295,12 @@ export const VirtualEventHub: React.FC = () => {
                     <div className="flex items-center justify-between pt-2.5 border-t border-slate-100">
                       <button
                         onClick={() => upvoteQuestion(q.id)}
-                        className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-blue-50 hover:bg-blue-100 text-xs text-[#4A6CF7] font-semibold transition-colors cursor-pointer"
+                        className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-blue-50 hover:bg-blue-100 text-xs text-[var(--viva-primary)] font-semibold transition-colors cursor-pointer"
                       >
                         <ThumbsUp className="w-3.5 h-3.5" />
                         <span>{q.votes} votes</span>
                       </button>
-                      <span className="text-[11px] text-[#6B7280]">Transmis au modérateur</span>
+                      <span className="text-[11px] text-[var(--viva-text-muted)]">Transmis au modérateur</span>
                     </div>
                   </div>
                 ))}
@@ -349,7 +349,7 @@ export const VirtualEventHub: React.FC = () => {
               })}
             </div>
 
-            <p className="text-[11px] text-center text-[#6B7280]">
+            <p className="text-[11px] text-center text-[var(--viva-text-muted)]">
               Cliquez sur une option pour enregistrer votre vote instantané. Les pourcentages se recalculent automatiquement.
             </p>
           </div>
@@ -360,12 +360,12 @@ export const VirtualEventHub: React.FC = () => {
           <div className="max-w-xl mx-auto bg-white border border-slate-200 rounded-3xl p-6 sm:p-8 space-y-6 shadow-lg text-center relative overflow-hidden">
             <div className="flex items-center justify-between border-b border-slate-100 pb-4">
               <div className="text-left">
-                <span className="text-[10px] font-mono font-bold text-[#4A6CF7] uppercase tracking-wider">
+                <span className="text-[10px] font-mono font-bold text-[var(--viva-primary)] uppercase tracking-wider">
                   VIVA EVENT SOLUTIONS • BADGE VIP
                 </span>
                 <h4 className="text-base font-bold text-slate-900">Accès Conférence & Sommet</h4>
               </div>
-              <span className="px-3 py-1 rounded-full bg-blue-50 text-[#4A6CF7] font-bold text-xs uppercase">
+              <span className="px-3 py-1 rounded-full bg-blue-50 text-[var(--viva-primary)] font-bold text-xs uppercase">
                 Pass Accrédité
               </span>
             </div>
@@ -377,13 +377,13 @@ export const VirtualEventHub: React.FC = () => {
 
             <div className="space-y-1">
               <h3 className="text-xl font-black text-slate-900">{badgeAttendee.name}</h3>
-              <p className="text-xs text-[#4A6CF7] font-semibold">{badgeAttendee.org}</p>
-              <p className="text-xs text-[#6B7280] font-mono pt-1">
+              <p className="text-xs text-[var(--viva-primary)] font-semibold">{badgeAttendee.org}</p>
+              <p className="text-xs text-[var(--viva-text-muted)] font-mono pt-1">
                 Zone / Siège : <span className="text-slate-900 font-bold">{badgeAttendee.seatNumber}</span> • Code : {badgeAttendee.ticketCode}
               </p>
             </div>
 
-            <div className="p-3.5 bg-slate-50 rounded-2xl border border-slate-100 text-[11px] text-[#6B7280]">
+            <div className="p-3.5 bg-slate-50 rounded-2xl border border-slate-100 text-[11px] text-[var(--viva-text-muted)]">
               Scannable aux portiques électroniques de sécurité & postes d'émargement VIVA EVENT.
             </div>
           </div>
