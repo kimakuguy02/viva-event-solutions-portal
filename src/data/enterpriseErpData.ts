@@ -17,14 +17,14 @@ export const VIVA_ENTERPRISE_ORGANIGRAM: EnterpriseDirection[] = [
   {
     code: "DIR-01",
     name: "01. Direction Générale & Stratégie",
-    managerName: "MALTHUS KILUMBA WA BANZA (DG / Gérant)",
+    managerName: "Directeur Général (DG / Gérant)",
     headcount: 3,
     description: "Pilotage stratégique, investissements capitaux, relations institutionnelles et partenariats d'État."
   },
   {
     code: "DIR-02",
     name: "02. Administration & Ressources Humaines",
-    managerName: "MALTHUS KILUMBA WA BANZA (Directeur Général & Administrateur)",
+    managerName: "Direction Générale & Administration",
     headcount: 4,
     description: "Gestion des contrats, conformité légale, fiches de poste, sécurité du travail et paie."
   },

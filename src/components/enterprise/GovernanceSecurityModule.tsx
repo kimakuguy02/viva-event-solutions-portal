@@ -34,7 +34,7 @@ export const GovernanceSecurityModule: React.FC = () => {
     {
       id: 'log-02',
       date: '11/09/2026 12:20:04',
-      user: 'MALTHUS KILUMBA WA BANZA (Administrateur)',
+      user: 'Direction Administrative & RH',
       action: 'UPDATE_JOB_POSITION_CHEF_EQUIPE',
       terminal: 'HR-TERMINAL-01 • IP 192.168.1.12',
       status: 'Conforme'
@@ -42,7 +42,7 @@ export const GovernanceSecurityModule: React.FC = () => {
     {
       id: 'log-03',
       date: '11/09/2026 11:15:33',
-      user: 'MALTHUS KILUMBA WA BANZA (DG)',
+      user: 'Direction Générale (DG)',
       action: 'APPROVE_BUDGET_LINE_SOMMET_CEEAC',
       terminal: 'DG-EXECUTIVE-SECURED • IP 192.168.1.2',
       status: 'Conforme'
@@ -138,7 +138,7 @@ export const GovernanceSecurityModule: React.FC = () => {
                 <tr>
                   <td className="p-4 font-bold text-white">
                     <div>DG / Gérance</div>
-                    <div className="text-[11px] text-amber-400 font-normal">MALTHUS KILUMBA WA BANZA</div>
+                    <div className="text-[11px] text-amber-400 font-normal">Direction Générale</div>
                   </td>
                   <td className="p-4 text-emerald-400 font-bold">✓ Illimité (God Mode)</td>
                   <td className="p-4 text-emerald-400 font-bold">✓ Visa Manager</td>
@@ -151,7 +151,7 @@ export const GovernanceSecurityModule: React.FC = () => {
                 <tr>
                   <td className="p-4 font-bold text-white">
                     <div>Administrateur & RH</div>
-                    <div className="text-[11px] text-blue-400 font-normal">MALTHUS KILUMBA WA BANZA</div>
+                    <div className="text-[11px] text-blue-400 font-normal">Direction des Ressources Humaines</div>
                   </td>
                   <td className="p-4 text-blue-400 font-bold">✓ Stratégie & RH</td>
                   <td className="p-4 text-emerald-400 font-bold">✓ Visa Manager</td>

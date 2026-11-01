@@ -36,44 +36,44 @@ export const ERP_RBAC_PERMISSIONS: Record<ErpModuleId, {
   accounting: {
     name: "Comptabilité & Trésorerie SYSCOHADA",
     authorizedRoles: ['dg_gerant', 'admin_rh', 'daf_comptable', 'admin', 'admin_general'],
-    requiredRoleNames: ["COMPTABLE (DAF)", "MALTHUS KILUMBA WA BANZA (DG / Administrateur)"],
+    requiredRoleNames: ["COMPTABLE (DAF)", "Direction Générale (DG / Administrateur)"],
     description: "Journaux d'écritures SYSCOHADA/IFRS, caisses USD/CDF, double signature OTP et clôtures journalières.",
-    denialReason: "Ce module financier hautement confidentiel est strictement réservé au COMPTABLE et à la Direction Générale (MALTHUS KILUMBA WA BANZA)."
+    denialReason: "Ce module financier hautement confidentiel est strictement réservé au COMPTABLE et à la Direction Générale."
   },
   crm: {
     name: "Clients & CRM Entreprise",
     authorizedRoles: ['dg_gerant', 'admin_rh', 'commercial_secretaire', 'daf_comptable', 'admin', 'admin_general'],
-    requiredRoleNames: ["Commercial / Secrétariat", "COMPTABLE", "MALTHUS KILUMBA WA BANZA (DG / Admin)"],
+    requiredRoleNames: ["Commercial / Secrétariat", "COMPTABLE", "Direction Générale (DG / Admin)"],
     description: "Portefeuille clients d'État et privés, historique des interactions, devis chiffrés et facturation.",
-    denialReason: "Ce module est réservé au pôle commercial, au COMPTABLE pour la facturation et à la Direction Générale (MALTHUS KILUMBA WA BANZA)."
+    denialReason: "Ce module est réservé au pôle commercial, au COMPTABLE pour la facturation et à la Direction Générale."
   },
   'projects-tasks': {
     name: "Projets & Tâches Opérationnelles",
     authorizedRoles: ['dg_gerant', 'admin_rh', 'chef_equipe', 'admin', 'admin_general'],
-    requiredRoleNames: ["Chef d'Équipe Régie", "MALTHUS KILUMBA WA BANZA (DG / Administrateur)"],
+    requiredRoleNames: ["Chef d'Équipe Régie", "Direction Générale (DG / Administrateur)"],
     description: "Chantiers événementiels, assignation des tâches de terrain et fiches d'activité quotidiennes.",
-    denialReason: "Ce module de régie technique et d'affectation terrain est réservé au Chef d'Équipe Régie et à la Direction (MALTHUS KILUMBA WA BANZA)."
+    denialReason: "Ce module de régie technique et d'affectation terrain est réservé au Chef d'Équipe Régie et à la Direction Générale."
   },
   'assets-loans': {
     name: "Actifs, Stocks & Prêts Matériel",
     authorizedRoles: ['dg_gerant', 'admin_rh', 'chef_equipe', 'admin', 'admin_general'],
-    requiredRoleNames: ["Chef d'Équipe Régie", "MALTHUS KILUMBA WA BANZA (DG / Administrateur)"],
+    requiredRoleNames: ["Chef d'Équipe Régie", "Direction Générale (DG / Administrateur)"],
     description: "Traçabilité du parc lourd (groupes électrogènes, Line Array, LED), bons de prêt contradictoires et maintenance.",
-    denialReason: "La gestion des actifs physiques et l'émission des bons de sortie de matériel sont réservées à la régie technique et à la Direction (MALTHUS KILUMBA WA BANZA)."
+    denialReason: "La gestion des actifs physiques et l'émission des bons de sortie de matériel sont réservées à la régie technique et à la Direction Générale."
   },
   'human-resources': {
     name: "Ressources Humaines & Organigramme",
     authorizedRoles: ['dg_gerant', 'admin_rh', 'admin', 'admin_general'],
-    requiredRoleNames: ["MALTHUS KILUMBA WA BANZA (DG / Administrateur)"],
+    requiredRoleNames: ["Direction Générale (DG / Administrateur)"],
     description: "Fiches de poste contractuelles des 9 directions, KPIs, gestion des contrats et sécurité du travail.",
-    denialReason: "Ce module stratégique RH et confidentiel est sous le contrôle exclusif de MALTHUS KILUMBA WA BANZA (Directeur Général & Administrateur)."
+    denialReason: "Ce module stratégique RH et confidentiel est sous le contrôle exclusif de la Direction Générale & Administration RH."
   },
   governance: {
     name: "Gouvernance, Sécurité & Audit Trail",
     authorizedRoles: ['dg_gerant', 'admin_rh', 'admin', 'admin_general'],
-    requiredRoleNames: ["MALTHUS KILUMBA WA BANZA (DG / Administrateur)"],
+    requiredRoleNames: ["Direction Générale (DG / Administrateur)"],
     description: "Matrice d'accès RBAC, journal des événements d'audit immuable et notifications d'urgence multicanales.",
-    denialReason: "Le paramétrage de la politique de sécurité et l'audit trail sont réservés exclusivement à MALTHUS KILUMBA WA BANZA (DG & Administrateur)."
+    denialReason: "Le paramétrage de la politique de sécurité et l'audit trail sont réservés exclusivement à la Direction Générale & Administration."
   },
   purchases: {
     name: "Achats & Commandes Fournisseurs",
