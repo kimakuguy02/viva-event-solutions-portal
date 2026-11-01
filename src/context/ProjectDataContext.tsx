@@ -25,14 +25,6 @@ import {
   INITIAL_YOUTUBE_CONFIG,
   INITIAL_DYNAMIC_FORMS
 } from '../data/cmsAndErpDefaults';
-import {
-  setFirestoreDocument,
-  updateFirestoreDocument,
-  deleteFirestoreDocument,
-  subscribeFirestoreCollection,
-  logAuditEvent,
-  auth
-} from '../services/firebase';
 import { isSupabaseConfigured, supabase } from '../services/supabase';
 import { logAudit } from '../services/supabase/auditService';
 import {
@@ -497,34 +489,6 @@ export const ProjectDataProvider: React.FC<{ children: React.ReactNode }> = ({ c
   // Le catalogue officiel (départements, équipement, partenaires, directions)
   // n'est plus écouté depuis Firestore : sa base est vide, et un snapshot vide
   // écraserait les données officielles locales. Ces collections restent dans
-  // l'état local + cache hors-ligne jusqu'à leur migration Postgres.
-  // La configuration plateforme ne s'applique que si un document « main »
-  // existe : un snapshot vide ne peut donc rien écraser.
-  useEffect(() => {
-    const unsubscribers: Array<() => void> = [];
-
-    try {
-      const unsubscribePlatform = subscribeFirestoreCollection<PlatformContentConfig>(
-        'platform_config',
-        items => {
-          const main = items.find((item: any) => (item as any).id === 'main');
-          if (main) {
-            const { id: _id, ...config } = main as any;
-            setPlatformConfig(prev => ({ ...prev, ...config }));
-          }
-        }
-      );
-      unsubscribers.push(unsubscribePlatform);
-    } catch (error) {
-      console.warn('[Firebase] Platform configuration listener unavailable:', error);
-    }
-
-    return () => {
-      unsubscribers.forEach(unsubscribe => {
-        try { unsubscribe(); } catch { /* noop */ }
-      });
-    };
-  }, []);
 
   // Wave 2 — Postgres est la source de vérité des collections ci-dessous.
   // Un succès (même vide) remplace l'état local : plus de fusion avec les
@@ -612,21 +576,7 @@ export const ProjectDataProvider: React.FC<{ children: React.ReactNode }> = ({ c
     const previous = directionsOrg;
     setDirectionsOrg(dirs);
 
-    dirs.forEach(d => {
-      setFirestoreDocument('organization_directions', String(d.id), d)
-        .catch(e => console.warn('[Firebase] Direction persist notice:', e));
-    });
-
-    previous
-      .filter(d => !dirs.some(next => String(next.id) === String(d.id)))
-      .forEach(d => {
-        deleteFirestoreDocument('organization_directions', String(d.id))
-          .catch(e => console.warn('[Firebase] Direction delete notice:', e));
-      });
-
-    logAuditEvent({
-      action: 'ORGANIZATION_DIRECTIONS_UPDATED',
-      resource: 'organization_directions',
+    void logAudit('ORGANIZATION_DIRECTIONS_UPDATED', 'organization_directions', undefined, {
       details: `${dirs.length} directions mises à jour.`
     });
   };
@@ -653,10 +603,7 @@ export const ProjectDataProvider: React.FC<{ children: React.ReactNode }> = ({ c
     }
     setOrgUnits(prev => [...prev, newUnit]);
 
-    logAuditEvent({
-      action: 'ORGANIZATION_UNIT_CREATED',
-      resource: 'organization_units',
-      resourceId: newId,
+    void logAudit('ORGANIZATION_UNIT_CREATED', 'organization_units', newId, {
       details: `Création entité : ${newUnit.name} (${newUnit.type})`
     });
   };
@@ -690,15 +637,10 @@ export const ProjectDataProvider: React.FC<{ children: React.ReactNode }> = ({ c
       }
     }
     setOrgUnits(prev => prev.filter(u => u.id !== id));
-    logAuditEvent({
-      action: 'ORGANIZATION_UNIT_DELETED',
-      resource: 'organization_units',
-      resourceId: id
-    });
+    void logAudit('ORGANIZATION_UNIT_DELETED', 'organization_units', id, {});
   };
 
   const updateDynamicMenus = async (menus: DynamicMenu[]) => {
-    // Wave 2 — SSOT Supabase d'abord ; succès UI seulement après confirmation.
     if (isSupabaseConfigured()) {
       try {
         const confirmed = await savePgMenus(menus);
@@ -713,16 +655,9 @@ export const ProjectDataProvider: React.FC<{ children: React.ReactNode }> = ({ c
     } else {
       setDynamicMenus(menus);
     }
-
-    logAuditEvent({
-      action: 'DYNAMIC_MENUS_UPDATED',
-      resource: 'dynamic_menus',
-      details: `${menus.length} menus synchronisés.`
-    });
   };
 
   const updateDynamicModules = async (mods: DynamicModule[]) => {
-    // Wave 2 — SSOT Supabase d'abord ; succès UI seulement après confirmation.
     if (isSupabaseConfigured()) {
       try {
         const confirmed = await savePgModules(mods);
@@ -737,12 +672,6 @@ export const ProjectDataProvider: React.FC<{ children: React.ReactNode }> = ({ c
     } else {
       setDynamicModules(mods);
     }
-
-    logAuditEvent({
-      action: 'DYNAMIC_MODULES_UPDATED',
-      resource: 'dynamic_modules',
-      details: `${mods.length} modules synchronisés.`
-    });
   };
 
   const addDynamicForm = async (formData: Omit<DynamicForm, 'id' | 'createdAt' | 'updatedAt'>) => {
@@ -770,17 +699,13 @@ export const ProjectDataProvider: React.FC<{ children: React.ReactNode }> = ({ c
       setDynamicForms(prev => [...prev, newForm]);
     }
 
-    logAuditEvent({
-      action: 'DYNAMIC_FORM_CREATED',
-      resource: 'dynamic_forms',
-      resourceId: newId,
+    void logAudit('DYNAMIC_FORM_CREATED', 'forms', newId, {
       details: `Formulaire créé : ${newForm.name}`
     });
   };
 
   const updateDynamicForm = async (id: string, updated: Partial<DynamicForm>) => {
     const current = dynamicForms.find(f => f.id === id);
-    // Wave 2 — SSOT Supabase d'abord.
     if (isSupabaseConfigured() && current) {
       try {
         await savePgForm({ ...current, ...updated, id, updatedAt: new Date().toISOString() });
@@ -794,7 +719,6 @@ export const ProjectDataProvider: React.FC<{ children: React.ReactNode }> = ({ c
   };
 
   const deleteDynamicForm = async (id: string) => {
-    // Wave 2 — SSOT Supabase d'abord.
     if (isSupabaseConfigured()) {
       try {
         await deletePgForm(id);
@@ -805,16 +729,12 @@ export const ProjectDataProvider: React.FC<{ children: React.ReactNode }> = ({ c
       }
     }
     setDynamicForms(prev => prev.filter(f => f.id !== id));
-    logAuditEvent({
-      action: 'DYNAMIC_FORM_DELETED',
-      resource: 'dynamic_forms',
-      resourceId: id
-    });
+    void logAudit('DYNAMIC_FORM_DELETED', 'forms', id, {});
   };
 
   const submitDynamicForm = async (formId: string, data: Record<string, any>, submittedByName?: string): Promise<string> => {
     const targetForm = dynamicForms.find(f => f.id === formId);
-    const user = auth.currentUser;
+    const user = supabase ? (await supabase.auth.getUser()).data.user : null;
 
     // Wave 2 — soumission PG si le formulaire y existe (insert RLS public prévu).
     // Une panne PG est remontée : pas de repli silencieux qui ferait croire à
@@ -822,6 +742,7 @@ export const ProjectDataProvider: React.FC<{ children: React.ReactNode }> = ({ c
     if (isSupabaseConfigured()) {
       const pgForms = await fetchPgForms();
       const pgForm = pgForms.find(f => f.id === formId);
+      const userName = (user?.user_metadata?.full_name as string) || (user?.email?.split('@')[0]) || 'Candidat / Client';
       if (pgForm) {
         const subId = await submitPgForm(
           (pgForm as unknown as { pgId: string }).pgId ?? pgForm.id,
@@ -829,7 +750,7 @@ export const ProjectDataProvider: React.FC<{ children: React.ReactNode }> = ({ c
           data,
           {
             email: user?.email || (data.email as string) || 'visiteur@viva-eventsolutions.cd',
-            name: submittedByName || (data.fullName as string) || user?.displayName || 'Candidat / Client',
+            name: submittedByName || (data.fullName as string) || userName,
           },
         );
         setFormSubmissions(prev => [{
@@ -837,9 +758,9 @@ export const ProjectDataProvider: React.FC<{ children: React.ReactNode }> = ({ c
           formId,
           formName: pgForm.name,
           data,
-          submittedBy: user?.uid || 'visitor',
+          submittedBy: user?.id || 'visitor',
           submittedByEmail: user?.email || (data.email as string) || 'visiteur@viva-eventsolutions.cd',
-          submittedByName: submittedByName || (data.fullName as string) || user?.displayName || 'Candidat / Client',
+          submittedByName: submittedByName || (data.fullName as string) || userName,
           status: 'soumis',
           submittedAt: new Date().toISOString(),
         }, ...prev]);
@@ -849,6 +770,7 @@ export const ProjectDataProvider: React.FC<{ children: React.ReactNode }> = ({ c
       console.warn('[Supabase] Formulaire absent de Postgres, repli legacy :', formId);
     }
 
+    const userName = (user?.user_metadata?.full_name as string) || (user?.email?.split('@')[0]) || 'Candidat / Client';
     const submissionId = `sub-${Date.now()}`;
 
     const submission: FormSubmission = {
@@ -856,9 +778,9 @@ export const ProjectDataProvider: React.FC<{ children: React.ReactNode }> = ({ c
       formId,
       formName: targetForm?.name || 'Formulaire VIVA',
       data,
-      submittedBy: user?.uid || 'visitor',
+      submittedBy: user?.id || 'visitor',
       submittedByEmail: user?.email || (data.email as string) || 'visiteur@viva-eventsolutions.cd',
-      submittedByName: submittedByName || (data.fullName as string) || user?.displayName || 'Candidat / Client',
+      submittedByName: submittedByName || (data.fullName as string) || userName,
       status: 'soumis',
       submittedAt: new Date().toISOString()
     };
@@ -868,12 +790,7 @@ export const ProjectDataProvider: React.FC<{ children: React.ReactNode }> = ({ c
     // Update submissions count on form
     setDynamicForms(prev => prev.map(f => f.id === formId ? { ...f, submissionsCount: (f.submissionsCount || 0) + 1 } : f));
 
-    await setFirestoreDocument('form_submissions', submissionId, submission);
-
-    logAuditEvent({
-      action: 'DYNAMIC_FORM_SUBMITTED',
-      resource: 'form_submissions',
-      resourceId: submissionId,
+    void logAudit('DYNAMIC_FORM_SUBMITTED', 'form_submissions', submissionId, {
       details: `Soumission reçue pour formulaire: ${submission.formName}`
     });
 
@@ -906,10 +823,7 @@ export const ProjectDataProvider: React.FC<{ children: React.ReactNode }> = ({ c
       setMediaItems(prev => [newMedia, ...prev]);
     }
 
-    logAuditEvent({
-      action: 'MEDIA_ITEM_CREATED',
-      resource: 'media',
-      resourceId: newId,
+    void logAudit('MEDIA_ITEM_CREATED', 'media', newId, {
       details: `Nouveau média : ${newMedia.title} (${newMedia.type})`
     });
   };
@@ -939,18 +853,14 @@ export const ProjectDataProvider: React.FC<{ children: React.ReactNode }> = ({ c
         console.error('[Supabase Wave 2] Suppression média refusée :', e);
         throw e;
       }
-    } else if (current?.storagePath || current?.url.includes('firebasestorage.googleapis.com')) {
+    } else if (current?.storagePath) {
       await deleteEnterpriseStorageFile(
-        current.storagePath ?? current.url,
+        current.storagePath,
         current.storageBucket,
       );
     }
     setMediaItems(prev => prev.filter(m => m.id !== id));
-    logAuditEvent({
-      action: 'MEDIA_ITEM_DELETED',
-      resource: 'media',
-      resourceId: id
-    });
+    void logAudit('MEDIA_ITEM_DELETED', 'media', id, {});
   };
 
   const updateYouTubeConfig = async (cfg: Partial<YouTubeChannelConfig>) => {
@@ -966,26 +876,9 @@ export const ProjectDataProvider: React.FC<{ children: React.ReactNode }> = ({ c
         throw e;
       }
     } else {
-      setYouTubeConfig(prev => {
-        const merged = { ...prev, ...cfg };
-        setFirestoreDocument('platform_config', 'youtube', merged)
-          .catch(e => console.warn('[Firebase] YouTube config persist notice:', e));
-        return merged;
-      });
+      setYouTubeConfig(prev => ({ ...prev, ...cfg }));
     }
-    if (!isSupabaseConfigured()) {
-      logAuditEvent({
-        action: 'YOUTUBE_CONFIG_UPDATED',
-        resource: 'platform_config',
-        details: 'Configuration chaîne YouTube mise à jour.'
-      });
-      return;
-    }
-    logAuditEvent({
-      action: 'YOUTUBE_CONFIG_UPDATED',
-      resource: 'platform_config',
-      details: 'Configuration chaîne YouTube mise à jour.'
-    });
+    void logAudit('YOUTUBE_CONFIG_UPDATED', 'youtube_config', 'main', {});
   };
 
   const updateCmsSections = async (secs: CmsSectionItem[]) => {
@@ -1022,9 +915,7 @@ export const ProjectDataProvider: React.FC<{ children: React.ReactNode }> = ({ c
       setCmsSections(secs);
     }
 
-    logAuditEvent({
-      action: 'CMS_SECTIONS_UPDATED',
-      resource: 'cms_sections',
+    void logAudit('CMS_SECTIONS_UPDATED', 'cms_sections', undefined, {
       details: `${secs.length} sections CMS mises à jour.`
     });
   };
@@ -1071,7 +962,7 @@ export const ProjectDataProvider: React.FC<{ children: React.ReactNode }> = ({ c
       draftPrimaryButtonText: draftData.draftPrimaryButtonText ?? draftData.primaryButtonText ?? target.draftPrimaryButtonText ?? target.primaryButtonText,
       draftSecondaryButtonText: draftData.draftSecondaryButtonText ?? draftData.secondaryButtonText ?? target.draftSecondaryButtonText ?? target.secondaryButtonText,
       lastModified: new Date().toISOString(),
-      author: auth.currentUser?.displayName || auth.currentUser?.email || 'Super Administrateur'
+      author: 'Super Administrateur'
     };
 
     // Wave 2 — brouillon = copie de travail PG (colonnes title/content/…, status draft).
@@ -1097,10 +988,7 @@ export const ProjectDataProvider: React.FC<{ children: React.ReactNode }> = ({ c
 
     setCmsSections(prev => prev.map(s => s.id === target.id ? updatedItem : s));
 
-    logAuditEvent({
-      action: 'CMS_DRAFT_SAVED',
-      resource: 'cms_sections',
-      resourceId: target.id,
+    void logAudit('CMS_DRAFT_SAVED', 'cms_sections', target.id, {
       details: `Brouillon enregistré pour la clé CMS: ${target.contentKey}`
     });
   };
@@ -1139,7 +1027,7 @@ export const ProjectDataProvider: React.FC<{ children: React.ReactNode }> = ({ c
           content: newContent,
           oldValue: target.publishedContent || target.content,
           newValue: newContent,
-          author: auth.currentUser?.displayName || auth.currentUser?.email || 'Super Administrateur',
+          author: 'Super Administrateur',
         });
         await logAudit('CMS_ITEM_PUBLISHED', 'cms_sections', target.contentKey, {
           contentKey: target.contentKey,
@@ -1153,7 +1041,7 @@ export const ProjectDataProvider: React.FC<{ children: React.ReactNode }> = ({ c
     const newVersion = {
       versionId: `v-${Date.now()}`,
       timestamp: new Date().toISOString(),
-      author: auth.currentUser?.displayName || auth.currentUser?.email || 'Super Administrateur',
+      author: 'Super Administrateur',
       title: newTitle,
       content: newContent,
       oldValue: target.publishedContent || target.content,
@@ -1179,7 +1067,7 @@ export const ProjectDataProvider: React.FC<{ children: React.ReactNode }> = ({ c
       draftSecondaryButtonText: undefined,
       status: 'published',
       lastModified: new Date().toISOString(),
-      author: auth.currentUser?.displayName || auth.currentUser?.email || 'Super Administrateur',
+      author: 'Super Administrateur',
       versions: [newVersion, ...(target.versions || [])]
     };
 
@@ -1193,23 +1081,14 @@ export const ProjectDataProvider: React.FC<{ children: React.ReactNode }> = ({ c
       updatePlatformConfig({ heroSubtitle: newContent });
     }
 
-    logAuditEvent({
-      action: 'CMS_ITEM_PUBLISHED',
-      resource: 'cms_sections',
-      resourceId: target.id,
+    void logAudit('CMS_ITEM_PUBLISHED', 'cms_sections', target.id, {
       details: `Publication officielle de la section: ${target.title} (${target.contentKey})`
     });
   };
 
   const updatePlatformConfig = (newConfig: Partial<PlatformContentConfig>) => {
-    setPlatformConfig(prev => {
-      const merged = { ...prev, ...newConfig };
-      setFirestoreDocument('platform_config', 'main', merged).catch(e => console.warn('[Firebase] Platform config persist notice:', e));
-      return merged;
-    });
-    logAuditEvent({
-      action: 'PLATFORM_CONFIG_UPDATED',
-      resource: 'platform_config',
+    setPlatformConfig(prev => ({ ...prev, ...newConfig }));
+    void logAudit('PLATFORM_CONFIG_UPDATED', 'platform_config', 'main', {
       details: 'Paramètres globaux plateforme modifiés.'
     });
   };
@@ -1218,12 +1097,7 @@ export const ProjectDataProvider: React.FC<{ children: React.ReactNode }> = ({ c
     setDepartments(prev =>
       prev.map(dept => (dept.id === id ? { ...dept, ...updatedData } : dept))
     );
-    updateFirestoreDocument('departments', String(id), updatedData)
-      .catch(e => console.warn('[Firebase] Department update notice:', e));
-    logAuditEvent({
-      action: 'DEPARTMENT_UPDATED',
-      resource: 'departments',
-      resourceId: String(id),
+    void logAudit('DEPARTMENT_UPDATED', 'departments', String(id), {
       details: 'Département mis à jour.'
     });
   };
@@ -1232,12 +1106,7 @@ export const ProjectDataProvider: React.FC<{ children: React.ReactNode }> = ({ c
     const newId = departments.length > 0 ? Math.max(...departments.map(d => d.id)) + 1 : 1;
     const newDept: Department = { ...deptData, id: newId };
     setDepartments(prev => [...prev, newDept]);
-    setFirestoreDocument('departments', String(newId), newDept)
-      .catch(e => console.warn('[Firebase] Department creation notice:', e));
-    logAuditEvent({
-      action: 'DEPARTMENT_CREATED',
-      resource: 'departments',
-      resourceId: String(newId),
+    void logAudit('DEPARTMENT_CREATED', 'departments', String(newId), {
       details: `Département créé : ${String((newDept as any).name || newId)}`
     });
   };
@@ -1262,10 +1131,7 @@ export const ProjectDataProvider: React.FC<{ children: React.ReactNode }> = ({ c
     }
     setProjects(prev => [newProject, ...prev]);
 
-    logAuditEvent({
-      action: 'PROJECT_CREATED',
-      resource: 'projects',
-      resourceId: newId,
+    void logAudit('PROJECT_CREATED', 'projects', newId, {
       details: `Projet créé : ${newProject.title} (${code})`
     });
     platformSession.logDomainEvent('projet', `Projet créé : ${newProject.title} (${code})`);
@@ -1363,10 +1229,7 @@ export const ProjectDataProvider: React.FC<{ children: React.ReactNode }> = ({ c
       prev.map(q => (q.id === id ? { ...q, status } : q))
     );
 
-    logAuditEvent({
-      action: 'QUOTE_STATUS_UPDATED',
-      resource: 'quotes',
-      resourceId: id,
+    void logAudit('QUOTE_STATUS_UPDATED', 'quotes', id, {
       details: `Statut du devis changé en : ${status}`
     });
   };
@@ -1383,10 +1246,6 @@ export const ProjectDataProvider: React.FC<{ children: React.ReactNode }> = ({ c
           : e
       )
     );
-    updateFirestoreDocument('equipment', id, {
-      quantityAvailable,
-      ...(condition ? { condition } : {})
-    }).catch(e => console.warn('[Firebase] Equipment stock update notice:', e));
   };
 
   const updatePartnerStatus = (id: string, status: Partner['status'], rating?: number) => {
@@ -1401,10 +1260,6 @@ export const ProjectDataProvider: React.FC<{ children: React.ReactNode }> = ({ c
           : p
       )
     );
-    updateFirestoreDocument('partners', id, {
-      status,
-      ...(rating !== undefined ? { rating } : {})
-    }).catch(e => console.warn('[Firebase] Partner status update notice:', e));
   };
 
   const askLiveQuestion = (author: string, affiliation: string, content: string) => {

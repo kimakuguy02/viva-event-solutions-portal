@@ -1,6 +1,4 @@
-// Client Supabase officiel — SOURCE DE VÉRITÉ FUTURE
-// ÉTAPE 1 migration : connexion seule, aucune lecture/écriture métier ici.
-// Firebase / Express / localStorage restent actifs (migration contrôlée PHASE 1).
+// Client Supabase officiel — SOURCE UNIQUE DE VÉRITÉ
 // Règle : VITE_* = clés publiques (anon) uniquement. service_role = serveur/Edge jamais frontend.
 
 import { createClient, type SupabaseClient } from '@supabase/supabase-js';
@@ -15,7 +13,7 @@ export const SUPABASE_CONFIG_ERROR: string | null = !SUPABASE_URL
     : null;
 
 if (SUPABASE_CONFIG_ERROR) {
-  console.warn(`[Supabase] ${SUPABASE_CONFIG_ERROR} Le client n'est pas initialisé ; l'app continue sur Firebase/Express.`);
+  console.warn(`[Supabase] ${SUPABASE_CONFIG_ERROR} Le client n'est pas initialisé ; vérifiez votre configuration d'environnement.`);
 }
 
 // Client unique. Si env absentes, on n'initialise pas pour éviter un faux succès.

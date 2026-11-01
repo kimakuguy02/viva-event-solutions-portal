@@ -387,7 +387,7 @@ export const OnlineTicketingModule: React.FC = () => {
                     <User className="absolute left-3.5 top-3.5 w-4 h-4 text-slate-400" />
                     <input
                       type="text"
-                      placeholder="Ex: Malthus Kilumba"
+                      placeholder="Ex: Landry Mwamba"
                       value={clientName}
                       onChange={e => setClientName(e.target.value)}
                       className="w-full pl-10 pr-4 py-3 rounded-2xl bg-slate-50 border border-slate-200 text-xs font-medium text-slate-900 focus:outline-none focus:border-[var(--viva-primary)]"

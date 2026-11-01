@@ -2,27 +2,11 @@ import React, { createContext, useContext, useState, useEffect, useCallback, use
 import { User, UserRole } from '../types';
 import { ApiClient } from '../services/apiClient';
 import { supabase, isSupabaseConfigured } from '../services/supabase';
-import {
-  auth as firebaseAuth,
-} from '../services/firebase';
-import {
-  onAuthStateChanged,
-  signInWithEmailAndPassword,
-  signOut as firebaseSignOut,
-  sendPasswordResetEmail,
-  updatePassword,
-  GoogleAuthProvider,
-  signInWithPopup,
-  User as FirebaseUser,
-} from 'firebase/auth';
-import { doc, getDoc } from 'firebase/firestore';
-import { db as firebaseDb } from '../services/firebase';
 
 /* =====================================================================
-   AUTHENTIFICATION VIVA — PHASE 2
+   AUTHENTIFICATION VIVA — SUPABASE EXCLUSIVE
    Autorité : Supabase Auth + profiles/roles (RULE-001/003).
-   Firebase/Express = LEGACY (repli non privilégié tant que le schéma
-   distant 001→007 n'est pas déployé — cf. REMOTE SCHEMA NOT DEPLOYED).
+   Source unique de vérité : PostgreSQL / Supabase.
    AUCUN bypass : pas de loginAsClient, pas de setUserRole, pas d'auto-admin
    par email. Le rôle vient de PostgreSQL, jamais du navigateur.
    ===================================================================== */
@@ -78,23 +62,23 @@ export const OFFICIAL_VIVA_WORKERS: VIVAWorker[] = [
   },
   {
     id: 'usr-dg-002',
-    name: 'MALTHUS KILUMBA WA BANZA',
-    email: 'malthus.kilumba@viva-eventsolutions.cd',
+    name: 'Direction Générale & Gérance',
+    email: 'dg@viva-eventsolutions.cd',
     role: 'dg_gerant',
     jobTitle: 'DG / Gérance (Directeur Général & Gérant Statutaire)',
     directionName: '01. Direction Générale & Stratégie',
-    phone: '+243 81 500 0001',
+    phone: '+243 00 000 0001',
     avatarColor: '#F59E0B',
     description: 'Vision stratégique, budgets annuels, validation investissements majeurs, accès exécutif étendu',
   },
   {
     id: 'usr-adm-003',
-    name: 'MALTHUS KILUMBA WA BANZA (Admin RH)',
-    email: 'admin.malthus@viva-eventsolutions.cd',
+    name: 'Direction des Ressources Humaines',
+    email: 'rh@viva-eventsolutions.cd',
     role: 'admin_rh',
-    jobTitle: 'Directeur Général & Administrateur',
+    jobTitle: 'Direction Administrative & RH',
     directionName: '02. Administration & Ressources Humaines',
-    phone: '+243 81 500 0002',
+    phone: '+243 00 000 0002',
     avatarColor: '#3B82F6',
     description: 'Gestion opérationnelle, ressources humaines, fiches de poste, conformité administrative et arbitrage',
   },
@@ -263,36 +247,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     [fetchSupabaseProfile, toAppUser],
   );
 
-  /* ---------------- LEGACY (repli non privilégié, distant non déployé) ---------------- */
-  const applyLegacyFirebaseUser = useCallback(async (fbUser: FirebaseUser) => {
-    // LEGACY : lecture du profil Firestore existant, SANS auto-promotion.
-    // Tout nouveau profil = rôle minimal 'client'. Aucun SUPER_ADMIN attribué ici.
-    let firestoreData: { name?: string; email?: string; role?: UserRole; phone?: string; permissions?: string[] } | null = null;
-    try {
-      const snap = await getDoc(doc(firebaseDb, 'users', fbUser.uid));
-      if (snap.exists()) firestoreData = snap.data() as typeof firestoreData;
-    } catch (e) {
-      console.warn('[LEGACY Auth] Firestore profile fetch notice:', e);
-    }
-    const mapped: User = {
-      id: fbUser.uid,
-      name: firestoreData?.name || fbUser.displayName || 'Utilisateur VIVA',
-      email: firestoreData?.email || fbUser.email || '',
-      role: (firestoreData?.role as UserRole) || 'client',
-      phone: firestoreData?.phone,
-      organization: 'VIVA EVENT SOLUTIONS SARLU',
-      permissions: firestoreData?.permissions || [],
-    };
-    // Garde anti-escalade legacy : jamais de rôle staff sans profil Firestore existant.
-    if (!firestoreData && (mapped.role === 'admin' || mapped.role === 'admin_general')) {
-      mapped.role = 'client';
-    }
-    setRoleCode(null);
-    setCurrentUser(mapped);
-    setIsSimulatingVisitor(false);
-    setAuthMode('legacy');
-  }, []);
-
   /* ---------------- Init session ---------------- */
   useEffect(() => {
     let cancelled = false;
@@ -308,46 +262,41 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
               return;
             } catch (e) {
               if (!isSchemaMissingError(e)) throw e;
-              schemaMissingRef.current = true; // REMOTE SCHEMA NOT DEPLOYED → repli legacy
+              schemaMissingRef.current = true;
             }
           }
         }
       } catch (e) {
         console.warn('[Auth] Supabase session init notice:', e);
       }
-      // Repli LEGACY : état Firebase existant (prototype conservé, non privilégié)
+      // Repli Express API si session existante
       try {
-        const fbUser = firebaseAuth.currentUser;
-        if (fbUser && !cancelled) {
-          await applyLegacyFirebaseUser(fbUser);
-        } else if (!cancelled) {
-          const legacyToken = ApiClient.getToken();
-          if (legacyToken) {
-            try {
-              const res = await ApiClient.getMe();
-              if (res?.user && !cancelled) {
-                setCurrentUser({
-                  id: res.user.id,
-                  name: res.user.name,
-                  email: res.user.email,
-                  role: (res.user.role as UserRole) || 'client',
-                  phone: res.user.phone,
-                  organization: 'VIVA EVENT SOLUTIONS SARLU',
-                  permissions: res.user.permissions || [],
-                });
-                setRoleCode(null);
-                setAuthMode('legacy');
-                return;
-              }
-            } catch {
-              ApiClient.setToken(null);
+        const legacyToken = ApiClient.getToken();
+        if (legacyToken && !cancelled) {
+          try {
+            const res = await ApiClient.getMe();
+            if (res?.user && !cancelled) {
+              setCurrentUser({
+                id: res.user.id,
+                name: res.user.name,
+                email: res.user.email,
+                role: (res.user.role as UserRole) || 'client',
+                phone: res.user.phone,
+                organization: 'VIVA EVENT SOLUTIONS SARLU',
+                permissions: res.user.permissions || [],
+              });
+              setRoleCode(null);
+              setAuthMode('legacy');
+              return;
             }
+          } catch {
+            ApiClient.setToken(null);
           }
-          if (!cancelled) {
-            setCurrentUser(DEFAULT_VISITOR_USER);
-            setRoleCode(null);
-            setAuthMode('anonymous');
-          }
+        }
+        if (!cancelled) {
+          setCurrentUser(DEFAULT_VISITOR_USER);
+          setRoleCode(null);
+          setAuthMode('anonymous');
         }
       } finally {
         if (!cancelled) setLoading(false);
@@ -363,24 +312,16 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         } catch (e) {
           if (isSchemaMissingError(e)) {
             schemaMissingRef.current = true;
-            return; // reste sur l'état legacy existant
+            return;
           }
           setAuthError(e instanceof Error ? e.message : String(e));
         }
       });
       supaUnsub = () => listener.subscription.unsubscribe();
     }
-    const unsubLegacy = onAuthStateChanged(firebaseAuth, async (fbUser) => {
-      if (cancelled || authModeRef.current === 'supabase') return;
-      if (fbUser) {
-        await applyLegacyFirebaseUser(fbUser);
-      }
-      setLoading(false);
-    });
     return () => {
       cancelled = true;
       supaUnsub?.();
-      unsubLegacy();
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -437,36 +378,29 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         }
       }
     }
-    // 2) LEGACY : Firebase puis Express (prototype, non privilégié, sans auto-admin)
+    // 2) Repli Serveur Express API
     try {
-      const userCredential = await signInWithEmailAndPassword(firebaseAuth, cleanEmail, password);
-      await applyLegacyFirebaseUser(userCredential.user);
-      showToast('🛡️ Authentifié (LEGACY Firebase — migrer vers Supabase).');
-      return { success: true };
-    } catch {
-      try {
-        const res = await ApiClient.login(cleanEmail, password);
-        if (res?.success && res.user) {
-          setCurrentUser({
-            id: res.user.id,
-            name: res.user.name,
-            email: res.user.email,
-            role: (res.user.role as UserRole) || 'client',
-            phone: res.user.phone,
-            organization: 'VIVA EVENT SOLUTIONS SARLU',
-            permissions: res.user.permissions || [],
-          });
-          setRoleCode(null);
-          setAuthMode('legacy');
-          setIsSimulatingVisitor(false);
-          showToast('🛡️ Session vérifiée (LEGACY Express — migrer vers Supabase).');
-          return { success: true };
-        }
-      } catch {
-        /* noop */
+      const res = await ApiClient.login(cleanEmail, password);
+      if (res?.success && res.user) {
+        setCurrentUser({
+          id: res.user.id,
+          name: res.user.name,
+          email: res.user.email,
+          role: (res.user.role as UserRole) || 'client',
+          phone: res.user.phone,
+          organization: 'VIVA EVENT SOLUTIONS SARLU',
+          permissions: res.user.permissions || [],
+        });
+        setRoleCode(null);
+        setAuthMode('legacy');
+        setIsSimulatingVisitor(false);
+        showToast('🛡️ Session vérifiée via le serveur d\'administration.');
+        return { success: true };
       }
-      return { success: false, error: 'Identifiants incorrects. Veuillez vérifier votre adresse e-mail et mot de passe.' };
+    } catch {
+      /* noop */
     }
+    return { success: false, error: 'Identifiants incorrects. Veuillez vérifier votre adresse e-mail et mot de passe.' };
   };
 
   const loginWithServer = signIn;
@@ -502,27 +436,17 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const loginWithGoogle = async (): Promise<{ success: boolean; error?: string }> => {
-    // Cible : OAuth Supabase (à configurer côté dashboard) ; repli LEGACY Firebase.
     if (isSupabaseConfigured() && supabase && !schemaMissingRef.current) {
       const { error } = await supabase.auth.signInWithOAuth({ provider: 'google' });
       if (!error) return { success: true };
-      console.warn('[Auth] Supabase OAuth notice:', error.message);
+      return { success: false, error: error.message };
     }
-    try {
-      const provider = new GoogleAuthProvider();
-      const result = await signInWithPopup(firebaseAuth, provider);
-      await applyLegacyFirebaseUser(result.user);
-      showToast('🎉 Connexion Google réussie (LEGACY — migrer vers Supabase).');
-      return { success: true };
-    } catch (err: unknown) {
-      return { success: false, error: err instanceof Error ? err.message : 'Échec de connexion avec Google.' };
-    }
+    return { success: false, error: 'Connexion Google indisponible : client Supabase non initialisé.' };
   };
 
   const logout = async () => {
     try {
       if (supabase) await supabase.auth.signOut();
-      await firebaseSignOut(firebaseAuth).catch(() => {});
       await ApiClient.logout().catch(() => {});
     } catch (err) {
       console.warn('[Auth] Logout warning:', err);
@@ -548,17 +472,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       }
       return { success: false, error: error.message };
     }
-    try {
-      await sendPasswordResetEmail(firebaseAuth, email.trim());
-      showToast('📧 Un lien de réinitialisation vous a été envoyé par e-mail. (LEGACY)');
-      return { success: true };
-    } catch (err: unknown) {
-      return { success: false, error: err instanceof Error ? err.message : "Impossible d'envoyer l'email de réinitialisation." };
-    }
+    return { success: false, error: 'Réinitialisation indisponible : Supabase non configuré.' };
   };
 
   const changePassword = async (newPassword: string): Promise<{ success: boolean; error?: string }> => {
-    if (authMode === 'supabase' && supabase) {
+    if (supabase) {
       const { error } = await supabase.auth.updateUser({ password: newPassword });
       if (!error) {
         showToast('🔒 Mot de passe mis à jour avec succès.');
@@ -566,16 +484,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       }
       return { success: false, error: error.message };
     }
-    if (!firebaseAuth.currentUser) {
-      return { success: false, error: 'Aucun utilisateur connecté.' };
-    }
-    try {
-      await updatePassword(firebaseAuth.currentUser, newPassword);
-      showToast('🔒 Mot de passe mis à jour avec succès. (LEGACY)');
-      return { success: true };
-    } catch (err: unknown) {
-      return { success: false, error: err instanceof Error ? err.message : 'Erreur lors de la mise à jour du mot de passe.' };
-    }
+    return { success: false, error: 'Aucune session Supabase active.' };
   };
 
   const refreshProfile = async () => {

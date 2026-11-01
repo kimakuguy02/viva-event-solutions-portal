@@ -25,7 +25,7 @@ export const INITIAL_DIRECTIONS_ORG: DirectionOrg[] = [
       { id: "sub-1-3", name: "Contrôle interne & performance", description: "Audit des processus et indicateurs de performance KPI", active: true },
       { id: "sub-1-4", name: "Partenariats & relations institutionnelles", description: "Liaison avec les ministères, présidences et organisations internationales", active: true }
     ],
-    associatedUsers: ["direction.generale@viva-eventsolutions.cd", "malthus.kilumba@viva-eventsolutions.cd"],
+    associatedUsers: ["direction.generale@viva-eventsolutions.cd", "dg@viva-eventsolutions.cd"],
     permissions: ["all_access", "god_mode", "approve_budget"]
   },
   {
@@ -43,7 +43,7 @@ export const INITIAL_DIRECTIONS_ORG: DirectionOrg[] = [
       { id: "sub-2-3", name: "Formation & développement des compétences", description: "Mise à niveau certifiée des techniciens et hôtesses", active: true },
       { id: "sub-2-4", name: "Relations sociales, discipline & bien-être au travail", description: "Climat social, hygiène et sécurité du personnel", active: true }
     ],
-    associatedUsers: ["admin.malthus@viva-eventsolutions.cd"],
+    associatedUsers: ["rh@viva-eventsolutions.cd"],
     permissions: ["manage_users", "view_payroll"]
   },
   {
@@ -184,9 +184,9 @@ export const INITIAL_ORG_UNITS: OrganizationUnit[] = [
     description: "Haute direction exécutive et vision globale de la société",
     order: 1,
     status: "actif",
-    responsibleName: "MALTHUS KILUMBA WA BANZA",
-    responsibleEmail: "malthus.kilumba@viva-eventsolutions.cd",
-    responsiblePhone: "+243 81 500 0001",
+    responsibleName: "Directeur Général",
+    responsibleEmail: "dg@viva-eventsolutions.cd",
+    responsiblePhone: "+243 00 000 0001",
     location: "Siège Social Kinshasa / Gombe",
     createdAt: "2026-01-01T08:00:00Z",
     updatedAt: "2026-03-01T08:00:00Z"
@@ -200,9 +200,9 @@ export const INITIAL_ORG_UNITS: OrganizationUnit[] = [
     description: "Gestion du capital humain, recrutement d'experts et paie",
     order: 2,
     status: "actif",
-    responsibleName: "Mme Clarisse MUKANYA",
+    responsibleName: "Responsable Ressources Humaines",
     responsibleEmail: "rh@viva-eventsolutions.cd",
-    responsiblePhone: "+243 81 500 0002",
+    responsiblePhone: "+243 00 000 0002",
     location: "Kinshasa / Gombe",
     createdAt: "2026-01-01T08:00:00Z",
     updatedAt: "2026-03-01T08:00:00Z"
@@ -216,7 +216,7 @@ export const INITIAL_ORG_UNITS: OrganizationUnit[] = [
     description: "Sourcing des profils d'ingénieurs du son, régisseurs et hôtesses",
     order: 1,
     status: "actif",
-    responsibleName: "Jean-Paul KASONGO",
+    responsibleName: "Responsable Recrutement",
     responsibleEmail: "recrutement@viva-eventsolutions.cd",
     createdAt: "2026-01-01T08:00:00Z",
     updatedAt: "2026-03-01T08:00:00Z"
@@ -232,7 +232,7 @@ export const INITIAL_ORG_UNITS: OrganizationUnit[] = [
     status: "actif",
     responsibleName: "Comptable Agréé SYSCOHADA",
     responsibleEmail: "comptable@viva-eventsolutions.cd",
-    responsiblePhone: "+243 81 500 0003",
+    responsiblePhone: "+243 00 000 0003",
     location: "Kinshasa / Gombe",
     createdAt: "2026-01-01T08:00:00Z",
     updatedAt: "2026-03-01T08:00:00Z"
@@ -246,9 +246,9 @@ export const INITIAL_ORG_UNITS: OrganizationUnit[] = [
     description: "Ingénierie du son, murs LED, éclairage architectural et énergie",
     order: 4,
     status: "actif",
-    responsibleName: "Ing. Serge ILUNGA",
+    responsibleName: "Chef des Opérations Techniques",
     responsibleEmail: "chef.operations@viva-eventsolutions.cd",
-    responsiblePhone: "+243 81 500 0004",
+    responsiblePhone: "+243 00 000 0004",
     location: "Base Logistique Limete & Hub Gombe",
     createdAt: "2026-01-01T08:00:00Z",
     updatedAt: "2026-03-01T08:00:00Z"

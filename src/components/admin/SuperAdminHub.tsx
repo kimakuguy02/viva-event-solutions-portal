@@ -74,8 +74,7 @@ type SubTab =
   | 'gemini-ai'
   | 'audit-history'
   | 'security'
-  | 'platform'
-  | 'firebase-state';
+  | 'platform';
 
 export const SuperAdminHub: React.FC<SuperAdminHubProps> = ({
   initialSubTab = 'overview',
@@ -122,7 +121,6 @@ export const SuperAdminHub: React.FC<SuperAdminHubProps> = ({
       { id: 'audit-history' as SubTab, number: '18', label: 'Historique & audit', icon: History },
       { id: 'security' as SubTab, number: '19', label: 'Sécurité', icon: Lock },
       { id: 'platform' as SubTab, number: '20', label: 'Labo plateforme', icon: Network },
-      { id: 'firebase-state' as SubTab, number: '21', label: 'Firebase / état du système', icon: Database },
     ],
     []
   );
@@ -296,32 +294,6 @@ export const SuperAdminHub: React.FC<SuperAdminHubProps> = ({
           {activeSubTab === 'audit-history' && <AuditCenter />}
 
           {activeSubTab === 'security' && <SecurityCenter />}
-
-          {activeSubTab === 'firebase-state' && (
-            <div className="space-y-4">
-              <div className="p-6 rounded-3xl bg-slate-900 border border-slate-800">
-                <div className="flex items-center gap-3">
-                  <Database className="w-5 h-5 text-blue-400" />
-                  <div>
-                    <h3 className="font-black text-white">Firebase / état du système</h3>
-                    <p className="text-xs text-slate-400">
-                      Les indicateurs ci-dessous reflètent uniquement les données disponibles
-                      dans le contexte React. Aucun état réseau n'est inventé.
-                    </p>
-                  </div>
-                </div>
-                <div className="mt-5 grid grid-cols-2 md:grid-cols-4 gap-3">
-                  {systemCounts.map((item) => (
-                    <div key={item.label} className="rounded-2xl bg-slate-950 border border-slate-800 p-4">
-                      <div className="text-xs text-slate-500">{item.label}</div>
-                      <div className="text-xl font-black text-white">{item.value}</div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-              <TechArchitectureViewer />
-            </div>
-          )}
         </main>
       </div>
     </div>

@@ -1,11 +1,11 @@
 export type UserRole = 
   | 'visitor' 
   | 'client' 
-  | 'dg_gerant'             // Joel TUVUVU NGOY KASONGO (DG / Gérance)
-  | 'admin_rh'              // Eric KAZADI LUYENGA (Administrateur Opérationnel & RH)
-  | 'daf_comptable'          // Patrick MUKENDI (Comptable / DAF)
-  | 'chef_equipe'           // Serge ILUNGA (Chef d'Équipe Opérationnel)
-  | 'commercial_secretaire' // Sarah KALONJI (Commercial / Secrétaire)
+  | 'dg_gerant'             // DG / Gérance Statutaire
+  | 'admin_rh'              // Administrateur Opérationnel & RH
+  | 'daf_comptable'          // Comptable / DAF
+  | 'chef_equipe'           // Chef d'Équipe Opérationnel
+  | 'commercial_secretaire' // Commercial & Secrétaire
   | 'admin'                 // compat
   | 'admin_general';        // compat
 

@@ -22,7 +22,7 @@ export const SessionAuthorityBanner: React.FC = () => {
     >
       <ShieldAlert className="w-5 h-5 shrink-0 text-amber-400 mt-0.5" />
       <p className="leading-relaxed">
-        <strong className="font-black">Session servie par l&apos;autorité legacy (Firebase / Express).</strong>{' '}
+        <strong className="font-black">Session servie par l&apos;autorité legacy (Express API).</strong>{' '}
         Le schéma Supabase n&apos;a pas répondu ou la session PostgreSQL est absente : les saisies faites
         maintenant n&apos;alimentent <strong>pas</strong> la base de production et ne seront pas reprises après
         bascule. Vérifiez les migrations 024, 026 et 027 puis reconnectez-vous avec un compte Supabase avant
