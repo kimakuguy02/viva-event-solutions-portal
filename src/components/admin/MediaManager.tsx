@@ -209,7 +209,7 @@ export const MediaManager: React.FC = () => {
             </h2>
           </div>
           <p className="text-xs text-slate-400 mt-1">
-            Publication des réalisations et photos dans la médiathèque, avec Firebase réservé aux sessions legacy.
+            Publication des réalisations et photos dans la médiathèque officielle Supabase Storage.
           </p>
         </div>
 
@@ -358,13 +358,13 @@ export const MediaManager: React.FC = () => {
         </div>
       )}
 
-      {/* 2. UPLOAD PHOTO (FIREBASE STORAGE) */}
+      {/* 2. UPLOAD PHOTO (SUPABASE STORAGE) */}
       {activeTab === 'upload_photo' && (
         <form onSubmit={handlePhotoSubmit} className="bg-slate-900 border border-slate-800 rounded-3xl p-6 sm:p-8 space-y-6 max-w-2xl">
           <div className="flex items-center gap-3 pb-3 border-b border-slate-800">
             <Upload className="w-5 h-5 text-amber-400" />
             <h3 className="font-bold text-white text-base">
-              Téléverser une Photo vers Firebase Storage
+              Téléverser une Photo vers Supabase Storage
             </h3>
           </div>
 

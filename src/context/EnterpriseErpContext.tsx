@@ -45,12 +45,6 @@ import {
   fetchCrmInteractions as fetchPgCrmInteractions,
   createCrmInteraction as createPgCrmInteraction,
 } from '../services/supabase/erpService';
-import { 
-  setFirestoreDocument, 
-  updateFirestoreDocument, 
-  logAuditEvent
-} from '../services/firebase';
-
 export type ErpSourceKey = 'transactions' | 'tasks' | 'crmClients' | 'crmInteractions' | 'cashClosures';
 
 export const ERP_SOURCE_LABELS: Record<ErpSourceKey, string> = {
@@ -393,13 +387,7 @@ export const EnterpriseErpProvider: React.FC<{ children: React.ReactNode }> = ({
     }
     setCrmClients(prev => [newClient, ...prev]);
 
-    setFirestoreDocument('crm_clients', newId, newClient)
-      .catch(e => console.warn('[Firebase ERP] CRM client persist notice:', e));
-    
-    logAuditEvent({
-      action: 'CRM_CLIENT_CREATED',
-      resource: 'crm_clients',
-      resourceId: newId,
+    void logAudit('CRM_CLIENT_CREATED', 'clients', newId, {
       details: `Création client : ${newClient.name} (${newClient.code})`
     });
   };
@@ -427,8 +415,6 @@ export const EnterpriseErpProvider: React.FC<{ children: React.ReactNode }> = ({
       }
     }
     setCrmClients(prev => prev.map(c => c.id === clientId ? { ...c, status } : c));
-    updateFirestoreDocument('crm_clients', clientId, { status })
-      .catch(e => console.warn('[Firebase ERP] CRM client status update notice:', e));
   };
 
   const addCrmInteraction = async (interaction: Omit<CrmInteraction, 'id'>) => {
@@ -750,13 +736,7 @@ export const EnterpriseErpProvider: React.FC<{ children: React.ReactNode }> = ({
     };
     setTasks(prev => [newTask, ...prev]);
 
-    setFirestoreDocument('erp_tasks', newId, newTask)
-      .catch(e => console.warn('[Firebase LEGACY mirror] Task persist notice:', e));
-
-    logAuditEvent({
-      action: 'ERP_TASK_CREATED',
-      resource: 'erp_tasks',
-      resourceId: newId,
+    void logAudit('ERP_TASK_CREATED', 'erp_tasks', newId, {
       details: `Tâche créée : ${newTask.title} (${newTask.projectCode})`
     });
     platformSession.logDomainEvent('tache', `Tâche créée : ${newTask.title} (${newTask.projectCode})`);
@@ -785,10 +765,6 @@ export const EnterpriseErpProvider: React.FC<{ children: React.ReactNode }> = ({
       return t;
     }));
 
-    updateFirestoreDocument('erp_tasks', taskId, {
-      status,
-      ...(completedAt ? { completedAt } : {})
-    }).catch(e => console.warn('[Firebase LEGACY mirror] Task status update notice:', e));
   };
 
   const addDailyFieldReport = (report: Omit<DailyFieldReport, 'id' | 'signedAt'>) => {

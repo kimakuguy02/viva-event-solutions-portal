@@ -19,7 +19,7 @@ app.use(express.json({ limit: '1mb' }));
 const isDevServer = process.argv.includes("--dev") || process.env.NODE_ENV === "development";
 const hasBuild = fs.existsSync(path.join(process.cwd(), "dist", "index.html"));
 
-// Security Headers (CSP compatible YouTube/Supabase/Firebase/Google — voir docs/SECURITY_ARCHITECTURE.md)
+// Security Headers (CSP compatible YouTube/Supabase/Google — voir docs/SECURITY_ARCHITECTURE.md)
 const isProduction = !isDevServer && (process.env.NODE_ENV === "production" || hasBuild);
 
 app.use((req, res, next) => {
@@ -39,7 +39,7 @@ app.use((req, res, next) => {
     "font-src 'self' https://fonts.gstatic.com; " +
     "img-src 'self' data: https:; " +
     "media-src 'self' https: blob:; " +
-    "connect-src 'self' https://*.supabase.co wss://*.supabase.co https://*.googleapis.com https://*.firebaseio.com; " +
+    "connect-src 'self' https://*.supabase.co wss://*.supabase.co https://*.googleapis.com; " +
     "frame-src https://www.youtube.com https://www.youtube-nocookie.com; " +
     "object-src 'none'; base-uri 'self'; frame-ancestors 'self'"
     );
