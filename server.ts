@@ -11,6 +11,7 @@ import { getDb, appendAuditLog } from "./server/db";
 const app = express();
 const PORT = Number(process.env.PORT) || 3000;
 
+app.set('trust proxy', 1);
 app.use(express.json({ limit: '1mb' }));
 
 // Le mode est explicite et multiplateforme : npm sous Windows exécute les
