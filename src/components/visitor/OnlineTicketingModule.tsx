@@ -639,14 +639,16 @@ export const OnlineTicketingModule: React.FC = () => {
 
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
             <button
-              onClick={() => alert("Téléchargement du e-billet PDF en cours...")}
+              type="button"
+              onClick={() => window.print()}
               className="px-6 py-3.5 rounded-2xl bg-[var(--viva-primary)] hover:bg-[var(--viva-primary-dark)] text-white text-xs font-bold flex items-center justify-center gap-2 shadow-lg transition-all cursor-pointer"
             >
               <Download className="w-4 h-4" />
-              <span>Télécharger mon e-Billet (PDF)</span>
+              <span>Imprimer / Sauvegarder mon e-Billet (PDF)</span>
             </button>
 
             <button
+              type="button"
               onClick={handleReset}
               className="px-6 py-3.5 rounded-2xl bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold flex items-center justify-center gap-2 transition-all cursor-pointer"
             >

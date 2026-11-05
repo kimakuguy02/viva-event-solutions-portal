@@ -336,10 +336,11 @@ export const InteractiveQuoteForm: React.FC<InteractiveQuoteFormProps> = ({
           <div className="flex justify-end pt-4">
             <button
               onClick={() => {
-                if (!eventName) {
-                  alert("Veuillez saisir le nom de l'événement.");
+                if (!eventName.trim()) {
+                  setValidationError("Veuillez saisir le nom ou l'intitulé de votre événement.");
                   return;
                 }
+                setValidationError(null);
                 setStep(2);
               }}
               className="px-6 py-2.5 rounded-full bg-[var(--viva-primary)] hover:bg-[var(--viva-primary-dark)] text-white font-semibold text-sm flex items-center gap-2 shadow-sm transition-all cursor-pointer"

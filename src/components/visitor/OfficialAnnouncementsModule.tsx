@@ -98,6 +98,7 @@ export const OfficialAnnouncementsModule: React.FC = () => {
     acceptedTerms: false
   });
   const [productSubmitSuccess, setProductSubmitSuccess] = useState(false);
+  const [productFormError, setProductFormError] = useState<string | null>(null);
 
   // Offres d'emploi : aucune offre simulée (salaires, échéances, « 24
   // candidatures »). Publier un poste qui n'existe pas engage l'entreprise
@@ -120,14 +121,16 @@ export const OfficialAnnouncementsModule: React.FC = () => {
     acceptedTerms: false
   });
   const [candidateSubmitSuccess, setCandidateSubmitSuccess] = useState(false);
+  const [candidateFormError, setCandidateFormError] = useState<string | null>(null);
 
   // Soumission d'annonce Produit / Service
   const handleProductSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!productForm.title || !productForm.description || !productForm.acceptedTerms) {
-      alert('Veuillez remplir les champs obligatoires et accepter les conditions de publication.');
+      setProductFormError('Veuillez remplir les champs obligatoires et accepter les conditions de publication.');
       return;
     }
+    setProductFormError(null);
 
     const newAd: ProductServiceAnnouncement = {
       id: `prod-${Date.now()}`,
@@ -171,9 +174,10 @@ export const OfficialAnnouncementsModule: React.FC = () => {
   const handleCandidateSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!applicationForm.candidateLastName || !applicationForm.candidateFirstName || !applicationForm.phone || !applicationForm.acceptedTerms) {
-      alert('Veuillez renseigner vos informations obligatoires et accepter les conditions de candidature.');
+      setCandidateFormError('Veuillez renseigner vos informations obligatoires et accepter les conditions de candidature.');
       return;
     }
+    setCandidateFormError(null);
 
     if (selectedOffer) {
       setJobOffers(prev =>
@@ -417,6 +421,12 @@ export const OfficialAnnouncementsModule: React.FC = () => {
               </div>
             ) : (
               <form onSubmit={handleProductSubmit} className="space-y-4">
+                {productFormError && (
+                  <div className="p-3.5 rounded-xl bg-rose-50 border border-rose-200 text-rose-600 text-xs font-medium flex items-center gap-2">
+                    <AlertCircle className="w-4 h-4 shrink-0 text-rose-500" />
+                    <span>{productFormError}</span>
+                  </div>
+                )}
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   {/* Type d'annonce */}
                   <div className="space-y-1">
@@ -834,6 +844,12 @@ export const OfficialAnnouncementsModule: React.FC = () => {
               </div>
             ) : (
               <form onSubmit={handleCandidateSubmit} className="space-y-6">
+                {candidateFormError && (
+                  <div className="p-3.5 rounded-xl bg-rose-50 border border-rose-200 text-rose-600 text-xs font-medium flex items-center gap-2">
+                    <AlertCircle className="w-4 h-4 shrink-0 text-rose-500" />
+                    <span>{candidateFormError}</span>
+                  </div>
+                )}
                 {/* 5. INFORMATIONS DU CANDIDAT */}
                 <div className="space-y-3">
                   <h4 className="text-xs font-black text-slate-900 uppercase tracking-wider flex items-center gap-1.5 border-b border-slate-100 pb-2">

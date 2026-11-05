@@ -149,7 +149,8 @@ export const RolesManagerModal: React.FC<RolesManagerModalProps> = ({ isOpen, on
     if (!target) return;
     if (refuseServerProfile(target)) return;
     if (target.id === currentUser.id) {
-      alert("Impossible de suspendre votre propre compte Administrateur Général.");
+      setNotice("Action refusée : impossible de suspendre votre propre compte Administrateur Général.");
+      setTimeout(() => setNotice(null), 5000);
       return;
     }
 
@@ -169,7 +170,8 @@ export const RolesManagerModal: React.FC<RolesManagerModalProps> = ({ isOpen, on
     const target = users.find(u => u.id === userId);
     if (!target) return;
     if (target.id === currentUser.id || target.role === 'admin_general') {
-      alert("Impossible de supprimer le compte Administrateur Général principal.");
+      setNotice("Action refusée : impossible de supprimer le compte Administrateur Général principal.");
+      setTimeout(() => setNotice(null), 5000);
       return;
     }
     if (refuseServerProfile(target)) return;
