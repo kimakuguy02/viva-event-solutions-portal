@@ -21,6 +21,7 @@ export const ProjectDetailDrawer: React.FC<{ project: Project; onClose: () => vo
   const { tasks } = useEnterpriseErp();
   const { activePalette } = useTheme();
   const [err, setErr] = useState<string | null>(null);
+  const [successNotice, setSuccessNotice] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [msTitle, setMsTitle] = useState('');
   const [msDate, setMsDate] = useState('');
@@ -30,10 +31,14 @@ export const ProjectDetailDrawer: React.FC<{ project: Project; onClose: () => vo
 
   const save = async (patch: Partial<Project>, doneMsg?: string) => {
     setErr(null);
+    setSuccessNotice(null);
     setBusy(true);
     try {
       await updateProjectDetails(project.id, patch);
-      if (doneMsg) alert(doneMsg);
+      if (doneMsg) {
+        setSuccessNotice(doneMsg);
+        setTimeout(() => setSuccessNotice(null), 4000);
+      }
     } catch (e) {
       setErr(e instanceof Error ? e.message : String(e));
     } finally {
@@ -106,6 +111,7 @@ export const ProjectDetailDrawer: React.FC<{ project: Project; onClose: () => vo
           </div>
 
           {err && <p className="text-xs text-rose-500 font-bold">{err}</p>}
+          {successNotice && <p className="text-xs text-emerald-500 font-bold">{successNotice}</p>}
 
           <div className="flex flex-wrap items-center gap-2">
             <select
